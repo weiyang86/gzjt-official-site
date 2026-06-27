@@ -1,0 +1,32 @@
+# env
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# logs
+*.log
+logs/
+
+# node
+node_modules/
+dist/
+build/
+
+# docker runtime data
+database/
+uploads/
+backups/
+
+# editor
+.vscode/
+.idea/
+
+# temporary
+tmp/
+.temp/
+.cache/
+!.env.example
+!infra/directus/.env.example
