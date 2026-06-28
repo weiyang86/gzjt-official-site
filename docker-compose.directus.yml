@@ -1,0 +1,60 @@
+services:
+  directus-db:
+    image: postgres:16-alpine
+    container_name: gzjt-directus-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gzjt_cms}
+      POSTGRES_USER: ${POSTGRES_USER:-gzjt_cms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - ./.data/directus/database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - directus-local
+
+  directus:
+    image: ${DIRECTUS_IMAGE:-directus/directus:latest}
+    container_name: gzjt-directus
+    restart: unless-stopped
+    depends_on:
+      directus-db:
+        condition: service_healthy
+    ports:
+      - "8055:8055"
+    env_file:
+      - .env.directus
+    environment:
+      KEY: ${DIRECTUS_KEY:-change-me}
+      SECRET: ${DIRECTUS_SECRET:-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8055}
+      DB_CLIENT: pg
+      DB_HOST: directus-db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-gzjt_cms}
+      DB_USER: ${POSTGRES_USER:-gzjt_cms}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      CORS_ENABLED: "true"
+      CORS_ORIGIN: ${FRONTEND_URL:-http://localhost:3000},http://localhost:3010,http://127.0.0.1:3010,http://localhost:8055
+      CORS_CREDENTIALS: "true"
+    volumes:
+      - ./.data/directus/uploads:/directus/uploads
+      - ./.data/directus/extensions:/directus/extensions
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8055/server/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - directus-local
+
+networks:
+  directus-local:
+    name: gzjt-directus-local
