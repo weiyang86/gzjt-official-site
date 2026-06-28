@@ -65,40 +65,54 @@ const collections = [
   ['banners', '轮播'],
   ['articles', '文章'],
   ['site_settings', '站点配置'],
+  ['home_sections', '首页区块'],
+  ['quick_links', '快捷链接'],
+  ['friend_links', '友情链接'],
 ];
 
 const fields = {
   channels: [
     stringField('name', true), stringField('slug', true), selectField('type', ['nav', 'news', 'page', 'external']),
-    stringField('path'), integerField('sort'), booleanField('visible', true), selectField('status', ['enabled', 'disabled'], 'enabled'),
+    stringField('path'), stringField('source_file'), integerField('sort'), booleanField('visible', true), selectField('status', ['enabled', 'disabled'], 'enabled'),
   ],
   companies: [
     stringField('name', true), stringField('short_name'), stringField('slug', true), fileField('logo'), fileField('cover'),
-    textField('intro', 'input-rich-text-html'), stringField('address'), textField('main_business'), stringField('registered_capital'),
+    textField('intro', 'input-rich-text-html'), stringField('address'), textField('main_business'), stringField('registered_capital'), stringField('source_file'),
     integerField('sort'), selectField('status', ['enabled', 'disabled'], 'enabled'),
   ],
   business_sectors: [
-    stringField('name', true), stringField('slug', true), fileField('cover'), textField('intro', 'input-rich-text-html'),
+    stringField('name', true), stringField('slug', true), fileField('cover'), textField('intro', 'input-rich-text-html'), stringField('source_file'),
     integerField('sort'), selectField('status', ['enabled', 'disabled'], 'enabled'),
   ],
   pages: [
-    stringField('title', true), stringField('slug', true), fileField('cover'), textField('content', 'input-rich-text-html'),
+    stringField('title', true), stringField('slug', true), fileField('cover'), textField('content', 'input-rich-text-html'), stringField('source_file'),
     selectField('status', ['draft', 'published', 'archived'], 'draft'),
   ],
   banners: [
-    stringField('title', true), stringField('subtitle'), fileField('image'), stringField('link_url'),
+    stringField('title', true), stringField('subtitle'), fileField('image'), stringField('link_url'), stringField('source_file'),
     selectField('position', ['home', 'news', 'business', 'party'], 'home'), integerField('sort'),
     selectField('status', ['draft', 'published', 'archived'], 'draft'),
   ],
   articles: [
     stringField('title', true), stringField('subtitle'), fileField('cover'), textField('summary'), textField('content', 'input-rich-text-html'),
     stringField('source'), stringField('author'), datetimeField('publish_at'), selectField('status', ['draft', 'published', 'archived'], 'draft'),
-    booleanField('is_top', false), booleanField('is_home_recommend', false), integerField('sort'), filesField('attachments'),
+    booleanField('is_top', false), booleanField('is_home_recommend', false), integerField('sort'), filesField('attachments'), stringField('source_file'),
     m2oField('main_channel'), m2oField('related_company'), m2oField('related_sector'),
   ],
   site_settings: [
     stringField('site_name', true), fileField('logo'), textField('footer_text'), stringField('address'), stringField('phone'),
     stringField('email'), stringField('icp'), stringField('copyright'),
+  ],
+  home_sections: [
+    stringField('title', true), stringField('slug', true), stringField('subtitle'), textField('description'), stringField('collection_key'), stringField('source_file'),
+    stringField('channel_slug'), integerField('limit'), integerField('sort'), selectField('status', ['enabled', 'disabled'], 'enabled'),
+  ],
+  quick_links: [
+    stringField('title', true), stringField('slug', true), stringField('url', true), stringField('position'), textField('summary'), stringField('source_file'),
+    fileField('icon'), integerField('sort'), selectField('status', ['enabled', 'disabled'], 'enabled'),
+  ],
+  friend_links: [
+    stringField('title', true), stringField('url', true), stringField('position'), stringField('source_file'), integerField('sort'), selectField('status', ['enabled', 'disabled'], 'enabled'),
   ],
 };
 
@@ -138,6 +152,7 @@ const relations = [
   { collection: 'banners', field: 'image', related_collection: 'directus_files' },
   { collection: 'articles', field: 'cover', related_collection: 'directus_files' },
   { collection: 'site_settings', field: 'logo', related_collection: 'directus_files' },
+  { collection: 'quick_links', field: 'icon', related_collection: 'directus_files' },
   { collection: 'articles', field: 'main_channel', related_collection: 'channels' },
   { collection: 'articles', field: 'related_company', related_collection: 'companies' },
   { collection: 'articles', field: 'related_sector', related_collection: 'business_sectors' },
@@ -270,7 +285,36 @@ async function seedData(token) {
   if (settings?.id) await request(`/items/site_settings/${settings.id}`, { token, method: 'PATCH', body: payload });
   else await request('/items/site_settings', { token, method: 'POST', body: payload });
   log('Upserted seed: site_settings');
+
+  const homeSections = [
+    ['首页轮播', 'home-banners', 'banners', '', 3, 1],
+    ['集团新闻', 'home-group-news', 'articles', 'group-news', 5, 2],
+    ['业务动态', 'home-business-news', 'articles', 'business-news', 4, 3],
+    ['党建群团', 'home-party-mass', 'articles', 'party-mass', 4, 4],
+    ['公示公告', 'home-announcements', 'articles', 'announcements', 4, 5],
+  ];
+  for (const [title, slug, collectionKey, channelSlug, limit, sort] of homeSections) {
+    await upsertBySlug(token, 'home_sections', slug, { title, collection_key: collectionKey, channel_slug: channelSlug, limit, sort, status: 'enabled' });
+  }
+
+  const quickLinks = [
+    ['了解集团', 'home-about', '/pages/about/index.html', 'home', 1],
+    ['新闻中心', 'home-news', '/pages/news/index.html', 'home', 2],
+    ['业务板块', 'home-business', '/pages/business/index.html', 'home', 3],
+    ['联系我们', 'home-contact', '/pages/contact/index.html', 'home', 4],
+  ];
+  for (const [title, slug, url, position, sort] of quickLinks) {
+    await upsertBySlug(token, 'quick_links', slug, { title, url, position, sort, status: 'enabled' });
+  }
+
+  const friendLinks = [
+    ['甘孜建投官网首页', '/A版官网首页.html', 'footer', 1],
+  ];
+  for (const [title, url, position, sort] of friendLinks) {
+    await upsertByTitle(token, 'friend_links', title, { url, position, sort, status: 'enabled' });
+  }
 }
+
 
 
 async function getRoleByName(token, name) {

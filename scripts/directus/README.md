@@ -169,3 +169,74 @@ docker compose --env-file .env.directus -f docker-compose.directus.yml up -d
 - 只读查看员不应创建、更新、删除任何内容。
 
 详细角色矩阵见 `docs/06-directus-customer-roles.md`。
+
+## 8. 从现有前端静态内容生成并导入 Directus seed
+
+CMS-05A 增加了“先提取、再复核、最后导入”的流程，避免脚本直接猜测复杂页面结构并写入 Directus。
+
+### 1) 重新执行基础模型初始化
+
+新增的 `home_sections`、`quick_links`、`friend_links` 以及 `source_file` 字段由 bootstrap 脚本幂等创建：
+
+```bash
+set -a
+source .env.directus
+set +a
+DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
+```
+
+### 2) 执行静态内容提取
+
+```bash
+node scripts/directus/extract-static-content.mjs
+```
+
+脚本会扫描 `web/` 现有 HTML 页面并生成：
+
+```text
+scripts/directus/seed-from-web.generated.json
+```
+
+如果文件已存在，脚本默认不会覆盖。需要重新生成时执行：
+
+```bash
+node scripts/directus/extract-static-content.mjs --force
+```
+
+### 3) 复核 seed-from-web.generated.json
+
+导入前必须人工复核：
+
+- `source_file` 是否正确记录来源页面；
+- `uncertain=true` 的内容是否需要删除、改标题或改栏目；
+- 图片路径是否仍是静态路径，是否需要后续手工上传到 Directus Files；
+- 文章是否应归入正确 `channel_slug`；
+- `quick_links` / `friend_links` 是否存在无效链接。
+
+如果自动提取不准确，请直接手工修改 `seed-from-web.generated.json`，再执行导入。
+
+### 4) 执行静态内容导入
+
+```bash
+set -a
+source .env.directus
+set +a
+DIRECTUS_URL=http://localhost:8055 node scripts/directus/import-static-content.mjs
+```
+
+导入脚本会按 `slug`、`title`、`source_file` 查重，默认跳过已存在内容，不删除客户已维护数据，也不覆盖客户已编辑内容。
+
+如确需用 JSON 覆盖已存在数据，可显式设置：
+
+```bash
+FORCE_UPDATE=true DIRECTUS_URL=http://localhost:8055 node scripts/directus/import-static-content.mjs
+```
+
+### 5) 验证 Directus 数据
+
+```bash
+curl 'http://localhost:8055/items/pages?fields=id,title,slug,source_file&limit=5'
+curl 'http://localhost:8055/items/articles?fields=id,title,status,source_file&limit=5'
+curl 'http://localhost:8055/items/quick_links?fields=id,title,url,source_file&limit=5'
+curl 'http://localhost:8055/items/home_sections?fields=id,title,slug,channel_slug,status&limit=10'
+```

@@ -215,3 +215,27 @@
 - 前台列表接口默认追加 `status=published` 或 `status=enabled` 条件。
 - 详情页按 `id` 或 `slug` 查询时，也必须附加发布状态过滤，防止草稿泄露。
 - 首页建议一次性聚合所需数据，或由 `web/services/cms-api/` 提供 BFF 接口，降低静态页面复杂度。
+
+
+## 12. 前端内容盘点后的模型优化
+
+根据现有 `web/` 前端页面盘点，建议在原有模型基础上新增以下集合，用于承载“可由后台维护、但不适合放入 articles/pages 的首页和全站配置型内容”：
+
+| 集合 | 是否新增 | 用途 | 主要字段 |
+| --- | --- | --- | --- |
+| `home_sections` | 是 | 首页区块配置，例如集团新闻区块、业务动态区块、党建群团区块、公示公告区块的标题、简介、排序、启用状态 | `title`、`slug`、`subtitle`、`description`、`collection_key`、`channel_slug`、`limit`、`sort`、`status` |
+| `quick_links` | 是 | 首页快速入口、栏目页快捷按钮、底部相关推荐等可维护链接 | `title`、`slug`、`url`、`position`、`summary`、`icon`、`sort`、`status` |
+| `friend_links` | 是 | 友情链接、底部外链、相关站点入口 | `title`、`url`、`position`、`sort`、`status` |
+| `home_metrics` | 暂不新增 | 当前确认的首页入口 `web/A版官网首页.html` 未发现独立数字指标模块；业务板块和社会责任页存在数字展示，但可先保持静态或后续按页面级需求建模 | 暂无 |
+
+### 建模边界
+
+- 首页轮播仍使用 `banners`，通过 `position=home` 区分。
+- 首页新闻类内容仍使用 `articles`，通过 `main_channel.slug` 区分。
+- 首页区块标题、排序、显示数量等非文章内容使用 `home_sections`。
+- 首页和栏目中的固定入口链接使用 `quick_links`，外部友情链接使用 `friend_links`。
+- 当前不新增 `home_metrics`，避免为非首页数字展示过度建模。
+
+### 静态导入追踪字段
+
+为支持 `scripts/directus/extract-static-content.mjs` 与 `import-static-content.mjs` 的幂等导入，建议 `channels`、`articles`、`companies`、`business_sectors`、`pages`、`banners`、`home_sections`、`quick_links`、`friend_links` 保留 `source_file` 字段，用于记录内容来源的前端 HTML 文件。该字段仅用于迁移追踪和查重，不应作为前台展示字段。
