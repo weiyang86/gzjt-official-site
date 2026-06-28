@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.directus.example
 .env.directus
 web/.env
 web/.env.*

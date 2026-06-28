@@ -75,3 +75,107 @@ npm --prefix services/cms-api run <script-name>
 2. 执行 `cd web && npm run dev:site` 启动静态页面服务。
 3. 浏览器访问 `http://localhost:3010/` 与主要栏目页。
 4. 访问 `/group`、`/news-center` 等兼容路径，确认能跳转到 `web/pages/` 下对应页面。
+
+## 启动 Directus 本地 Docker 环境
+
+Directus 本地开发环境位于仓库根目录，不放入 `web/` 内部，避免破坏现有官网前端工程。根目录的 `docker-compose.directus.yml` 会启动：
+
+- `directus-db`：PostgreSQL，仅供 Docker 内部网络访问，不向宿主机暴露数据库端口。
+- `directus`：Directus，本地端口固定为 `8055`。
+- 持久化目录：`.data/directus/database/`、`.data/directus/uploads/`、`.data/directus/extensions/`。
+
+### 1) 复制本地环境变量
+
+```bash
+cp .env.directus.example .env.directus
+```
+
+`.env.directus` 只保存在本地，不要提交到 Git。首次启动前请至少修改：
+
+- `POSTGRES_PASSWORD`
+- `DIRECTUS_KEY`
+- `DIRECTUS_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+
+### 2) 生成 DIRECTUS_KEY 和 DIRECTUS_SECRET
+
+可用 OpenSSL 生成随机值：
+
+```bash
+openssl rand -hex 32
+openssl rand -base64 48
+```
+
+将生成结果分别写入 `.env.directus` 的 `DIRECTUS_KEY` 和 `DIRECTUS_SECRET`。两者必须是稳定值；同一套本地数据目录反复启动时不要频繁更换。
+
+### 3) 启动 Directus
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml up -d
+```
+
+启动后 Directus 后台地址：
+
+- <http://localhost:8055/admin>
+
+登录账号使用 `.env.directus` 中的 `ADMIN_EMAIL` 与 `ADMIN_PASSWORD`。
+
+### 4) 查看日志
+
+查看全部服务日志：
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml logs -f
+```
+
+只查看 Directus 日志：
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml logs -f directus
+```
+
+只查看 PostgreSQL 日志：
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml logs -f directus-db
+```
+
+### 5) 健康检查与后台验证
+
+容器状态检查：
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml ps
+```
+
+Directus 健康检查：
+
+```bash
+curl http://localhost:8055/server/health
+```
+
+浏览器验证：
+
+1. 打开 <http://localhost:8055/admin>。
+2. 使用 `.env.directus` 中的管理员账号登录。
+3. 确认可以进入 Directus 管理后台。
+
+### 6) 停止服务
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml down
+```
+
+该命令会停止并移除容器与网络，但保留 `.data/directus/` 下的数据。
+
+### 7) 清理本地数据
+
+如需彻底重置本地 Directus 与 PostgreSQL 数据：
+
+```bash
+docker compose --env-file .env.directus -f docker-compose.directus.yml down
+rm -rf .data/directus
+```
+
+执行清理前请确认没有需要保留的本地数据；`.data/` 已被 `.gitignore` 排除，不会提交到仓库。
