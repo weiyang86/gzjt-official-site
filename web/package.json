@@ -1,0 +1,17 @@
+{
+  "name": "ganzi-jiantou-official-site",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:site",
+    "dev:site": "node server.js",
+    "dev:api": "npm --prefix services/cms-api run start:dev",
+    "dev:admin": "npm --prefix apps/cms-admin run dev",
+    "build:api": "npm --prefix services/cms-api run build",
+    "build:admin": "npm --prefix apps/cms-admin run build"
+  }
+}

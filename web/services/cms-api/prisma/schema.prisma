@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           BigInt    @id @default(autoincrement())
+  username     String    @unique @db.VarChar(64)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  refreshTokenHash String? @map("refresh_token_hash") @db.VarChar(255)
+  displayName  String    @default("") @map("display_name") @db.VarChar(64)
+  phone        String?   @db.VarChar(32)
+  email        String?   @db.VarChar(128)
+  status       Int       @default(1) @db.TinyInt
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  roles AdminUserRole[]
+
+  @@map("admin_users")
+}
+
+model AdminRole {
+  id        BigInt   @id @default(autoincrement())
+  code      String   @unique @db.VarChar(64)
+  name      String   @db.VarChar(64)
+  status    Int      @default(1) @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users AdminUserRole[]
+  perms AdminRolePerm[]
+
+  @@map("admin_roles")
+}
+
+model AdminPerm {
+  id        BigInt   @id @default(autoincrement())
+  code      String   @unique @db.VarChar(128)
+  name      String   @db.VarChar(128)
+  type      String   @default("api") @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  roles AdminRolePerm[]
+  menus AdminMenuPerm[]
+
+  @@map("admin_perms")
+}
+
+model AdminUserRole {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  roleId    BigInt   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user AdminUser @relation(fields: [userId], references: [id])
+  role AdminRole @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId], map: "uk_user_role")
+  @@index([userId], map: "idx_user")
+  @@index([roleId], map: "idx_role")
+  @@map("admin_user_roles")
+}
+
+model AdminRolePerm {
+  id        BigInt   @id @default(autoincrement())
+  roleId    BigInt   @map("role_id")
+  permId    BigInt   @map("perm_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  role AdminRole @relation(fields: [roleId], references: [id])
+  perm AdminPerm @relation(fields: [permId], references: [id])
+
+  @@unique([roleId, permId], map: "uk_role_perm")
+  @@index([roleId], map: "idx_role")
+  @@index([permId], map: "idx_perm")
+  @@map("admin_role_perms")
+}
+
+model AdminMenu {
+  id        BigInt   @id @default(autoincrement())
+  parentId  BigInt?  @map("parent_id")
+  path      String   @unique @db.VarChar(128)
+  name      String   @db.VarChar(64)
+  icon      String?  @db.VarChar(64)
+  sort      Int      @default(0)
+  visible   Int      @default(1) @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  parent   AdminMenu?  @relation("AdminMenuParent", fields: [parentId], references: [id])
+  children AdminMenu[] @relation("AdminMenuParent")
+  perms    AdminMenuPerm[]
+
+  @@index([parentId], map: "idx_parent")
+  @@index([sort], map: "idx_sort")
+  @@map("admin_menus")
+}
+
+model AdminMenuPerm {
+  id        BigInt   @id @default(autoincrement())
+  menuId    BigInt   @map("menu_id")
+  permId    BigInt   @map("perm_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  menu AdminMenu @relation(fields: [menuId], references: [id])
+  perm AdminPerm @relation(fields: [permId], references: [id])
+
+  @@unique([menuId, permId], map: "uk_menu_perm")
+  @@index([menuId], map: "idx_menu")
+  @@index([permId], map: "idx_perm")
+  @@map("admin_menu_perms")
+}
+
+model CmsCategory {
+  id        BigInt   @id @default(autoincrement())
+  type      String   @db.VarChar(32)
+  name      String   @db.VarChar(64)
+  code      String?  @db.VarChar(64)
+  sort      Int      @default(0)
+  status    Int      @default(1) @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  news         CmsNews[]
+  partyArticles CmsPartyArticle[]
+  projects     CmsProject[]
+
+  @@index([type], map: "idx_type")
+  @@index([sort], map: "idx_sort")
+  @@map("cms_categories")
+}
+
+model CmsFile {
+  id           BigInt   @id @default(autoincrement())
+  url          String   @db.VarChar(512)
+  bucket       String?  @db.VarChar(128)
+  objectKey    String?  @map("object_key") @db.VarChar(512)
+  mime         String?  @db.VarChar(128)
+  size         BigInt?
+  sha256       String?  @db.VarChar(128)
+  originalName String?  @map("original_name") @db.VarChar(255)
+  createdBy    BigInt?  @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([sha256], map: "idx_sha")
+  @@map("cms_files")
+}
+
+model CmsNews {
+  id          BigInt    @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  summary     String?   @db.VarChar(512)
+  coverFileId BigInt?   @map("cover_file_id")
+  categoryId  BigInt?   @map("category_id")
+  source      String?   @db.VarChar(128)
+  contentHtml String    @map("content_html") @db.LongText
+  status      String    @default("draft") @db.VarChar(16)
+  isTop       Int       @default(0) @map("is_top") @db.TinyInt
+  isRecommend Int       @default(0) @map("is_recommend") @db.TinyInt
+  views       BigInt    @default(0)
+  publishedAt DateTime? @map("published_at")
+  createdBy   BigInt?   @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  category CmsCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([status], map: "idx_status")
+  @@index([publishedAt], map: "idx_published")
+  @@index([categoryId], map: "idx_category")
+  @@map("cms_news")
+}
+
+model CmsPartyArticle {
+  id          BigInt    @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  summary     String?   @db.VarChar(512)
+  coverFileId BigInt?   @map("cover_file_id")
+  categoryId  BigInt?   @map("category_id")
+  contentHtml String    @map("content_html") @db.LongText
+  status      String    @default("draft") @db.VarChar(16)
+  isTop       Int       @default(0) @map("is_top") @db.TinyInt
+  isRecommend Int       @default(0) @map("is_recommend") @db.TinyInt
+  views       BigInt    @default(0)
+  publishedAt DateTime? @map("published_at")
+  createdBy   BigInt?   @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  category CmsCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([status], map: "idx_status")
+  @@index([publishedAt], map: "idx_published")
+  @@index([categoryId], map: "idx_category")
+  @@map("cms_party_articles")
+}
+
+model CmsProject {
+  id          BigInt   @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  summary     String?  @db.VarChar(512)
+  coverFileId BigInt?  @map("cover_file_id")
+  categoryId  BigInt?  @map("category_id")
+  district    String?  @db.VarChar(64)
+  status      String   @default("active") @db.VarChar(32)
+  contentHtml String?  @map("content_html") @db.LongText
+  sort        Int      @default(0)
+  createdBy   BigInt?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category  CmsCategory? @relation(fields: [categoryId], references: [id])
+  mapPoints CmsProjectMapPoint[]
+
+  @@index([categoryId], map: "idx_category")
+  @@index([sort], map: "idx_sort")
+  @@map("cms_projects")
+}
+
+model CmsProjectMapPoint {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  district  String?  @db.VarChar(64)
+  xPercent  Decimal  @map("x_percent") @db.Decimal(6, 3)
+  yPercent  Decimal  @map("y_percent") @db.Decimal(6, 3)
+  projectId BigInt?  @map("project_id")
+  sort      Int      @default(0)
+  status    Int      @default(1) @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project CmsProject? @relation(fields: [projectId], references: [id])
+
+  @@index([projectId], map: "idx_project")
+  @@index([sort], map: "idx_sort")
+  @@map("cms_project_map_points")
+}
+
+model CmsHistory {
+  id         BigInt   @id @default(autoincrement())
+  year       Int
+  month      Int?
+  title      String   @db.VarChar(255)
+  summary    String?  @db.VarChar(512)
+  coverFileId BigInt? @map("cover_file_id")
+  sort       Int      @default(0)
+  status     Int      @default(1) @db.TinyInt
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([year], map: "idx_year")
+  @@index([sort], map: "idx_sort")
+  @@map("cms_history")
+}
+
+model CmsHomeStat {
+  id        BigInt   @id @default(autoincrement())
+  label     String   @db.VarChar(64)
+  value     String   @db.VarChar(64)
+  unit      String?  @db.VarChar(16)
+  sort      Int      @default(0)
+  visible   Int      @default(1) @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sort], map: "idx_sort")
+  @@map("cms_home_stats")
+}
