@@ -121,6 +121,62 @@ export class DirectusCmsService {
     return items[0] || null
   }
 
+  async getHomeSections() {
+    return this.safeList<any>('home_sections', {
+      'filter[status][_eq]': 'enabled',
+      sort: 'sort,id',
+      fields: 'id,title,slug,subtitle,description,collection_key,channel_slug,limit,sort,status'
+    }, item => ({
+      id: String(item.id),
+      title: item.title || '',
+      slug: item.slug || '',
+      subtitle: item.subtitle || '',
+      description: item.description || '',
+      collectionKey: item.collection_key || '',
+      channelSlug: item.channel_slug || '',
+      limit: item.limit ?? null,
+      sort: item.sort ?? 0,
+      status: item.status || ''
+    }))
+  }
+
+  async getQuickLinks(position = 'home') {
+    return this.safeList<any>('quick_links', {
+      'filter[position][_eq]': position,
+      'filter[status][_eq]': 'enabled',
+      sort: 'sort,id',
+      fields: 'id,title,slug,url,position,summary,icon,sort,status'
+    }, item => ({
+      id: String(item.id),
+      title: item.title || '',
+      slug: item.slug || '',
+      url: item.url || '',
+      position: item.position || position,
+      summary: item.summary || '',
+      icon: this.fileUrl(item.icon),
+      sort: item.sort ?? 0,
+      status: item.status || ''
+    }))
+  }
+
+  async getSiteSettings() {
+    const items = await this.safeList<any>('site_settings', {
+      limit: '1',
+      fields: 'id,site_name,logo,footer_text,address,phone,email,icp,copyright'
+    }, item => ({
+      id: String(item.id),
+      siteName: item.site_name || '',
+      logo: this.fileUrl(item.logo),
+      footerText: item.footer_text || '',
+      address: item.address || '',
+      phone: item.phone || '',
+      email: item.email || '',
+      icp: item.icp || '',
+      copyright: item.copyright || ''
+    }))
+    return items[0] || null
+  }
+
   private async safeList<T>(collection: string, params: Record<string, string>, mapper: (item: any) => T): Promise<T[]> {
     try {
       const result = await this.fetchDirectus<DirectusListResponse<any>>(`/items/${collection}`, params)

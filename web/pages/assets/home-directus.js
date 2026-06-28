@@ -13,9 +13,14 @@
     }
   }
 
-  const setText = (selector, value) => {
+  const limitText = (value, max = 80) => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim()
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text
+  }
+
+  const setText = (selector, value, max = 80) => {
     const el = document.querySelector(selector)
-    if (el && value) el.textContent = value
+    if (el && value) el.textContent = limitText(value, max)
   }
 
   const renderBanner = async () => {
@@ -24,16 +29,21 @@
     const banner = banners[0]
     const hero = document.querySelector('[data-home-banners]')
     if (hero && banner.image) hero.style.setProperty('--home-hero-img', `url('${banner.image}')`)
-    setText('[data-banner-title]', banner.title)
-    setText('[data-banner-subtitle]', banner.subtitle)
+    setText('[data-banner-title]', banner.title, 36)
+    setText('[data-banner-subtitle]', banner.subtitle, 96)
     const link = document.querySelector('[data-banner-link]')
     if (link && banner.linkUrl) link.setAttribute('href', banner.linkUrl)
   }
 
   const escapeHtml = (value) => String(value || '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[ch]))
-  const articleTitle = (item) => item && item.title ? escapeHtml(item.title) : '未命名文章'
+  const escapeSelector = (value) => window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/[\\"\]]/g, '\\$&')
+  const safeHref = (value) => {
+    const href = String(value || '').trim()
+    return /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(href) ? href : '#'
+  }
+  const articleTitle = (item, max = 46) => item && item.title ? escapeHtml(limitText(item.title, max)) : '未命名文章'
   const articleDate = (item) => item && item.publishDate ? escapeHtml(item.publishDate) : ''
-  const articleSummary = (item) => item && item.summary ? escapeHtml(item.summary) : ''
+  const articleSummary = (item, max = 96) => item && item.summary ? escapeHtml(limitText(item.summary, max)) : ''
 
   const renderGroupNews = async () => {
     const articles = await fetchJson('/api/public/cms/articles/by-channel/group-news?limit=5')
@@ -46,8 +56,8 @@
       <a class="cms-feature" href="${detailUrl(featured.id)}" style="${cover ? `--card-img:url('${cover}')` : ''}">
         <div class="cms-feature-body">
           <div class="cms-date">${articleDate(featured)}</div>
-          <h2>${articleTitle(featured)}</h2>
-          <p>${articleSummary(featured)}</p>
+          <h2>${articleTitle(featured, 54)}</h2>
+          <p>${articleSummary(featured, 110)}</p>
         </div>
       </a>`
     const listHtml = `<div class="cms-list">${articles.slice(1).map(item => `
@@ -64,14 +74,50 @@
     const card = document.querySelector(`[data-channel-card="${slug}"]`)
     const list = card ? card.querySelector('ul') : null
     if (!list) return
-    list.innerHTML = articles.map(item => `<li><a href="${detailUrl(item.id)}">${articleTitle(item)}<br><span class="cms-date">${articleDate(item)}</span></a></li>`).join('')
+    list.innerHTML = articles.map(item => `<li><a href="${detailUrl(item.id)}">${articleTitle(item, 42)}<br><span class="cms-date">${articleDate(item)}</span></a></li>`).join('')
+  }
+
+  const renderHomeSections = async () => {
+    const sections = await fetchJson('/api/public/cms/home-sections')
+    if (!Array.isArray(sections) || !sections.length) return
+    sections.forEach(section => {
+      const channel = section.channelSlug || section.collectionKey || section.slug
+      if (!channel || !section.title) return
+      const title = document.querySelector(`[data-cms-section-title="${escapeSelector(channel)}"]`)
+      if (title) title.textContent = limitText(section.title, 28)
+    })
+  }
+
+  const renderQuickLinks = async () => {
+    const links = await fetchJson('/api/public/cms/quick-links?position=home')
+    if (!Array.isArray(links) || !links.length) return
+    const card = document.querySelector('[data-quick-links]')
+    const list = card ? card.querySelector('ul') : null
+    if (!list) return
+    list.innerHTML = links.slice(0, 6).map(item => {
+      const href = safeHref(item.url || item.linkUrl || '#')
+      return `<li><a href="${escapeHtml(href)}">${escapeHtml(limitText(item.title, 18))}</a></li>`
+    }).join('')
+  }
+
+  const renderSiteSettings = async () => {
+    const settings = await fetchJson('/api/public/cms/site-settings')
+    if (!settings) return
+    const footer = document.querySelector('[data-site-footer-text]')
+    if (!footer) return
+    const year = new Date().getFullYear()
+    const text = settings.footerText || settings.siteName
+    if (text) footer.textContent = `© ${year} ${limitText(text, 42)}`
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     renderBanner()
+    renderHomeSections()
     renderGroupNews()
     renderChannel('business-news')
     renderChannel('party-mass')
     renderChannel('announcements')
+    renderQuickLinks()
+    renderSiteSettings()
   })
 })()

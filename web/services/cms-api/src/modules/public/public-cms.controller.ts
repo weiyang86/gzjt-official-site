@@ -10,6 +10,21 @@ export class PublicCmsController {
     return this.cms.getBanners(position)
   }
 
+  @Get('home-sections')
+  getHomeSections() {
+    return this.cms.getHomeSections()
+  }
+
+  @Get('quick-links')
+  getQuickLinks(@Query('position') position = 'home') {
+    return this.cms.getQuickLinks(position)
+  }
+
+  @Get('site-settings')
+  getSiteSettings() {
+    return this.cms.getSiteSettings()
+  }
+
   @Get('articles/by-channel/:channelSlug')
   getArticlesByChannel(@Param('channelSlug') channelSlug: string, @Query('limit') limit = '10') {
     return this.cms.getArticlesByChannel(channelSlug, Number(limit) || 10)
