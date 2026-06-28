@@ -33,10 +33,12 @@ const send = (res, absPath, data) => {
     res.end(data);
 };
 
+const homeEntry = '/index.html';
+
 http.createServer((req, res) => {
     const rawUrl = req.url || '/';
     const urlPath = rawUrl.split('?')[0].split('#')[0];
-    const pathname = urlPath === '/' ? '/A版官网首页.html' : urlPath;
+    const pathname = urlPath === '/' ? homeEntry : urlPath;
     let decodedPath = pathname;
     try { decodedPath = decodeURIComponent(pathname); } catch (e) {}
     const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, '/'));
@@ -68,7 +70,7 @@ http.createServer((req, res) => {
     const isAssetRequest = path.posix.extname(normalizedPath) !== '';
     const candidates = [];
 
-    if (normalizedPath === '/A版官网首页.html' || normalizedPath.startsWith('/pages/') || isAssetRequest) {
+    if (normalizedPath === homeEntry || normalizedPath.startsWith('/pages/') || isAssetRequest) {
         candidates.push(normalizedPath);
     } else {
         const clean = normalizedNoSlash;
