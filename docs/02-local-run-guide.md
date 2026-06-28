@@ -179,3 +179,98 @@ rm -rf .data/directus
 ```
 
 执行清理前请确认没有需要保留的本地数据；`.data/` 已被 `.gitignore` 排除，不会提交到仓库。
+
+## web/services/cms-api 接入 Directus
+
+### 当前结构判断
+
+- `web/services/cms-api/` 是基于 NestJS 的 Node 服务，不是浏览器端 JS；它作为现有 CMS 数据访问层，应优先复用。
+- `web/server.js` 目前只负责静态 HTML/CSS/JS 文件服务、历史路径跳转和页面兜底，不包含 `/api` 接口代理。
+- 首页和栏目页后续应通过 `web/services/cms-api` 暴露的 `/api/public/cms/*` 接口读取 CMS 数据；页面脚本不应分散直连 Directus。
+
+### 1) 启动 Directus
+
+```bash
+cp .env.directus.example .env.directus
+# 修改 .env.directus 中的 ADMIN_EMAIL、ADMIN_PASSWORD、DIRECTUS_KEY、DIRECTUS_SECRET 等示例值
+docker compose --env-file .env.directus -f docker-compose.directus.yml up -d
+```
+
+默认 Directus 地址：<http://localhost:8055>。
+
+如尚未初始化内容模型和测试数据，执行：
+
+```bash
+set -a
+source .env.directus
+set +a
+DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
+```
+
+### 2) 验证 Directus API
+
+```bash
+curl 'http://localhost:8055/items/banners?filter[position][_eq]=home&filter[status][_eq]=published&fields=id,title,position,status,sort'
+curl 'http://localhost:8055/items/articles?filter[status][_eq]=published&fields=id,title,status&limit=2'
+```
+
+如果返回 403，请进入 Directus Studio 的 **User Roles / Access Policies** 检查 Public 只读权限。
+
+### 3) 启动 cms-api
+
+`CMS_BASE_URL` 用于配置 cms-api 访问的 Directus 地址，默认值为 `http://localhost:8055`；也可以使用 `DIRECTUS_URL` 覆盖。
+
+```bash
+cd web
+CMS_BASE_URL=http://localhost:8055 npm run dev:api
+```
+
+cms-api 默认地址：<http://localhost:4000>。
+
+### 4) 测试 cms-api
+
+```bash
+curl 'http://localhost:4000/api/public/cms/banners?position=home'
+curl 'http://localhost:4000/api/public/cms/articles/by-channel/group-news?limit=5'
+curl 'http://localhost:4000/api/public/cms/companies'
+curl 'http://localhost:4000/api/public/cms/business-sectors'
+curl 'http://localhost:4000/api/public/cms/pages/group-intro'
+```
+
+可用方法与接口对应关系：
+
+| 方法 | cms-api 接口 | 说明 |
+| --- | --- | --- |
+| `getBanners(position)` | `/api/public/cms/banners?position=home` | 首页/栏目轮播 |
+| `getArticlesByChannel(channelSlug, limit)` | `/api/public/cms/articles/by-channel/:channelSlug?limit=5` | 栏目文章列表 |
+| `getArticleDetail(id)` | `/api/public/cms/articles/:id` | 文章详情 |
+| `getCompanies()` | `/api/public/cms/companies` | 下属公司列表 |
+| `getCompanyDetail(slug)` | `/api/public/cms/companies/:slug` | 下属公司详情 |
+| `getCompanyArticles(companyId)` | `/api/public/cms/companies/:id/articles` | 公司相关文章 |
+| `getBusinessSectors()` | `/api/public/cms/business-sectors` | 业务板块列表 |
+| `getPageBySlug(slug)` | `/api/public/cms/pages/:slug` | 单页内容 |
+| `cmsAsset(fileId)` | 服务内部转换为 `/assets/:fileId` | Directus 文件资源 URL |
+| `formatDate(value)` | 服务内部统一输出 `YYYY-MM-DD` | 日期格式化 |
+
+### 5) 启动 web 静态前端
+
+```bash
+cd web
+npm run dev:site
+```
+
+web 默认地址：<http://localhost:3010>。
+
+当前 `web/server.js` 未代理 `/api` 请求；如页面脚本调用 cms-api，应使用 `http://localhost:4000/api/public/cms/...`，或后续在 `web/server.js` 中明确增加代理后再改为同源调用。
+
+### 6) Directus 未启动时页面如何表现
+
+cms-api 的 Directus 调用采用空状态兜底：
+
+- 列表接口返回 `[]`；
+- 详情接口返回 `null`；
+- 图片资源无法解析时返回 `null`；
+- 服务端记录 warning 日志；
+- 前端页面应保留现有静态内容或展示空状态，不能因为 CMS 请求失败导致白屏。
+
+因此，首页和栏目页接入这些接口时应继续保留现有静态内容兜底；只有接口返回有效数据时再替换对应区域。
