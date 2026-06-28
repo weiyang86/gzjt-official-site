@@ -132,3 +132,40 @@ docker compose --env-file .env.directus -f docker-compose.directus.yml up -d
 ```
 
 请勿在生产环境使用上述清理方式。
+
+## 7. 初始化后如何创建客户账号
+
+本阶段建议交付 Directus Studio 作为客户 CMS 后台，不重新开发独立后台。运行初始化脚本后，脚本会尽量创建以下客户角色：
+
+- 系统管理员
+- 集团内容管理员
+- 审核发布员
+- 下属公司通讯员
+- 只读查看员
+
+由于 Directus 12.x 的 **User Roles / Access Policies** API 可能因小版本差异而变化，脚本创建角色或权限失败时不会中断内容模型和测试数据初始化。交付前请按 `docs/06-directus-customer-roles.md` 手工确认角色和权限。
+
+### 创建客户账号建议
+
+1. 使用技术管理员账号登录 <http://localhost:8055/admin>。
+2. 进入 **User Directory / Users**（或当前版本对应的用户管理入口）。
+3. 点击创建用户。
+4. 填写客户真实邮箱、姓名和临时密码。
+5. 为用户绑定合适角色：
+   - 日常内容维护：集团内容管理员。
+   - 审核发布：审核发布员。
+   - 下属公司供稿：下属公司通讯员。
+   - 领导或审阅人员：只读查看员。
+6. 不要把普通客户账号加入系统管理员角色。
+7. 通过线下安全渠道交付初始密码，并要求客户首次登录后修改。
+8. 不要把客户账号、密码、邮箱清单提交到 Git。
+
+### 交付前权限复核
+
+- 普通客户账号不应管理 Data Model。
+- 普通客户账号不应管理 User Roles / Access Policies。
+- 普通客户账号不应访问 `directus_users`、`directus_roles`、`directus_permissions`、`directus_activity` 等系统集合。
+- 下属公司通讯员不应直接发布内容。
+- 只读查看员不应创建、更新、删除任何内容。
+
+详细角色矩阵见 `docs/06-directus-customer-roles.md`。

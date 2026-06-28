@@ -102,6 +102,34 @@ const fields = {
   ],
 };
 
+
+const customerRoles = [
+  { key: 'system_admin', name: '系统管理员', description: '技术管理员；保留模型、角色、权限和系统配置能力。', admin_access: true, app_access: true },
+  { key: 'group_content_manager', name: '集团内容管理员', description: '集团内容维护；不管理系统集合、模型和权限。', admin_access: false, app_access: true },
+  { key: 'publisher', name: '审核发布员', description: '审核、发布和归档内容。', admin_access: false, app_access: true },
+  { key: 'company_reporter', name: '下属公司通讯员', description: '下属公司供稿；默认创建草稿，不直接发布。', admin_access: false, app_access: true },
+  { key: 'readonly_viewer', name: '只读查看员', description: '后台只读查看内容。', admin_access: false, app_access: true },
+];
+
+const rolePermissionPlans = {
+  group_content_manager: [
+    rw('articles'), rw('companies'), rw('business_sectors'), rw('pages'), rw('banners'), read('channels'), read('site_settings'), read('directus_files'),
+  ],
+  publisher: [
+    rw('articles'), rw('pages'), rw('banners'), read('channels'), read('companies'), read('business_sectors'), read('site_settings'), read('directus_files'),
+  ],
+  company_reporter: [
+    createAndRead('articles', { status: { _eq: 'draft' } }), read('channels'), read('companies'), read('business_sectors'), read('directus_files'),
+  ],
+  readonly_viewer: [
+    read('channels'), read('articles'), read('companies'), read('business_sectors'), read('pages'), read('banners'), read('site_settings'), read('directus_files'),
+  ],
+};
+
+function read(collection, permissions = {}) { return { collection, action: 'read', permissions, fields: ['*'] }; }
+function createAndRead(collection, permissions = {}) { return [read(collection, permissions), { collection, action: 'create', permissions: {}, validation: {}, presets: { status: 'draft' }, fields: ['*'] }, { collection, action: 'update', permissions, validation: {}, presets: {}, fields: ['*'] }].flat(); }
+function rw(collection, permissions = {}) { return ['read', 'create', 'update'].map((action) => ({ collection, action, permissions, validation: {}, presets: {}, fields: ['*'] })); }
+
 const relations = [
   { collection: 'companies', field: 'logo', related_collection: 'directus_files' },
   { collection: 'companies', field: 'cover', related_collection: 'directus_files' },
@@ -244,6 +272,58 @@ async function seedData(token) {
   log('Upserted seed: site_settings');
 }
 
+
+async function getRoleByName(token, name) {
+  const result = await request(`/roles?filter[name][_eq]=${encodeURIComponent(name)}&limit=1`, { token });
+  return Array.isArray(result) ? result[0] : result?.[0];
+}
+
+async function ensureRole(token, role) {
+  const existing = await getRoleByName(token, role.name);
+  const body = { name: role.name, description: role.description, app_access: role.app_access, admin_access: role.admin_access };
+  if (existing?.id) {
+    await request(`/roles/${existing.id}`, { token, method: 'PATCH', body });
+    log(`Role exists/updated: ${role.name}`);
+    return existing.id;
+  }
+  const created = await request('/roles', { token, method: 'POST', body });
+  log(`Created role: ${role.name}`);
+  return created.id;
+}
+
+async function tryCreateRolePermission(token, roleId, permission) {
+  try {
+    await request('/permissions', {
+      token,
+      method: 'POST',
+      body: { role: roleId, collection: permission.collection, action: permission.action, permissions: permission.permissions || {}, validation: permission.validation || {}, presets: permission.presets || {}, fields: permission.fields || ['*'] },
+    });
+    log(`Tried role permission: ${roleId} ${permission.collection}.${permission.action}`);
+  } catch (err) {
+    const msg = String(err.message || '');
+    if (err.status === 400 || err.status === 409 || msg.includes('already') || msg.includes('exists')) {
+      log(`Role permission exists or needs manual confirmation: ${permission.collection}.${permission.action}`);
+      return;
+    }
+    throw err;
+  }
+}
+
+async function tryConfigureCustomerRoles(token) {
+  try {
+    const roleIds = new Map();
+    for (const role of customerRoles) roleIds.set(role.key, await ensureRole(token, role));
+    for (const [roleKey, permissions] of Object.entries(rolePermissionPlans)) {
+      const roleId = roleIds.get(roleKey);
+      for (const permission of permissions.flat()) await tryCreateRolePermission(token, roleId, permission);
+    }
+    log('Customer roles were created/updated. Please verify Access Policies in Directus Studio before customer delivery.');
+  } catch (err) {
+    warn(`Customer role/policy auto-configuration was not completed: ${err.message}`);
+    warn('Please configure customer roles manually in Directus 12: User Roles / Access Policies. See docs/06-directus-customer-roles.md.');
+  }
+}
+
 async function tryConfigurePublicPermissions(token) {
   const permissions = [
     ['channels', { visible: { _eq: true }, status: { _eq: 'enabled' } }],
@@ -276,7 +356,8 @@ async function main() {
   for (const relation of relations) await ensureRelation(token, relation);
   await seedData(token);
   await tryConfigurePublicPermissions(token);
-  log('Directus bootstrap finished. If public API returns 403, confirm Access Policies manually.');
+  await tryConfigureCustomerRoles(token);
+  log('Directus bootstrap finished. If public API returns 403 or customer roles look incomplete, confirm Access Policies manually.');
 }
 
 main().catch((err) => {
