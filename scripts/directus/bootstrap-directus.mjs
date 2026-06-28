@@ -153,31 +153,111 @@ function fileField(field) { return { field, type: 'uuid', meta: { interface: 'fi
 function filesField(field) { return { field, type: 'json', meta: { interface: 'list', note: 'Store attachment file IDs for local bootstrap; can be converted to Directus Files UI later.' }, schema: { is_nullable: true } }; }
 function m2oField(field) { return { field, type: 'integer', meta: { interface: 'select-dropdown-m2o', special: ['m2o'] }, schema: { is_nullable: true } }; }
 
+let collectionsCache = null;
+const fieldsCache = new Map();
+let policiesCache = null;
+let accessCache = null;
+let permissionsCache = null;
+
+async function listCollections(token) {
+  if (!collectionsCache) collectionsCache = await request('/collections?limit=-1', { token });
+  return collectionsCache;
+}
+
+async function hasCollection(token, collection) {
+  const all = await listCollections(token);
+  return Array.isArray(all) && all.some((item) => item.collection === collection);
+}
+
+async function listFields(token, collection) {
+  if (!fieldsCache.has(collection)) fieldsCache.set(collection, await request(`/fields/${collection}`, { token }));
+  return fieldsCache.get(collection);
+}
+
+async function hasField(token, collection, field) {
+  const all = await listFields(token, collection);
+  return Array.isArray(all) && all.some((item) => item.field === field);
+}
+
+async function listPolicies(token) {
+  if (!policiesCache) policiesCache = await request('/policies?limit=-1', { token });
+  return policiesCache;
+}
+
+async function getPublicPolicy(token) {
+  const all = await listPolicies(token);
+  const found = all.find((item) => item.name === '$t:public_label') || all.find((item) => item.icon === 'public');
+  if (!found?.id) throw new Error('Public policy was not found. Please confirm this Directus instance exposes the default Public policy.');
+  return found;
+}
+
+async function listAccess(token) {
+  if (!accessCache) accessCache = await request('/access?limit=-1', { token });
+  return accessCache;
+}
+
+async function ensurePublicAccess(token, policyId) {
+  const all = await listAccess(token);
+  const found = all.find((item) => item.policy === policyId && item.role === null && item.user === null);
+  if (found?.id) return found;
+  const created = await request('/access', {
+    token,
+    method: 'POST',
+    body: { policy: policyId, role: null, user: null, sort: 1 },
+  });
+  accessCache = null;
+  return created;
+}
+
+async function listPermissions(token) {
+  if (!permissionsCache) permissionsCache = await request('/permissions?limit=-1', { token });
+  return permissionsCache;
+}
+
+async function findPolicyPermission(token, policyId, collection, action = 'read') {
+  const all = await listPermissions(token);
+  return all.find((item) => item.policy === policyId && item.collection === collection && item.action === action) || null;
+}
+
+function isRestrictedCustomPermissionError(err) {
+  return err?.status === 403 && err?.data?.errors?.some((item) => item?.extensions?.category === 'custom_permission_rules_enabled');
+}
+
+function hasCustomFilter(filter) {
+  return Boolean(filter && Object.keys(filter).length > 0);
+}
+
+async function upsertPolicyPermission(token, { policyId, collection, action = 'read', permissions = {}, fields = ['*'] }) {
+  const payload = { policy: policyId, collection, action, permissions, validation: {}, presets: {}, fields };
+  const existing = await findPolicyPermission(token, policyId, collection, action);
+  const path = existing?.id ? `/permissions/${existing.id}` : '/permissions';
+  const method = existing?.id ? 'PATCH' : 'POST';
+  const result = await request(path, { token, method, body: payload });
+  permissionsCache = null;
+  return result;
+}
+
 async function ensureCollection(token, collection, note) {
-  try {
-    await request(`/collections/${collection}`, { token });
+  if (await hasCollection(token, collection)) {
     log(`Collection exists: ${collection}`);
     return;
-  } catch (err) {
-    if (err.status !== 404) throw err;
   }
   await request('/collections', {
     token,
     method: 'POST',
     body: { collection, meta: { collection, icon: 'article', note, display_template: '{{name}}{{title}}{{site_name}}' }, schema: {} },
   });
+  collectionsCache = null;
   log(`Created collection: ${collection}`);
 }
 
 async function ensureField(token, collection, fieldDef) {
-  try {
-    await request(`/fields/${collection}/${fieldDef.field}`, { token });
+  if (await hasField(token, collection, fieldDef.field)) {
     log(`Field exists: ${collection}.${fieldDef.field}`);
     return;
-  } catch (err) {
-    if (err.status !== 404) throw err;
   }
   await request(`/fields/${collection}`, { token, method: 'POST', body: fieldDef });
+  fieldsCache.delete(collection);
   log(`Created field: ${collection}.${fieldDef.field}`);
 }
 
@@ -334,18 +414,39 @@ async function tryConfigurePublicPermissions(token) {
     ['banners', { status: { _eq: 'published' } }],
     ['site_settings', {}],
   ];
+  const restrictedCollections = [];
   try {
+    const publicPolicy = await getPublicPolicy(token);
+    await ensurePublicAccess(token, publicPolicy.id);
+
     for (const [collection, permissionsFilter] of permissions) {
-      await request('/permissions', {
-        token,
-        method: 'POST',
-        body: { role: null, collection, action: 'read', permissions: permissionsFilter, validation: {}, presets: {}, fields: ['*'] },
-      });
-      log(`Configured or attempted Public read permission: ${collection}`);
+      try {
+        await upsertPolicyPermission(token, {
+          policyId: publicPolicy.id,
+          collection,
+          action: 'read',
+          permissions: permissionsFilter,
+          fields: ['*'],
+        });
+        log(`Configured Public read permission: ${collection}`);
+      } catch (err) {
+        if (hasCustomFilter(permissionsFilter) && isRestrictedCustomPermissionError(err)) {
+          restrictedCollections.push(collection);
+          warn(`Skipped filtered Public rule for ${collection}: this Directus instance restricts custom permission rules.`);
+          continue;
+        }
+        throw err;
+      }
     }
   } catch (err) {
     warn(`Public permission auto-configuration was not completed: ${err.message}`);
     warn('Collections and test data were created. Please confirm Public permissions manually in Directus 12: Settings → Access Policies / User Roles. See scripts/directus/README.md.');
+    return;
+  }
+
+  if (restrictedCollections.length > 0) {
+    warn(`Filtered Public rules were not applied for: ${restrictedCollections.join(', ')}`);
+    warn('This Directus instance blocks custom permission rules. To keep published-only access guarantees, configure those filters in a Directus instance where custom permission rules are enabled.');
   }
 }
 

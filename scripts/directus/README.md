@@ -100,7 +100,15 @@ curl 'http://localhost:8055/items/companies?filter[status][_eq]=enabled&fields=i
 
 ## 5. 如果接口返回 403，如何检查 Public 权限
 
-Directus 12.x 界面左侧包含 Data Model、User Roles、Access Policies。由于不同 Directus 12 小版本的 Access Policies API 可能变化，脚本会尝试自动配置 Public 只读权限；如果自动配置失败，集合、字段和测试数据仍会保留，请手工确认：
+Directus 12.x 界面左侧包含 Data Model、User Roles、Access Policies。脚本现在会优先使用 Directus 12 的 Policies / Access / Permissions 接口自动配置 Public 只读权限。
+
+如果脚本日志出现 `custom_permission_rules_enabled is a restricted resource`，说明当前 Directus 实例允许创建 Public policy 权限，但不允许带过滤条件的自定义规则。此时：
+
+1. 无过滤的权限，例如 `site_settings` 只读，可以自动配置成功。
+2. 带过滤条件的权限，例如 `articles.status=published`、`channels.visible=true`，会被实例能力限制拦下。
+3. 为了避免把草稿或禁用内容直接暴露给匿名访客，脚本不会自动降级成“全量公开读取”。
+
+如果当前实例支持自定义权限规则，脚本会直接完成配置；如果不支持，请手工确认：
 
 1. 打开 <http://localhost:8055/admin>。
 2. 使用 `.env.directus` 中的管理员账号登录。
