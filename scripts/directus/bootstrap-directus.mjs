@@ -660,6 +660,15 @@ async function seedData(token) {
     extra_json: { source: 'ADMIN-08R bootstrap', route_path: '/pages/about/index.html' },
     status: 'published',
   });
+  await upsertPageContent(token, 'group-history', {
+    title: '发展历程时间轴',
+    subtitle: '',
+    summary: '集团发展历程页面基础说明，时间轴条目由 page_content_items 管理。',
+    content: '<p>发展历程时间轴页面基础信息由 page_contents 管理，具体年份节点由 page_content_items 管理。</p>',
+    cover: null,
+    extra_json: { item_type: 'timeline', source: 'ADMIN-10R bootstrap', route_path: '/pages/about/index.html' },
+    status: 'published',
+  });
   await upsertPageContent(token, 'org-chart', {
     title: '组织架构图',
     subtitle: '集团组织架构',

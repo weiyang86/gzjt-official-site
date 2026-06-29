@@ -94,6 +94,7 @@ ADMIN-08R 将“页面内容管理”从单纯占位清单升级为可逐步落�
 bootstrap 会初始化：
 
 - `group-intro`：企业简介主体内容。
+- `group-history`：发展历程时间轴页面基础信息，具体年份节点保存在 `page_content_items`。
 - `org-chart`：组织架构图主体内容，`cover` 关联 Directus Files，允许后续上传图片。
 - `social-responsibility`：社会责任主体内容。
 - `phone`、`email`、`address`：联系方式主体内容，同时在 `extra_json` 中说明优先与 `site_settings.phone/email/address` 保持一致。
@@ -121,3 +122,43 @@ curl 'http://localhost:8055/items/page_modules?fields=id,parent_title,module_tit
 curl 'http://localhost:8055/items/page_contents?fields=id,module_code,title,status&limit=20'
 curl 'http://localhost:8055/items/page_content_items?fields=id,module_code,item_type,title,status,sort&limit=20'
 ```
+
+## 9. ADMIN-10R：集团概况三个核心表单
+
+ADMIN-10R 在 ADMIN-09R 通用表单框架基础上，优先落地“集团概况”下三个客户明确点名的二级页面。
+
+### 9.1 企业简介 `group-intro`
+
+- 表单类型：`single_page`。
+- 开放编辑：`admin_enabled=true`。
+- 写入集合：`page_contents`。
+- 固定条件：`page_contents.module_code = group-intro`。
+- 字段映射：页面标题写入 `title`，副标题写入 `subtitle`，封面图文件 ID 写入 `cover`，摘要写入 `summary`，正文写入 `content`，发布状态写入 `status`。
+
+### 9.2 发展历程时间轴 `group-history`
+
+- 表单类型：`timeline`。
+- 开放编辑：`admin_enabled=true`。
+- 页面基础信息写入 `page_contents.module_code = group-history`。
+- 时间轴条目写入 `page_content_items`。
+- 条目固定：`page_content_items.module_code = group-history`，`page_content_items.item_type = timeline`。
+- 条目字段：年份或时间写入 `date_label`，标题写入 `title`，内容写入 `content`，排序写入 `sort`，状态写入 `status`。
+- 后台只做停用，不做物理删除。
+
+### 9.3 组织架构图 `org-chart`
+
+- 表单类型：`org_chart`。
+- 开放编辑：`admin_enabled=true`。
+- 写入集合：`page_contents`。
+- 固定条件：`page_contents.module_code = org-chart`。
+- 字段映射：页面标题写入 `title`，组织架构图图片文件 ID 写入 `cover`，说明文字写入 `content`，发布状态写入 `status`。
+
+### 9.4 上传与权限
+
+企业简介封面图和组织架构图图片复用 `/admin-api/files`，由 `server.js` 使用当前登录用户的 Directus Token 代理到 Directus Files。浏览器端不保存、不硬编码、不透传 Directus Token。
+
+当前前端提示支持 JPG、PNG、WEBP，单文件不超过 10MB；服务端仍以 `/admin-api/files` 的校验和 Directus Files 权限为准。
+
+### 9.5 前台影响
+
+本阶段不修改 `web/pages/`，不修改前台 CSS、布局或动画。Directus 中保存的 `page_contents` 与 `page_content_items` 先供后台维护；后续接入前台时需逐个模块替换内容来源，并保持现有前台视觉结构不变。

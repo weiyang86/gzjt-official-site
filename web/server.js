@@ -373,12 +373,14 @@ const normalizePageContentInput = (body, moduleCode) => {
 const buildPageContentItemsPath = (req) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
     const moduleCode = (parsedUrl.searchParams.get('module_code') || '').trim();
+    const itemType = (parsedUrl.searchParams.get('item_type') || '').trim();
     const params = {
         fields: 'id,module_code,item_type,title,subtitle,date_label,image,content,link_url,sort,status,extra_json,date_updated',
         sort: 'sort,id',
         limit: 500
     };
     if (moduleCode) params['filter[module_code][_eq]'] = moduleCode;
+    if (itemType && pageContentItemTypes.has(itemType)) params['filter[item_type][_eq]'] = itemType;
     return buildDirectusPath('/items/page_content_items', params);
 };
 

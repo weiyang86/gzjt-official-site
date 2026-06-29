@@ -884,3 +884,16 @@ code {
   .content-admin-content { padding-left: 18px; padding-right: 18px; }
   .timeline-item-card { flex-direction: column; }
 }
+
+.form-help-text,
+.field-tip {
+  margin: 6px 0 14px;
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.field-tip {
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
