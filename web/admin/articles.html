@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>新闻管理 - 甘孜建设投资集团官网内容管理后台</title>
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body class="admin-app-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar" aria-label="后台菜单">
+      <div class="sidebar-brand">
+        <span class="brand-mark">甘</span>
+        <div><strong>内容管理后台</strong><small>新闻维护</small></div>
+      </div>
+      <nav class="admin-nav">
+        <a class="admin-nav-link" href="/admin/dashboard.html">工作台</a>
+        <a class="admin-nav-link is-active" href="/admin/articles.html">新闻管理</a>
+        <a class="admin-nav-link" href="/admin/article-edit.html">新增新闻</a>
+        <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="eyebrow">Articles</p><h1>新闻管理</h1></div>
+        <div id="topbar-user" class="topbar-user">正在验证登录态…</div>
+      </header>
+
+      <main class="dashboard-content">
+        <section class="notice-card">
+          <div class="section-title-row">
+            <div>
+              <p class="eyebrow">筛选查询</p>
+              <h2>新闻列表</h2>
+            </div>
+            <a class="primary-link-button" href="/admin/article-edit.html">新增新闻</a>
+          </div>
+          <form id="article-filters" class="filter-form">
+            <label>标题搜索
+              <input id="keyword" name="keyword" type="search" placeholder="输入标题关键词">
+            </label>
+            <label>栏目
+              <select id="channel-filter" name="channel">
+                <option value="">全部栏目</option>
+              </select>
+            </label>
+            <label>状态
+              <select id="status-filter" name="status">
+                <option value="">全部状态</option>
+                <option value="draft">草稿</option>
+                <option value="published">已发布</option>
+                <option value="archived">已归档</option>
+              </select>
+            </label>
+            <button class="secondary-button" type="submit">查询</button>
+          </form>
+        </section>
+
+        <section class="table-card" aria-live="polite">
+          <div id="article-message" class="inline-message" hidden></div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>封面</th>
+                  <th>标题</th>
+                  <th>栏目</th>
+                  <th>状态</th>
+                  <th>发布时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="articles-body">
+                <tr><td colspan="6">正在加载…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-bar">
+            <button id="prev-page" class="secondary-button" type="button">上一页</button>
+            <span id="page-info">第 1 页</span>
+            <button id="next-page" class="secondary-button" type="button">下一页</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/admin/js/admin-api.js"></script>
+  <script src="/admin/js/articles.js"></script>
+</body>
+</html>
