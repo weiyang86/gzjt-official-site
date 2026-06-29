@@ -1,0 +1,82 @@
+(function () {
+  const loginPath = '/admin/login.html';
+
+  const redirectToLogin = () => {
+    const currentPath = window.location.pathname;
+    if (currentPath !== loginPath) {
+      window.location.href = loginPath;
+    }
+  };
+
+  const parseJson = async (response) => {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      return { error: { code: 'INVALID_JSON', message: text } };
+    }
+  };
+
+  const getErrorMessage = (payload, fallback) => {
+    if (payload && payload.error && payload.error.message) return payload.error.message;
+    if (payload && payload.errors && payload.errors[0] && payload.errors[0].message) return payload.errors[0].message;
+    return fallback;
+  };
+
+  const adminFetch = async (url, options = {}) => {
+    const headers = new Headers(options.headers || {});
+    const hasFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    if (options.body && !hasFormData && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      ...options,
+      headers
+    });
+    const payload = await parseJson(response);
+
+    if (response.status === 401) {
+      redirectToLogin();
+      const error = new Error('登录已失效，请重新登录');
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
+    }
+
+    if (!response.ok) {
+      const error = new Error(getErrorMessage(payload, '请求失败，请稍后重试'));
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
+    }
+
+    return payload;
+  };
+
+  window.AdminApi = {
+    adminFetch,
+    redirectToLogin,
+    login: (email, password) => adminFetch('/admin-api/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    }),
+    logout: () => adminFetch('/admin-api/logout', { method: 'POST' }),
+    me: () => adminFetch('/admin-api/me'),
+    channels: () => adminFetch('/admin-api/channels'),
+    articles: (params = {}) => adminFetch(`/admin-api/articles?${new URLSearchParams(params).toString()}`),
+    article: (id) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`),
+    createArticle: (payload) => adminFetch('/admin-api/articles', { method: 'POST', body: JSON.stringify(payload) }),
+    updateArticle: (id, payload) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    setArticleStatus: (id, action) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, { method: 'PATCH' }),
+    uploadFile: (formData) => adminFetch('/admin-api/files', { method: 'POST', body: formData }),
+    categories: (params = {}) => adminFetch(`/admin-api/categories?${new URLSearchParams(params).toString()}`),
+    category: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`),
+    createCategory: (payload) => adminFetch('/admin-api/categories', { method: 'POST', body: JSON.stringify(payload) }),
+    updateCategory: (id, payload) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    setCategoryEnabled: (id, enabled) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, { method: 'PATCH' }),
+    categoryUsage: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/usage`)
+  };
+})();

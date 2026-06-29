@@ -274,3 +274,111 @@ cms-api 的 Directus 调用采用空状态兜底：
 - 前端页面应保留现有静态内容或展示空状态，不能因为 CMS 请求失败导致白屏。
 
 因此，首页和栏目页接入这些接口时应继续保留现有静态内容兜底；只有接口返回有效数据时再替换对应区域。
+
+## ADMIN-02 后台代理登录本地调试
+
+ADMIN-02 在 `web/server.js` 中增加了 `/admin-api/*` 后台代理登录能力。浏览器后台页面只访问同源 `/admin-api/*`，由 `server.js` 负责调用 Directus；Directus `access_token` 保存在服务端内存会话中，浏览器只持有 `HttpOnly` 会话 Cookie。
+
+### 1) 需要的环境变量
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DIRECTUS_URL` | `http://localhost:8055` | `server.js` 访问 Directus 的服务端地址。 |
+| `ADMIN_SESSION_SECRET` | 本地开发默认值 | 用于签名后台会话 Cookie。生产环境必须改为强随机值，不能使用默认值。 |
+| `PORT` | `3010` | `web/server.js` 监听端口。 |
+
+示例本地启动命令：
+
+```bash
+cd web
+DIRECTUS_URL=http://localhost:8055 \
+ADMIN_SESSION_SECRET=$(openssl rand -hex 32) \
+npm run dev:site
+```
+
+> 不要提交 `.env`、真实客户账号、密码、Token 或生产密钥。如果本地使用 `.env.directus`，它只用于 Docker/Directus 本地启动，不应提交到 Git。
+
+### 2) 启动 Directus
+
+在仓库根目录执行：
+
+```bash
+cp .env.directus.example .env.directus
+# 修改 .env.directus 中的 ADMIN_EMAIL、ADMIN_PASSWORD、DIRECTUS_KEY、DIRECTUS_SECRET 等值
+docker compose --env-file .env.directus -f docker-compose.directus.yml up -d
+```
+
+启动后访问：
+
+- Directus Studio：<http://localhost:8055/admin>
+- 健康检查：<http://localhost:8055/server/health>
+
+如需初始化内容模型和测试数据：
+
+```bash
+set -a
+source .env.directus
+set +a
+DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
+```
+
+### 3) 启动 web
+
+在 `web/` 目录启动本地静态服务和后台代理：
+
+```bash
+cd web
+DIRECTUS_URL=http://localhost:8055 \
+ADMIN_SESSION_SECRET=$(openssl rand -hex 32) \
+npm run dev:site
+```
+
+启动后：
+
+- 官网前台：<http://localhost:3010/>
+- 后台 API：<http://localhost:3010/admin-api/me>
+
+### 4) 测试 `/admin-api/login`
+
+使用 Directus 用户自己的邮箱和密码登录，不使用固定 Super Admin Token。以下命令会把 `HttpOnly` Cookie 保存到临时文件：
+
+```bash
+curl -i -c /tmp/gzjt-admin-cookie.txt \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"你的Directus邮箱","password":"你的Directus密码"}' \
+  http://localhost:3010/admin-api/login
+```
+
+登录成功后检查当前用户：
+
+```bash
+curl -i -b /tmp/gzjt-admin-cookie.txt \
+  http://localhost:3010/admin-api/me
+```
+
+退出登录并清理 Cookie：
+
+```bash
+curl -i -b /tmp/gzjt-admin-cookie.txt -c /tmp/gzjt-admin-cookie.txt \
+  -X POST http://localhost:3010/admin-api/logout
+```
+
+未登录访问 `/admin-api/me` 应返回 `401`：
+
+```bash
+curl -i http://localhost:3010/admin-api/me
+```
+
+Directus 未启动或 `DIRECTUS_URL` 配置错误时，`/admin-api/login` 会返回明确的 JSON 错误 `DIRECTUS_UNAVAILABLE`。
+
+### 5) 为什么不能暴露 Directus Token
+
+Directus `access_token` 具备当前登录用户在 Directus 中被授予的内容读写能力。如果把 Token 写入浏览器端 JS、HTML、LocalStorage 或提交到 Git，任何能获取页面源码或浏览器存储的人都可能绕过极简后台直接调用 Directus API。ADMIN-02 采用服务端内存会话：
+
+1. 浏览器提交账号密码到 `/admin-api/login`。
+2. `server.js` 调用 Directus `/auth/login`。
+3. `server.js` 把 Directus `access_token` 放在服务端内存 Map 中。
+4. 浏览器只收到已签名的 `HttpOnly` Cookie，前端 JS 不能读取 Cookie 内容。
+5. 后续 `/admin-api/*` 由 `server.js` 带 Token 调用 Directus，并继续受 Directus 用户权限控制。
+
+该方案避免在浏览器端硬编码或暴露 Directus 管理员 Token，也避免用固定 Super Admin Token 代表所有客户操作。
