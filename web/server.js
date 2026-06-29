@@ -196,6 +196,8 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
 const articleStatuses = new Set(['draft', 'published', 'archived']);
 const categoryStatuses = new Set(['enabled', 'disabled']);
 const categoryTypes = new Set(['list', 'page', 'link', 'module']);
+const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
+const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const maxUploadBytes = 10 * 1024 * 1024;
 const maxMultipartBytes = 12 * 1024 * 1024;
@@ -210,6 +212,75 @@ const buildDirectusPath = (pathname, params = {}) => {
     return query ? `${pathname}?${query}` : pathname;
 };
 
+const getPageModuleRoute = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/page-modules\/([^/]+)$/);
+    if (!match) return null;
+    return { id: decodeURIComponent(match[1]) };
+};
+
+const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,dev_status,placeholder_text,remark,sort,status,date_updated';
+
+const buildPageModulesPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const parentCode = (parsedUrl.searchParams.get('parent_code') || '').trim();
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const devStatus = (parsedUrl.searchParams.get('dev_status') || '').trim();
+    const params = {
+        fields: pageModuleFields,
+        sort: 'parent_code,sort,module_title',
+        limit: 500
+    };
+    if (parentCode) params['filter[parent_code][_eq]'] = parentCode;
+    if (devStatus && pageModuleDevStatuses.has(devStatus)) params['filter[dev_status][_eq]'] = devStatus;
+    if (keyword) {
+        params['filter[_or][0][module_title][_contains]'] = keyword;
+        params['filter[_or][1][module_code][_contains]'] = keyword;
+        params['filter[_or][2][parent_title][_contains]'] = keyword;
+        params['filter[_or][3][placeholder_text][_contains]'] = keyword;
+        params['filter[_or][4][remark][_contains]'] = keyword;
+    }
+    return buildDirectusPath('/items/page_modules', params);
+};
+
+const normalizePageModuleInput = (body) => {
+    const payload = {};
+    if (typeof body.placeholder_text === 'string') payload.placeholder_text = body.placeholder_text.trim();
+    if (typeof body.remark === 'string') payload.remark = body.remark.trim();
+    if (body.dev_status !== undefined) {
+        if (!pageModuleDevStatuses.has(body.dev_status)) throw Object.assign(new Error('invalid dev_status'), { statusCode: 400 });
+        payload.dev_status = body.dev_status;
+    }
+    if (body.status !== undefined) {
+        if (!pageModuleStatuses.has(body.status)) throw Object.assign(new Error('invalid status'), { statusCode: 400 });
+        payload.status = body.status;
+    }
+    if (body.sort !== undefined) {
+        const sort = Number(body.sort);
+        if (!Number.isFinite(sort)) throw Object.assign(new Error('sort must be a number'), { statusCode: 400 });
+        payload.sort = sort;
+    }
+    if (!Object.keys(payload).length) throw Object.assign(new Error('no editable page module fields provided'), { statusCode: 400 });
+    return payload;
+};
+
+const groupPageModules = (modules) => {
+    const groups = [];
+    const groupMap = new Map();
+    modules.forEach((module) => {
+        const parentCode = module.parent_code || 'uncategorized';
+        if (!groupMap.has(parentCode)) {
+            const group = {
+                parent_title: module.parent_title || '未分组',
+                parent_code: parentCode,
+                modules: []
+            };
+            groupMap.set(parentCode, group);
+            groups.push(group);
+        }
+        groupMap.get(parentCode).modules.push(module);
+    });
+    return groups;
+};
 
 const getCategoryIdFromPath = (normalizedPath) => {
     const match = normalizedPath.match(/^\/admin-api\/categories\/([^/]+)(?:\/(enable|disable|usage))?$/);
@@ -537,6 +608,30 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             if (!session) return;
             const channels = await directusJsonRequest(getChannelsPath(), session.accessToken);
             return sendJson(res, 200, { data: channels?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/page-modules' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const modules = await directusJsonRequest(buildPageModulesPath(req), session.accessToken);
+            return sendJson(res, 200, { data: modules?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/page-modules/grouped' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const modules = await directusJsonRequest(buildPageModulesPath(req), session.accessToken);
+            return sendJson(res, 200, { data: groupPageModules(modules?.data || []) });
+        }
+
+        const pageModuleRoute = getPageModuleRoute(normalizedPath);
+        if (pageModuleRoute && req.method === 'PATCH') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const payload = normalizePageModuleInput(body);
+            const module = await directusJsonRequest(`/items/page_modules/${encodeURIComponent(pageModuleRoute.id)}`, session.accessToken, 'PATCH', payload);
+            return sendJson(res, 200, { data: module?.data || null });
         }
 
         if (normalizedPath === '/admin-api/categories' && req.method === 'GET') {

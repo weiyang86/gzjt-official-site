@@ -77,6 +77,9 @@
     createCategory: (payload) => adminFetch('/admin-api/categories', { method: 'POST', body: JSON.stringify(payload) }),
     updateCategory: (id, payload) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     setCategoryEnabled: (id, enabled) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, { method: 'PATCH' }),
-    categoryUsage: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/usage`)
+    categoryUsage: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/usage`),
+    pageModules: (params = {}) => adminFetch(`/admin-api/page-modules?${new URLSearchParams(params).toString()}`),
+    pageModulesGrouped: (params = {}) => adminFetch(`/admin-api/page-modules/grouped?${new URLSearchParams(params).toString()}`),
+    updatePageModule: (id, payload) => adminFetch(`/admin-api/page-modules/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
   };
 })();
