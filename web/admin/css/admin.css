@@ -253,18 +253,6 @@ code {
   padding: 28px 32px 48px;
 }
 
-.split-grid {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: 22px;
-  align-items: start;
-}
-
-.split-grid-right {
-  display: grid;
-  gap: 22px;
-}
-
 .notice-card,
 .quick-card,
 .user-card {
@@ -349,8 +337,6 @@ code {
 @media (max-width: 920px) {
   .admin-layout { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; }
-  .split-grid { grid-template-columns: 1fr; }
-  .admin-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-grid,
   .user-details { grid-template-columns: 1fr; }

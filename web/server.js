@@ -195,6 +195,7 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
 
 const articleStatuses = new Set(['draft', 'published', 'archived']);
 const categoryStatuses = new Set(['enabled', 'disabled']);
+const categoryTypes = new Set(['list', 'page', 'link', 'module']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const maxUploadBytes = 10 * 1024 * 1024;
 const maxMultipartBytes = 12 * 1024 * 1024;
@@ -221,21 +222,22 @@ const buildCategoryListPath = (req) => {
     const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
     const params = {
-        fields: 'id,name,slug,type,path,sort,visible,status',
+        fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name',
         sort: 'sort,name',
         limit: 100,
-        'filter[type][_eq]': 'news'
+        'filter[is_news_category][_eq]': true
     };
     if (keyword) {
         params['filter[_or][0][name][_contains]'] = keyword;
         params['filter[_or][1][slug][_contains]'] = keyword;
+        params['filter[_or][2][description][_contains]'] = keyword;
     }
     if (status && categoryStatuses.has(status)) params['filter[status][_eq]'] = status;
     return buildDirectusPath('/items/channels', params);
 };
 
 const getCategoryDetailPath = (id) => buildDirectusPath(`/items/channels/${encodeURIComponent(id)}`, {
-    fields: 'id,name,slug,type,path,sort,visible,status'
+    fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name'
 });
 
 const normalizeCategoryInput = (body, isCreate = false) => {
@@ -246,17 +248,21 @@ const normalizeCategoryInput = (body, isCreate = false) => {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
         throw Object.assign(new Error('slug must use lowercase letters, numbers, and hyphens'), { statusCode: 400 });
     }
+    const type = categoryTypes.has(body.type) ? body.type : 'list';
     const status = categoryStatuses.has(body.status) ? body.status : 'enabled';
     const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0;
     const payload = {
         name,
         slug,
-        type: 'news',
+        type,
         path: typeof body.path === 'string' ? body.path.trim() : `/channels/${slug}`,
         sort,
         visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
-        status
+        status,
+        is_news_category: true,
+        description: typeof body.description === 'string' ? body.description.trim() : ''
     };
+    if (body.parent) payload.parent = body.parent;
     if (isCreate) {
         payload.visible = typeof body.visible === 'boolean' ? body.visible : true;
         payload.status = categoryStatuses.has(body.status) ? body.status : 'enabled';
@@ -312,12 +318,11 @@ const buildArticleListPath = (req) => {
 };
 
 const getChannelsPath = () => buildDirectusPath('/items/channels', {
-    fields: 'id,name,slug,type,path,sort,status,visible',
-    sort: 'sort,id',
+    fields: 'id,name,slug,status,sort',
+    sort: 'sort,name',
     limit: 100,
     'filter[status][_eq]': 'enabled',
-    'filter[visible][_eq]': 'true',
-    'filter[type][_eq]': 'news'
+    'filter[is_news_category][_eq]': true
 });
 
 const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
@@ -567,23 +572,13 @@ const handleAdminApi = async (req, res, normalizedPath) => {
                 return sendJson(res, 200, { data: category?.data || null });
             }
 
-            if (!categoryRoute.action && req.method === 'DELETE') {
-                const usage = await directusJsonRequest(buildCategoryUsagePath(categoryRoute.id), session.accessToken);
-                const count = Number(usage?.meta?.filter_count || 0);
-                if (count > 0) {
-                    return sendJson(res, 400, { error: { code: 'BAD_REQUEST', message: `Cannot delete category that has ${count} articles` } });
-                }
-                await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'DELETE');
-                return sendJson(res, 200, { ok: true });
-            }
-
             if (categoryRoute.action === 'disable' && req.method === 'PATCH') {
-                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled', visible: false });
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled', visible: false, is_news_category: true });
                 return sendJson(res, 200, { data: category?.data || null });
             }
 
             if (categoryRoute.action === 'enable' && req.method === 'PATCH') {
-                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'enabled', visible: true });
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'enabled', visible: true, is_news_category: true });
                 return sendJson(res, 200, { data: category?.data || null });
             }
 
@@ -669,8 +664,8 @@ http.createServer((req, res) => {
     const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, '/'));
     const normalizedNoSlash = normalizedPath.replace(/\/+$/, '') || '/';
 
-    if (normalizedNoSlash === '/admin-api' || normalizedNoSlash.startsWith('/admin-api/')) {
-        handleAdminApi(req, res, normalizedNoSlash);
+    if (normalizedPath === '/admin-api' || normalizedPath.startsWith('/admin-api/')) {
+        handleAdminApi(req, res, normalizedPath);
         return;
     }
 

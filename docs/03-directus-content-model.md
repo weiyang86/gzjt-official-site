@@ -17,6 +17,7 @@
 | `pages` | 单页内容 | 集团概况、联系我们、责任说明等单页型页面 |
 | `banners` | 轮播图和焦点图 | 首页轮播、栏目页头图预留 |
 | `site_settings` | 站点级配置 | 页头页脚、SEO、联系方式、友情链接等全站配置 |
+| `page_modules` | 页面模块占位和开发规划 | 简单后台中的一级栏目/二级页面管理占位，当前不替换前台页面 |
 
 ## 3. `channels` 栏目集合
 
@@ -239,3 +240,33 @@
 ### 静态导入追踪字段
 
 为支持 `scripts/directus/extract-static-content.mjs` 与 `import-static-content.mjs` 的幂等导入，建议 `channels`、`articles`、`companies`、`business_sectors`、`pages`、`banners`、`home_sections`、`quick_links`、`friend_links` 保留 `source_file` 字段，用于记录内容来源的前端 HTML 文件。该字段仅用于迁移追踪和查重，不应作为前台展示字段。
+
+
+## 13. `page_modules` 页面模块占位集合
+
+### 定位
+
+`page_modules` 用于简单后台展示和维护“一级栏目 - 二级页面模块”的占位清单。它记录每个二级页面当前对应的前端入口、内容形态和开发状态，当前阶段仅作为后台占位管理项和开发规划，不替换 `web/pages/` 现有静态页面，也不改变官网前台样式、布局、CSS、动画或路由。
+
+### 建议字段
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | UUID / Integer | 是 | 主键 |
+| `module_title` | String | 是 | 二级模块名称，例如“企业简介” |
+| `module_code` | String | 是 | 二级模块编码，例如 `group-intro` |
+| `parent_title` | String | 是 | 一级栏目名称，例如“集团概况” |
+| `parent_code` | String | 是 | 一级栏目编码，例如 `group-overview` |
+| `route_path` | String | 否 | 当前前端入口路径，例如 `/pages/about/index.html` |
+| `content_type` | Select | 是 | `intro` / `timeline` / `org_chart` / `list` / `page` / `static` / `custom` |
+| `dev_status` | Select | 是 | `developing` / `enabled` / `disabled`，初始化默认为 `developing` |
+| `placeholder_text` | Text | 否 | 占位提示，默认“正在开发中” |
+| `sort` | Integer | 否 | 排序 |
+| `remark` | Text | 否 | 备注 |
+| `status` | Select | 是 | `enabled` / `disabled` |
+
+### 与 `channels` 的区别
+
+- `channels` 服务新闻分类和前台栏目，主要用于 `articles.main_channel` 关联、新闻筛选与前台已发布内容读取。
+- `page_modules` 服务后台页面管理占位和开发规划，用于告诉客户一级栏目下有哪些二级页面将逐步接入内容管理。
+- 当前所有初始化二级模块都保持 `dev_status=developing`，后台可显示“正在开发中”；后续每个模块可逐步接入独立内容编辑后再切换为 `enabled`。
