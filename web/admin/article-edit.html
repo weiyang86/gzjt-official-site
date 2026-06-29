@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>编辑新闻 - 甘孜建设投资集团官网内容管理后台</title>
   <link rel="stylesheet" href="/admin/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css">
 </head>
 <body class="admin-app-page">
   <div class="admin-layout">
@@ -68,9 +69,15 @@
             <label>发布时间
               <input id="publish-at" name="publish_at" type="datetime-local">
             </label>
-            <label class="span-2">正文 <span class="required">*</span>
-              <textarea id="content" name="content" class="content-editor" rows="16" required></textarea>
-            </label>
+            <div class="field-block span-2">
+              <div class="field-label">正文 <span class="required">*</span></div>
+              <div class="editor-hint">支持标题层级、字体字号、字色底色、对齐缩进、表格、图片、链接、代码查看、全屏预览等细致排版操作。</div>
+              <div class="wang-editor-shell">
+                <div id="wang-toolbar" class="wang-toolbar"></div>
+                <div id="wang-editor" class="wang-editor"></div>
+              </div>
+              <textarea id="content" name="content" class="content-editor" rows="18" hidden required></textarea>
+            </div>
           </div>
 
           <div class="form-actions">
@@ -84,6 +91,7 @@
   </div>
 
   <script src="/admin/js/admin-api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/index.min.js"></script>
   <script src="/admin/js/article-edit.js"></script>
 </body>
 </html>

@@ -16,8 +16,12 @@
   const authorInput = document.getElementById('author');
   const publishAtInput = document.getElementById('publish-at');
   const contentInput = document.getElementById('content');
+  const toolbarContainer = document.getElementById('wang-toolbar');
+  const editorContainer = document.getElementById('wang-editor');
   const draftButtons = [document.getElementById('save-draft'), document.getElementById('save-draft-bottom')];
   const publishButtons = [document.getElementById('publish-article'), document.getElementById('publish-article-bottom')];
+  let richEditor = null;
+  let richToolbar = null;
 
   const showMessage = (message, type) => {
     messageBox.textContent = message;
@@ -43,6 +47,80 @@
     [...draftButtons, ...publishButtons].forEach((button) => { button.disabled = busy; });
   };
 
+  const getEditorContent = () => {
+    if (richEditor) {
+      contentInput.value = richEditor.getHtml().trim();
+    }
+    return contentInput.value;
+  };
+
+  const setEditorContent = (value) => {
+    const html = value || '';
+    contentInput.value = html;
+    if (richEditor) {
+      richEditor.setHtml(html || '<p><br></p>');
+    }
+  };
+
+  const initRichEditor = async () => {
+    if (!window.wangEditor || !toolbarContainer || !editorContainer) {
+      contentInput.hidden = false;
+      showMessage('富文本编辑器加载失败，已切换为基础文本模式。', 'error');
+      return;
+    }
+    const E = window.wangEditor;
+    if (typeof E.i18nChangeLanguage === 'function') {
+      E.i18nChangeLanguage('zh-CN');
+    }
+    const editorConfig = {
+      placeholder: '请输入正文内容',
+      scroll: false,
+      autoFocus: false,
+      onChange(editor) {
+        contentInput.value = editor.getHtml().trim();
+      },
+      MENU_CONF: {
+        color: {
+          colors: ['#101828', '#344054', '#475467', '#667085', '#b42318', '#175cd3', '#027a48', '#f79009']
+        },
+        bgColor: {
+          colors: ['#ffffff', '#fff7f5', '#eff8ff', '#ecfdf3', '#fffaeb', '#f9fafb']
+        },
+        fontSize: {
+          fontSizeList: ['12px', '14px', '15px', '16px', '18px', '20px', '22px', '24px', '28px', '32px', '36px']
+        },
+        fontFamily: {
+          fontFamilyList: [
+            { name: '微软雅黑', value: 'Microsoft YaHei, PingFang SC, sans-serif' },
+            { name: '宋体', value: 'SimSun, serif' },
+            { name: '黑体', value: 'SimHei, sans-serif' },
+            { name: '仿宋', value: 'FangSong, serif' },
+            { name: '楷体', value: 'KaiTi, serif' },
+            { name: 'Arial', value: 'Arial, Helvetica, sans-serif' }
+          ]
+        },
+        lineHeight: {
+          lineHeightList: ['1', '1.5', '1.75', '2', '2.5']
+        }
+      }
+    };
+    richEditor = E.createEditor({
+      selector: '#wang-editor',
+      html: contentInput.value || '<p><br></p>',
+      config: editorConfig,
+      mode: 'default'
+    });
+    richToolbar = E.createToolbar({
+      editor: richEditor,
+      selector: '#wang-toolbar',
+      config: {
+        modalAppendToBody: true
+      },
+      mode: 'default'
+    });
+    contentInput.value = richEditor.getHtml().trim();
+  };
+
   const getPayload = (statusOverride) => ({
     title: titleInput.value.trim(),
     subtitle: subtitleInput.value.trim(),
@@ -52,19 +130,20 @@
     source: sourceInput.value.trim(),
     author: authorInput.value.trim(),
     publish_at: fromLocalDateTime(publishAtInput.value),
-    content: contentInput.value
+    content: getEditorContent()
   });
 
-  const validatePayload = (payload) => {
+  const validatePayload = (payload, statusOverride) => {
+    const targetStatus = statusOverride || payload.status
     if (!payload.title) return '请输入标题。';
-    if (!payload.main_channel) return '请选择栏目。';
-    if (!payload.content.trim()) return '请输入正文。';
+    if (targetStatus === 'published' && !payload.main_channel) return '发布前请选择栏目。';
+    if (targetStatus === 'published' && !payload.content.trim()) return '发布前请输入正文。';
     return '';
   };
 
   const saveArticle = async (statusOverride) => {
     const payload = getPayload(statusOverride);
-    const error = validatePayload(payload);
+    const error = validatePayload(payload, statusOverride);
     if (error) {
       showMessage(error, 'error');
       return;
@@ -107,7 +186,7 @@
     sourceInput.value = article.source || '';
     authorInput.value = article.author || '';
     publishAtInput.value = toLocalDateTime(article.publish_at);
-    contentInput.value = article.content || '';
+    setEditorContent(article.content || '');
   };
 
   const loadArticle = async () => {
@@ -131,8 +210,13 @@
     try { await window.AdminApi.logout(); } catch (error) {}
     window.location.href = '/admin/login.html';
   });
+  window.addEventListener('beforeunload', () => {
+    if (richToolbar && typeof richToolbar.destroy === 'function') richToolbar.destroy();
+    if (richEditor && typeof richEditor.destroy === 'function') richEditor.destroy();
+  });
 
   Promise.resolve()
+    .then(() => initRichEditor())
     .then(loadCurrentUser)
     .then(loadChannels)
     .then(loadArticle)

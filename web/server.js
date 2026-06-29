@@ -220,15 +220,61 @@ const normalizePagination = (rawPage, rawLimit) => {
     return { page, limit };
 };
 
-const buildArticleListPath = (req) => {
+const normalizeChannelRecord = (channel) => ({
+    id: String(channel?.id ?? ''),
+    name: channel?.name || '',
+    slug: channel?.slug || '',
+    status: channel?.status || '',
+    sort: Number(channel?.sort) || 0
+});
+
+const loadNewsChannels = async (token) => {
+    const channels = await directusJsonRequest(buildDirectusPath('/items/channels', {
+        fields: 'id,name,slug,status,sort,type',
+        sort: 'sort,name',
+        limit: 100,
+        'filter[status][_eq]': 'enabled',
+        'filter[type][_eq]': 'news'
+    }), token);
+    return (channels?.data || []).map(normalizeChannelRecord);
+};
+
+const buildChannelMaps = (channels) => {
+    const byId = new Map();
+    const bySlug = new Map();
+    channels.forEach((channel) => {
+        byId.set(String(channel.id), channel);
+        if (channel.slug) bySlug.set(channel.slug, channel);
+    });
+    return { byId, bySlug };
+};
+
+const mapArticleRecord = (article, channelMap) => {
+    const rawChannel = article?.main_channel;
+    const channelId = rawChannel && typeof rawChannel === 'object'
+        ? String(rawChannel.id || '')
+        : (rawChannel === null || rawChannel === undefined ? '' : String(rawChannel));
+    const fallbackChannel = channelMap.get(channelId) || null;
+    return {
+        ...article,
+        main_channel: channelId
+            ? {
+                id: channelId,
+                name: rawChannel?.name || fallbackChannel?.name || '',
+                slug: rawChannel?.slug || fallbackChannel?.slug || ''
+            }
+            : null
+    };
+};
+
+const buildArticleListPath = (req, channelId) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
     const { page, limit } = normalizePagination(parsedUrl.searchParams.get('page'), parsedUrl.searchParams.get('limit'));
     const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
-    const channel = (parsedUrl.searchParams.get('channel') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
     const params = {
-        fields: 'id,title,subtitle,summary,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,date_updated',
-        sort: '-publish_at,-date_updated',
+        fields: 'id,title,subtitle,summary,main_channel,status,publish_at,source,author',
+        sort: '-publish_at,-id',
         page,
         limit,
         meta: 'filter_count'
@@ -239,44 +285,47 @@ const buildArticleListPath = (req) => {
         params['filter[_or][1][summary][_contains]'] = keyword;
         params['filter[_or][2][subtitle][_contains]'] = keyword;
     }
-    if (channel) params['filter[main_channel][slug][_eq]'] = channel;
+    if (channelId) params['filter[main_channel][_eq]'] = channelId;
     if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
 
     return buildDirectusPath('/items/articles', params);
 };
 
-const getChannelsPath = () => buildDirectusPath('/items/channels', {
-    fields: 'id,name,slug,status,sort',
-    sort: 'sort,name',
-    limit: 100,
-    'filter[status][_eq]': 'enabled'
-});
-
 const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-    fields: 'id,title,subtitle,summary,content,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,date_updated'
+    fields: 'id,title,subtitle,summary,content,main_channel,status,publish_at,source,author,is_top,is_home_recommend'
 });
 
 const normalizeArticleInput = (body, fallbackStatus) => {
     const title = typeof body.title === 'string' ? body.title.trim() : '';
-    const mainChannel = body.main_channel || body.channel || null;
+    const rawMainChannel = body.main_channel || body.channel || null;
+    const mainChannel = rawMainChannel === '' || rawMainChannel === undefined || rawMainChannel === null
+        ? null
+        : Number.parseInt(String(rawMainChannel), 10);
     const status = articleStatuses.has(body.status) ? body.status : fallbackStatus;
+    const content = typeof body.content === 'string' ? body.content : '';
     const payload = {
         title,
         subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
         summary: typeof body.summary === 'string' ? body.summary.trim() : '',
-        content: typeof body.content === 'string' ? body.content : '',
+        content,
         main_channel: mainChannel,
         source: typeof body.source === 'string' ? body.source.trim() : '',
         author: typeof body.author === 'string' ? body.author.trim() : '',
-        publish_at: body.publish_at || new Date().toISOString(),
+        publish_at: body.publish_at || (status === 'published' ? new Date().toISOString() : null),
         status
     };
 
     if (!payload.title) {
         throw Object.assign(new Error('title is required'), { statusCode: 400 });
     }
-    if (!payload.main_channel) {
+    if (rawMainChannel !== '' && rawMainChannel !== undefined && rawMainChannel !== null && !Number.isFinite(mainChannel)) {
+        throw Object.assign(new Error('main_channel is invalid'), { statusCode: 400 });
+    }
+    if (status === 'published' && !payload.main_channel) {
         throw Object.assign(new Error('main_channel is required'), { statusCode: 400 });
+    }
+    if (status === 'published' && !payload.content.trim()) {
+        throw Object.assign(new Error('content is required'), { statusCode: 400 });
     }
     return payload;
 };
@@ -350,16 +399,24 @@ const handleAdminApi = async (req, res, normalizedPath) => {
         if (normalizedPath === '/admin-api/channels' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const channels = await directusJsonRequest(getChannelsPath(), session.accessToken);
-            return sendJson(res, 200, { data: channels?.data || [] });
+            const channels = await loadNewsChannels(session.accessToken);
+            return sendJson(res, 200, { data: channels });
         }
 
         if (normalizedPath === '/admin-api/articles' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const articles = await directusJsonRequest(buildArticleListPath(req), session.accessToken);
+            const channels = await loadNewsChannels(session.accessToken);
+            const { byId, bySlug } = buildChannelMaps(channels);
+            const parsedUrl = new URL(req.url, 'http://localhost');
+            const channelSlug = (parsedUrl.searchParams.get('channel') || '').trim();
+            const channelId = channelSlug ? bySlug.get(channelSlug)?.id || null : null;
+            if (channelSlug && !channelId) {
+                return sendJson(res, 200, { data: [], meta: { filter_count: 0 } });
+            }
+            const articles = await directusJsonRequest(buildArticleListPath(req, channelId), session.accessToken);
             return sendJson(res, 200, {
-                data: articles?.data || [],
+                data: (articles?.data || []).map((item) => mapArticleRecord(item, byId)),
                 meta: articles?.meta || null
             });
         }
@@ -379,8 +436,10 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             if (!session) return;
 
             if (!articleRoute.action && req.method === 'GET') {
+                const channels = await loadNewsChannels(session.accessToken);
+                const { byId } = buildChannelMaps(channels);
                 const article = await directusJsonRequest(getArticleDetailPath(articleRoute.id), session.accessToken);
-                return sendJson(res, 200, { data: article?.data || null });
+                return sendJson(res, 200, { data: article?.data ? mapArticleRecord(article.data, byId) : null });
             }
 
             if (!articleRoute.action && req.method === 'PATCH') {
