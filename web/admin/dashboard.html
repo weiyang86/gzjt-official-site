@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工作台 - 甘孜建设投资集团官网内容管理后台</title>
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body class="admin-app-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar" aria-label="后台菜单">
+      <div class="sidebar-brand">
+        <span class="brand-mark">甘</span>
+        <div>
+          <strong>内容管理后台</strong>
+          <small>新闻维护</small>
+        </div>
+      </div>
+      <nav class="admin-nav">
+        <a class="admin-nav-link is-active" href="/admin/dashboard.html">工作台</a>
+        <a class="admin-nav-link" href="#news-management" aria-disabled="true">新闻管理</a>
+        <a class="admin-nav-link" href="#new-article" aria-disabled="true">新增新闻</a>
+        <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <p class="eyebrow">GZJT CMS</p>
+          <h1>甘孜建设投资集团官网内容管理后台</h1>
+        </div>
+        <div id="topbar-user" class="topbar-user">正在验证登录态…</div>
+      </header>
+
+      <main class="dashboard-content">
+        <section class="notice-card" aria-labelledby="news-help-title">
+          <p class="eyebrow">工作台</p>
+          <h2 id="news-help-title">新闻管理说明</h2>
+          <p>本后台用于官网新闻内容维护。当前阶段已接入 Directus 登录认证，后续将开放新闻列表、新增新闻、编辑新闻、发布和归档等功能。</p>
+          <ul class="plain-list">
+            <li>请使用自己的 Directus 内容账号登录，不共用管理员账号。</li>
+            <li>后台通过 <code>/admin-api/*</code> 访问 Directus，不在浏览器端暴露 Token。</li>
+            <li>官网前台仅展示已发布内容，草稿和归档内容不会展示给公众。</li>
+          </ul>
+        </section>
+
+        <section class="dashboard-grid" aria-label="快捷入口">
+          <article class="quick-card" id="news-management">
+            <span class="quick-icon">📰</span>
+            <h3>新闻管理</h3>
+            <p>查看新闻列表、筛选栏目和状态。该功能将在下一阶段接入。</p>
+            <button class="secondary-button" type="button" disabled>即将开放</button>
+          </article>
+          <article class="quick-card" id="new-article">
+            <span class="quick-icon">＋</span>
+            <h3>新增新闻</h3>
+            <p>创建草稿、上传封面、填写正文并提交发布。该功能将在下一阶段接入。</p>
+            <button class="secondary-button" type="button" disabled>即将开放</button>
+          </article>
+          <article class="quick-card">
+            <span class="quick-icon">🔐</span>
+            <h3>权限说明</h3>
+            <p>Directus 继续控制账号可读写范围，普通客户账号不管理数据模型。</p>
+            <a class="text-link" href="/admin/login.html">返回登录页</a>
+          </article>
+        </section>
+
+        <section class="user-card" aria-labelledby="user-title">
+          <div>
+            <p class="eyebrow">当前登录用户</p>
+            <h2 id="user-title">账号信息</h2>
+          </div>
+          <dl id="user-details" class="user-details">
+            <div>
+              <dt>状态</dt>
+              <dd>正在加载…</dd>
+            </div>
+          </dl>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/admin/js/admin-api.js"></script>
+  <script src="/admin/js/dashboard.js"></script>
+</body>
+</html>
