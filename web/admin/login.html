@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>甘孜建设投资集团官网内容管理后台 - 登录</title>
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body class="admin-login-page">
+  <main class="login-shell" aria-labelledby="login-title">
+    <section class="login-card">
+      <div class="login-brand">
+        <p class="eyebrow">Ganzi Construction Investment Group</p>
+        <h1 id="login-title">甘孜建设投资集团官网内容管理后台</h1>
+        <p class="login-desc">用于新闻上传与新闻管理，请使用分配的 Directus 内容账号登录。</p>
+      </div>
+
+      <form id="login-form" class="login-form" novalidate>
+        <div class="form-field">
+          <label for="email">邮箱</label>
+          <input id="email" name="email" type="email" autocomplete="username" placeholder="请输入邮箱" required>
+        </div>
+        <div class="form-field">
+          <label for="password">密码</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+        </div>
+        <p id="login-error" class="form-error" role="alert" hidden></p>
+        <button id="login-submit" class="primary-button" type="submit">登录</button>
+      </form>
+
+      <p class="login-tip">登录遇到问题，请联系系统管理员，不要在聊天工具或邮件中发送密码。</p>
+    </section>
+  </main>
+
+  <script src="/admin/js/admin-api.js"></script>
+  <script src="/admin/js/login.js"></script>
+</body>
+</html>
