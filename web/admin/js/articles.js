@@ -52,7 +52,7 @@
     if (!articles.length) {
       const row = document.createElement('tr');
       const cell = document.createElement('td');
-      cell.colSpan = 5;
+      cell.colSpan = 6;
       cell.textContent = '暂无新闻，请点击“新增新闻”创建。';
       row.appendChild(cell);
       articlesBody.appendChild(row);
@@ -61,6 +61,7 @@
 
     articles.forEach((article) => {
       const row = document.createElement('tr');
+      const coverCell = document.createElement('td');
       const titleCell = document.createElement('td');
       const channelCell = document.createElement('td');
       const statusCell = document.createElement('td');
@@ -69,6 +70,16 @@
       const actionWrap = document.createElement('div');
       const editLink = document.createElement('a');
       const badge = document.createElement('span');
+      const coverId = typeof article.cover === 'object' && article.cover ? article.cover.id : article.cover;
+      if (coverId) {
+        const image = document.createElement('img');
+        image.className = 'article-cover-thumb';
+        image.src = `/admin-api/assets/${encodeURIComponent(coverId)}`;
+        image.alt = '封面图';
+        coverCell.appendChild(image);
+      } else {
+        coverCell.textContent = '—';
+      }
 
       titleCell.textContent = article.title || '未命名新闻';
       channelCell.textContent = getChannelName(article);
@@ -87,7 +98,7 @@
       if (article.status !== 'archived') actionWrap.appendChild(createActionButton('归档', 'archive', article.id));
       actionCell.appendChild(actionWrap);
 
-      row.append(titleCell, channelCell, statusCell, dateCell, actionCell);
+      row.append(coverCell, titleCell, channelCell, statusCell, dateCell, actionCell);
       articlesBody.appendChild(row);
     });
   };
@@ -112,7 +123,7 @@
 
   const loadArticles = async () => {
     hideMessage();
-    articlesBody.innerHTML = '<tr><td colspan="5">正在加载…</td></tr>';
+    articlesBody.innerHTML = '<tr><td colspan="6">正在加载…</td></tr>';
     try {
       const result = await window.AdminApi.articles({
         keyword: keywordInput.value.trim(),
@@ -126,7 +137,7 @@
       updatePagination();
     } catch (error) {
       showMessage(error.message || '新闻列表加载失败', 'error');
-      articlesBody.innerHTML = '<tr><td colspan="5">加载失败，请稍后重试。</td></tr>';
+      articlesBody.innerHTML = '<tr><td colspan="6">加载失败，请稍后重试。</td></tr>';
     }
   };
 

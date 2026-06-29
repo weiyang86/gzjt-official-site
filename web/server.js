@@ -194,6 +194,9 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
 });
 
 const articleStatuses = new Set(['draft', 'published', 'archived']);
+const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const maxUploadBytes = 10 * 1024 * 1024;
+const maxMultipartBytes = 12 * 1024 * 1024;
 
 const buildDirectusPath = (pathname, params = {}) => {
     const searchParams = new URLSearchParams();
@@ -220,61 +223,15 @@ const normalizePagination = (rawPage, rawLimit) => {
     return { page, limit };
 };
 
-const normalizeChannelRecord = (channel) => ({
-    id: String(channel?.id ?? ''),
-    name: channel?.name || '',
-    slug: channel?.slug || '',
-    status: channel?.status || '',
-    sort: Number(channel?.sort) || 0
-});
-
-const loadNewsChannels = async (token) => {
-    const channels = await directusJsonRequest(buildDirectusPath('/items/channels', {
-        fields: 'id,name,slug,status,sort,type',
-        sort: 'sort,name',
-        limit: 100,
-        'filter[status][_eq]': 'enabled',
-        'filter[type][_eq]': 'news'
-    }), token);
-    return (channels?.data || []).map(normalizeChannelRecord);
-};
-
-const buildChannelMaps = (channels) => {
-    const byId = new Map();
-    const bySlug = new Map();
-    channels.forEach((channel) => {
-        byId.set(String(channel.id), channel);
-        if (channel.slug) bySlug.set(channel.slug, channel);
-    });
-    return { byId, bySlug };
-};
-
-const mapArticleRecord = (article, channelMap) => {
-    const rawChannel = article?.main_channel;
-    const channelId = rawChannel && typeof rawChannel === 'object'
-        ? String(rawChannel.id || '')
-        : (rawChannel === null || rawChannel === undefined ? '' : String(rawChannel));
-    const fallbackChannel = channelMap.get(channelId) || null;
-    return {
-        ...article,
-        main_channel: channelId
-            ? {
-                id: channelId,
-                name: rawChannel?.name || fallbackChannel?.name || '',
-                slug: rawChannel?.slug || fallbackChannel?.slug || ''
-            }
-            : null
-    };
-};
-
-const buildArticleListPath = (req, channelId) => {
+const buildArticleListPath = (req) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
     const { page, limit } = normalizePagination(parsedUrl.searchParams.get('page'), parsedUrl.searchParams.get('limit'));
     const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const channel = (parsedUrl.searchParams.get('channel') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
     const params = {
-        fields: 'id,title,subtitle,summary,main_channel,status,publish_at,source,author',
-        sort: '-publish_at,-id',
+        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,date_updated',
+        sort: '-publish_at,-date_updated',
         page,
         limit,
         meta: 'filter_count'
@@ -285,47 +242,45 @@ const buildArticleListPath = (req, channelId) => {
         params['filter[_or][1][summary][_contains]'] = keyword;
         params['filter[_or][2][subtitle][_contains]'] = keyword;
     }
-    if (channelId) params['filter[main_channel][_eq]'] = channelId;
+    if (channel) params['filter[main_channel][slug][_eq]'] = channel;
     if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
 
     return buildDirectusPath('/items/articles', params);
 };
 
+const getChannelsPath = () => buildDirectusPath('/items/channels', {
+    fields: 'id,name,slug,status,sort',
+    sort: 'sort,name',
+    limit: 100,
+    'filter[status][_eq]': 'enabled'
+});
+
 const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-    fields: 'id,title,subtitle,summary,content,main_channel,status,publish_at,source,author,is_top,is_home_recommend'
+    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,date_updated'
 });
 
 const normalizeArticleInput = (body, fallbackStatus) => {
     const title = typeof body.title === 'string' ? body.title.trim() : '';
-    const rawMainChannel = body.main_channel || body.channel || null;
-    const mainChannel = rawMainChannel === '' || rawMainChannel === undefined || rawMainChannel === null
-        ? null
-        : Number.parseInt(String(rawMainChannel), 10);
+    const mainChannel = body.main_channel || body.channel || null;
     const status = articleStatuses.has(body.status) ? body.status : fallbackStatus;
-    const content = typeof body.content === 'string' ? body.content : '';
     const payload = {
         title,
         subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
         summary: typeof body.summary === 'string' ? body.summary.trim() : '',
-        content,
+        content: typeof body.content === 'string' ? body.content : '',
+        cover: body.cover || null,
         main_channel: mainChannel,
         source: typeof body.source === 'string' ? body.source.trim() : '',
         author: typeof body.author === 'string' ? body.author.trim() : '',
-        publish_at: body.publish_at || (status === 'published' ? new Date().toISOString() : null),
+        publish_at: body.publish_at || new Date().toISOString(),
         status
     };
 
     if (!payload.title) {
         throw Object.assign(new Error('title is required'), { statusCode: 400 });
     }
-    if (rawMainChannel !== '' && rawMainChannel !== undefined && rawMainChannel !== null && !Number.isFinite(mainChannel)) {
-        throw Object.assign(new Error('main_channel is invalid'), { statusCode: 400 });
-    }
-    if (status === 'published' && !payload.main_channel) {
+    if (!payload.main_channel) {
         throw Object.assign(new Error('main_channel is required'), { statusCode: 400 });
-    }
-    if (status === 'published' && !payload.content.trim()) {
-        throw Object.assign(new Error('content is required'), { statusCode: 400 });
     }
     return payload;
 };
@@ -334,6 +289,117 @@ const updateArticleStatus = (id, status, token) => directusJsonRequest(`/items/a
     status,
     ...(status === 'published' ? { publish_at: new Date().toISOString() } : {})
 });
+
+const readRawBody = (req, limitBytes = maxMultipartBytes) => new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    req.on('data', (chunk) => {
+        total += chunk.length;
+        if (total > limitBytes) {
+            reject(Object.assign(new Error('File upload is too large. Maximum size is 10MB.'), { statusCode: 413 }));
+            req.destroy();
+            return;
+        }
+        chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+});
+
+const getMultipartBoundary = (contentType) => {
+    const match = String(contentType || '').match(/boundary=(?:(?:"([^"]+)")|([^;]+))/i);
+    return match ? (match[1] || match[2] || '').trim() : '';
+};
+
+const parseMultipartFileInfo = (bodyBuffer, boundary) => {
+    const boundaryBuffer = Buffer.from(`--${boundary}`);
+    let searchFrom = 0;
+    while (searchFrom < bodyBuffer.length) {
+        const partStart = bodyBuffer.indexOf(boundaryBuffer, searchFrom);
+        if (partStart < 0) break;
+        const headerStart = partStart + boundaryBuffer.length + 2;
+        const headerEnd = bodyBuffer.indexOf('\r\n\r\n', headerStart, 'latin1');
+        if (headerEnd < 0) break;
+        const headersText = bodyBuffer.slice(headerStart, headerEnd).toString('utf8');
+        const contentStart = headerEnd + 4;
+        const nextBoundary = bodyBuffer.indexOf(Buffer.from(`\r\n--${boundary}`), contentStart);
+        if (nextBoundary < 0) break;
+        searchFrom = nextBoundary + 2;
+
+        if (!/filename=/i.test(headersText)) continue;
+        const nameMatch = headersText.match(/name="([^"]+)"/i);
+        const filenameMatch = headersText.match(/filename="([^"]*)"/i);
+        const typeMatch = headersText.match(/content-type:\s*([^\r\n]+)/i);
+        const filename = filenameMatch ? filenameMatch[1] : '';
+        const type = typeMatch ? typeMatch[1].trim().toLowerCase() : '';
+        const size = Math.max(0, nextBoundary - contentStart);
+        return { fieldName: nameMatch ? nameMatch[1] : '', filename, type, size };
+    }
+    return null;
+};
+
+const validateUpload = (req, bodyBuffer) => {
+    const contentType = req.headers['content-type'] || '';
+    if (!String(contentType).toLowerCase().startsWith('multipart/form-data')) {
+        throw Object.assign(new Error('multipart/form-data is required'), { statusCode: 400 });
+    }
+    const boundary = getMultipartBoundary(contentType);
+    if (!boundary) throw Object.assign(new Error('multipart boundary is missing'), { statusCode: 400 });
+    const fileInfo = parseMultipartFileInfo(bodyBuffer, boundary);
+    if (!fileInfo || !fileInfo.filename) {
+        throw Object.assign(new Error('image file is required'), { statusCode: 400 });
+    }
+    if (!allowedImageTypes.has(fileInfo.type)) {
+        throw Object.assign(new Error('Only JPG, PNG, and WEBP images are allowed'), { statusCode: 400 });
+    }
+    if (fileInfo.size > maxUploadBytes) {
+        throw Object.assign(new Error('File upload is too large. Maximum size is 10MB.'), { statusCode: 413 });
+    }
+    return fileInfo;
+};
+
+const directusUploadRequest = async (req, token) => {
+    const bodyBuffer = await readRawBody(req);
+    const fileInfo = validateUpload(req, bodyBuffer);
+    const uploadResult = await directusRequest('/files', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': req.headers['content-type']
+        },
+        body: bodyBuffer
+    });
+    const fileData = uploadResult?.data;
+    if (!fileData?.id) {
+        throw Object.assign(new Error('Directus upload response did not include a file id'), { statusCode: 500 });
+    }
+    return {
+        id: fileData.id,
+        filename: fileData.filename_download || fileData.filename_disk || fileInfo.filename,
+        type: fileData.type || fileInfo.type,
+        filesize: fileData.filesize || fileInfo.size,
+        preview_url: `/admin-api/assets/${encodeURIComponent(fileData.id)}`
+    };
+};
+
+const proxyDirectusAsset = async (id, token, res) => {
+    try {
+        const response = await fetch(`${directusUrl}/assets/${encodeURIComponent(id)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) {
+            const err = Object.assign(new Error('Directus asset request failed'), { statusCode: response.status, code: 'DIRECTUS_ERROR' });
+            throw err;
+        }
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const cacheControl = response.headers.get('cache-control') || 'private, max-age=300';
+        const arrayBuffer = await response.arrayBuffer();
+        res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl });
+        res.end(Buffer.from(arrayBuffer));
+    } catch (err) {
+        sendAdminError(res, err);
+    }
+};
 
 const requireAdminAuth = (req, res) => {
     const session = getAdminSession(req);
@@ -399,24 +465,16 @@ const handleAdminApi = async (req, res, normalizedPath) => {
         if (normalizedPath === '/admin-api/channels' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const channels = await loadNewsChannels(session.accessToken);
-            return sendJson(res, 200, { data: channels });
+            const channels = await directusJsonRequest(getChannelsPath(), session.accessToken);
+            return sendJson(res, 200, { data: channels?.data || [] });
         }
 
         if (normalizedPath === '/admin-api/articles' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const channels = await loadNewsChannels(session.accessToken);
-            const { byId, bySlug } = buildChannelMaps(channels);
-            const parsedUrl = new URL(req.url, 'http://localhost');
-            const channelSlug = (parsedUrl.searchParams.get('channel') || '').trim();
-            const channelId = channelSlug ? bySlug.get(channelSlug)?.id || null : null;
-            if (channelSlug && !channelId) {
-                return sendJson(res, 200, { data: [], meta: { filter_count: 0 } });
-            }
-            const articles = await directusJsonRequest(buildArticleListPath(req, channelId), session.accessToken);
+            const articles = await directusJsonRequest(buildArticleListPath(req), session.accessToken);
             return sendJson(res, 200, {
-                data: (articles?.data || []).map((item) => mapArticleRecord(item, byId)),
+                data: articles?.data || [],
                 meta: articles?.meta || null
             });
         }
@@ -436,10 +494,8 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             if (!session) return;
 
             if (!articleRoute.action && req.method === 'GET') {
-                const channels = await loadNewsChannels(session.accessToken);
-                const { byId } = buildChannelMaps(channels);
                 const article = await directusJsonRequest(getArticleDetailPath(articleRoute.id), session.accessToken);
-                return sendJson(res, 200, { data: article?.data ? mapArticleRecord(article.data, byId) : null });
+                return sendJson(res, 200, { data: article?.data || null });
             }
 
             if (!articleRoute.action && req.method === 'PATCH') {
@@ -457,10 +513,19 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             }
         }
 
-        if (normalizedPath.startsWith('/admin-api/files')) {
+        if (normalizedPath === '/admin-api/files' && req.method === 'POST') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            return sendJson(res, 501, { error: { code: 'NOT_IMPLEMENTED', message: 'File upload will be implemented in a later task' } });
+            const file = await directusUploadRequest(req, session.accessToken);
+            return sendJson(res, 201, { data: file });
+        }
+
+        const assetMatch = normalizedPath.match(/^\/admin-api\/assets\/([^/]+)$/);
+        if (assetMatch && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            await proxyDirectusAsset(decodeURIComponent(assetMatch[1]), session.accessToken, res);
+            return;
         }
 
         return sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'Admin API endpoint not found' } });

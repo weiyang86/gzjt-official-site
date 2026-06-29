@@ -158,9 +158,11 @@ ADMIN-02 不新增 cookie/session npm 依赖，采用 Node.js 内置 `crypto`、
 
 首期建议限制：
 
-- 图片类型：`image/jpeg`、`image/png`、`image/webp`、`image/gif`。
-- 附件类型：按客户确认后开放 PDF、Word、Excel 等。
-- 单文件大小：建议先限制为 10MB 以内。
+- ADMIN-05 已开放封面图上传：仅支持 `image/jpeg`、`image/png`、`image/webp`。
+- 封面图单文件大小限制为 10MB；浏览器端和 `server.js` 都会校验。
+- 上传成功后 `/admin-api/files` 返回 Directus file id，文章保存时写入 `articles.cover`。
+- 预览图使用同源代理 `/admin-api/assets/<file-id>`，仍通过当前后台登录态访问 Directus Assets，不暴露 Directus Token。
+- 附件类型：按客户确认后后续开放 PDF、Word、Excel 等。
 - 不允许上传脚本、HTML、可执行文件或包含敏感信息的文件。
 
 ## 9. 权限边界
@@ -269,7 +271,7 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 3. 已在 ADMIN-02 接入 Directus `/auth/login` 与服务端内存会话，并完成 `HttpOnly` Cookie 基础配置。
 4. 已在 ADMIN-04 增加 `/admin-api/channels`、`/admin-api/articles` 列表/详情/新增/编辑接口，并把工作台中的新闻管理/新增新闻入口接到真实页面。
 5. 已在 ADMIN-04 增加文章保存草稿、发布、转草稿和归档接口；不做物理删除。
-6. 下一步增加 `/admin-api/files` 上传代理到 Directus Files。
+6. 已在 ADMIN-05 增加 `/admin-api/files` 上传代理到 Directus Files，并在文章编辑页写入 `articles.cover`。
 7. 做本地联调和权限验收：匿名前台只能读 published，后台登录后才能写。
 8. 部署前备份数据库和 uploads，并确认 Nginx HTTPS、Cookie、上传大小限制。
 
@@ -286,7 +288,7 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 
 ## 16. 回滚方式
 
-ADMIN-04 新增新闻列表与新增/编辑页面，补充 `/admin-api/channels` 和 `/admin-api/articles*` 后台接口，并更新文档；无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
+ADMIN-05 新增新闻封面图上传、Directus Files 代理和 `articles.cover` 写入，并更新文档；无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
 
 ```bash
 git revert <ADMIN-01文档提交>

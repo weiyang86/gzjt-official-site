@@ -16,12 +16,14 @@
   const authorInput = document.getElementById('author');
   const publishAtInput = document.getElementById('publish-at');
   const contentInput = document.getElementById('content');
-  const toolbarContainer = document.getElementById('wang-toolbar');
-  const editorContainer = document.getElementById('wang-editor');
+  const coverFileInput = document.getElementById('cover-file');
+  const uploadCoverButton = document.getElementById('upload-cover');
+  const coverIdInput = document.getElementById('cover-id');
+  const coverPreviewWrap = document.getElementById('cover-preview-wrap');
+  const coverPreview = document.getElementById('cover-preview');
+  const clearCoverButton = document.getElementById('clear-cover');
   const draftButtons = [document.getElementById('save-draft'), document.getElementById('save-draft-bottom')];
   const publishButtons = [document.getElementById('publish-article'), document.getElementById('publish-article-bottom')];
-  let richEditor = null;
-  let richToolbar = null;
 
   const showMessage = (message, type) => {
     messageBox.textContent = message;
@@ -47,78 +49,23 @@
     [...draftButtons, ...publishButtons].forEach((button) => { button.disabled = busy; });
   };
 
-  const getEditorContent = () => {
-    if (richEditor) {
-      contentInput.value = richEditor.getHtml().trim();
-    }
-    return contentInput.value;
-  };
-
-  const setEditorContent = (value) => {
-    const html = value || '';
-    contentInput.value = html;
-    if (richEditor) {
-      richEditor.setHtml(html || '<p><br></p>');
+  const setCoverPreview = (fileId, previewUrl) => {
+    coverIdInput.value = fileId || '';
+    if (fileId) {
+      coverPreview.src = previewUrl || `/admin-api/assets/${encodeURIComponent(fileId)}`;
+      coverPreviewWrap.hidden = false;
+    } else {
+      coverPreview.removeAttribute('src');
+      coverPreviewWrap.hidden = true;
     }
   };
 
-  const initRichEditor = async () => {
-    if (!window.wangEditor || !toolbarContainer || !editorContainer) {
-      contentInput.hidden = false;
-      showMessage('富文本编辑器加载失败，已切换为基础文本模式。', 'error');
-      return;
-    }
-    const E = window.wangEditor;
-    if (typeof E.i18nChangeLanguage === 'function') {
-      E.i18nChangeLanguage('zh-CN');
-    }
-    const editorConfig = {
-      placeholder: '请输入正文内容',
-      scroll: false,
-      autoFocus: false,
-      onChange(editor) {
-        contentInput.value = editor.getHtml().trim();
-      },
-      MENU_CONF: {
-        color: {
-          colors: ['#101828', '#344054', '#475467', '#667085', '#b42318', '#175cd3', '#027a48', '#f79009']
-        },
-        bgColor: {
-          colors: ['#ffffff', '#fff7f5', '#eff8ff', '#ecfdf3', '#fffaeb', '#f9fafb']
-        },
-        fontSize: {
-          fontSizeList: ['12px', '14px', '15px', '16px', '18px', '20px', '22px', '24px', '28px', '32px', '36px']
-        },
-        fontFamily: {
-          fontFamilyList: [
-            { name: '微软雅黑', value: 'Microsoft YaHei, PingFang SC, sans-serif' },
-            { name: '宋体', value: 'SimSun, serif' },
-            { name: '黑体', value: 'SimHei, sans-serif' },
-            { name: '仿宋', value: 'FangSong, serif' },
-            { name: '楷体', value: 'KaiTi, serif' },
-            { name: 'Arial', value: 'Arial, Helvetica, sans-serif' }
-          ]
-        },
-        lineHeight: {
-          lineHeightList: ['1', '1.5', '1.75', '2', '2.5']
-        }
-      }
-    };
-    richEditor = E.createEditor({
-      selector: '#wang-editor',
-      html: contentInput.value || '<p><br></p>',
-      config: editorConfig,
-      mode: 'default'
-    });
-    richToolbar = E.createToolbar({
-      editor: richEditor,
-      selector: '#wang-toolbar',
-      config: {
-        modalAppendToBody: true
-      },
-      mode: 'default'
-    });
-    contentInput.value = richEditor.getHtml().trim();
+  const validateCoverFile = (file) => {
+    if (!file) return '请选择封面图片。';
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) return '封面图仅支持 JPG、PNG、WEBP。';
+    if (file.size > 10 * 1024 * 1024) return '封面图不能超过 10MB。';
+    return '';
   };
 
   const getPayload = (statusOverride) => ({
@@ -130,20 +77,20 @@
     source: sourceInput.value.trim(),
     author: authorInput.value.trim(),
     publish_at: fromLocalDateTime(publishAtInput.value),
-    content: getEditorContent()
+    content: contentInput.value,
+    cover: coverIdInput.value || null
   });
 
-  const validatePayload = (payload, statusOverride) => {
-    const targetStatus = statusOverride || payload.status
+  const validatePayload = (payload) => {
     if (!payload.title) return '请输入标题。';
-    if (targetStatus === 'published' && !payload.main_channel) return '发布前请选择栏目。';
-    if (targetStatus === 'published' && !payload.content.trim()) return '发布前请输入正文。';
+    if (!payload.main_channel) return '请选择栏目。';
+    if (!payload.content.trim()) return '请输入正文。';
     return '';
   };
 
   const saveArticle = async (statusOverride) => {
     const payload = getPayload(statusOverride);
-    const error = validatePayload(payload, statusOverride);
+    const error = validatePayload(payload);
     if (error) {
       showMessage(error, 'error');
       return;
@@ -186,7 +133,9 @@
     sourceInput.value = article.source || '';
     authorInput.value = article.author || '';
     publishAtInput.value = toLocalDateTime(article.publish_at);
-    setEditorContent(article.content || '');
+    contentInput.value = article.content || '';
+    const coverId = typeof article.cover === 'object' && article.cover ? article.cover.id : article.cover;
+    setCoverPreview(coverId || '', coverId ? `/admin-api/assets/${encodeURIComponent(coverId)}` : '');
   };
 
   const loadArticle = async () => {
@@ -203,20 +152,46 @@
     topbarUser.textContent = fullName || user.email || '已登录用户';
   };
 
+
+  const uploadCover = async () => {
+    const file = coverFileInput.files && coverFileInput.files[0];
+    const error = validateCoverFile(file);
+    if (error) {
+      showMessage(error, 'error');
+      return;
+    }
+    uploadCoverButton.disabled = true;
+    uploadCoverButton.textContent = '正在上传…';
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await window.AdminApi.uploadFile(formData);
+      const uploaded = result && result.data ? result.data : null;
+      if (!uploaded || !uploaded.id) throw new Error('上传成功但未返回文件 ID。');
+      setCoverPreview(uploaded.id, uploaded.preview_url);
+      showMessage('封面图上传成功。', 'success');
+    } catch (err) {
+      showMessage(err.message || '封面图上传失败，请稍后重试。', 'error');
+    } finally {
+      uploadCoverButton.disabled = false;
+      uploadCoverButton.textContent = '上传封面';
+    }
+  };
+
   draftButtons.forEach((button) => button.addEventListener('click', () => saveArticle('draft')));
   publishButtons.forEach((button) => button.addEventListener('click', () => saveArticle('published')));
   form.addEventListener('submit', (event) => event.preventDefault());
+  uploadCoverButton.addEventListener('click', uploadCover);
+  clearCoverButton.addEventListener('click', () => {
+    coverFileInput.value = '';
+    setCoverPreview('', '');
+  });
   logoutButton.addEventListener('click', async () => {
     try { await window.AdminApi.logout(); } catch (error) {}
     window.location.href = '/admin/login.html';
   });
-  window.addEventListener('beforeunload', () => {
-    if (richToolbar && typeof richToolbar.destroy === 'function') richToolbar.destroy();
-    if (richEditor && typeof richEditor.destroy === 'function') richEditor.destroy();
-  });
 
   Promise.resolve()
-    .then(() => initRichEditor())
     .then(loadCurrentUser)
     .then(loadChannels)
     .then(loadArticle)

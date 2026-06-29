@@ -70,6 +70,7 @@
     article: (id) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`),
     createArticle: (payload) => adminFetch('/admin-api/articles', { method: 'POST', body: JSON.stringify(payload) }),
     updateArticle: (id, payload) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
-    setArticleStatus: (id, action) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, { method: 'PATCH' })
+    setArticleStatus: (id, action) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, { method: 'PATCH' }),
+    uploadFile: (formData) => adminFetch('/admin-api/files', { method: 'POST', body: formData })
   };
 })();
