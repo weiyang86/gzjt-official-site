@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>页面内容管理 - 甘孜建设投资集团官网内容管理后台</title>
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body class="admin-app-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar" aria-label="后台菜单">
+      <div class="sidebar-brand"><span class="brand-mark">甘</span><div><strong>内容管理后台</strong><small>页面占位</small></div></div>
+      <nav class="admin-nav">
+        <a class="admin-nav-link" href="/admin/dashboard.html">工作台</a>
+        <a class="admin-nav-link" href="/admin/articles.html">新闻管理</a>
+        <a class="admin-nav-link" href="/admin/categories.html">新闻分类</a>
+        <a class="admin-nav-link is-active" href="/admin/page-modules.html">页面内容管理</a>
+        <a class="admin-nav-link" href="/admin/article-edit.html">新增新闻</a>
+        <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="eyebrow">Page Modules</p><h1>页面内容管理</h1></div>
+        <div id="topbar-user" class="topbar-user">正在验证登录态…</div>
+      </header>
+
+      <main class="dashboard-content">
+        <section class="notice-card">
+          <div class="section-title-row">
+            <div>
+              <p class="eyebrow">模块占位</p>
+              <h2>一级栏目 / 二级页面管理项</h2>
+            </div>
+            <a class="secondary-button" href="/admin/dashboard.html">返回工作台</a>
+          </div>
+          <p>本页仅用于展示官网一级目录下的二级页面管理项。当前阶段未接入具体编辑器的模块会显示“正在开发中”，不会修改官网前台页面、样式或路由。</p>
+        </section>
+
+        <section class="notice-card">
+          <form id="page-module-filters" class="filter-form page-module-filter">
+            <label>一级栏目
+              <select id="parent-filter">
+                <option value="">全部栏目</option>
+              </select>
+            </label>
+            <label>关键词
+              <input id="module-keyword" type="search" placeholder="模块名称 / 编码 / 备注">
+            </label>
+            <label>开发状态
+              <select id="dev-status-filter">
+                <option value="">全部状态</option>
+                <option value="developing">正在开发中</option>
+                <option value="enabled">已启用</option>
+                <option value="disabled">已停用</option>
+              </select>
+            </label>
+            <button class="secondary-button" type="submit">查询</button>
+          </form>
+        </section>
+
+        <section class="page-module-shell">
+          <aside class="module-parent-panel" aria-label="一级栏目筛选">
+            <h2>一级栏目</h2>
+            <div id="parent-tabs" class="parent-tabs"><button class="parent-tab is-active" data-parent-code="" type="button">全部栏目</button></div>
+          </aside>
+
+          <section class="module-groups-panel" aria-live="polite">
+            <div id="page-module-message" class="inline-message" hidden></div>
+            <div id="module-groups" class="module-groups">正在加载…</div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="module-edit-dialog" class="admin-dialog">
+    <form id="module-edit-form" method="dialog" class="dialog-card">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">编辑占位信息</p>
+          <h2 id="module-edit-title">页面模块</h2>
+        </div>
+        <button id="module-dialog-close" class="text-button" type="button">关闭</button>
+      </div>
+      <input id="module-id" type="hidden">
+      <div class="editor-grid">
+        <label class="span-2">占位说明
+          <textarea id="module-placeholder" rows="3" maxlength="500" placeholder="正在开发中"></textarea>
+        </label>
+        <label class="span-2">备注
+          <textarea id="module-remark" rows="3" maxlength="500" placeholder="填写内部备注"></textarea>
+        </label>
+        <label>开发状态
+          <select id="module-dev-status">
+            <option value="developing">正在开发中</option>
+            <option value="enabled">已启用</option>
+            <option value="disabled">已停用</option>
+          </select>
+        </label>
+        <label>管理项状态
+          <select id="module-status">
+            <option value="enabled">启用</option>
+            <option value="disabled">停用</option>
+          </select>
+        </label>
+        <label>排序
+          <input id="module-sort" type="number" step="1" value="0">
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="secondary-button" id="module-dialog-cancel" type="button">取消</button>
+        <button class="primary-link-button" type="submit">保存占位信息</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/admin/js/admin-api.js"></script>
+  <script src="/admin/js/page-modules.js"></script>
+</body>
+</html>
