@@ -398,6 +398,20 @@ code {
   font-weight: 700;
 }
 
+.editor-grid .field-block {
+  display: grid;
+  gap: 8px;
+  color: var(--admin-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.editor-grid .field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .filter-form input,
 .filter-form select,
 .editor-grid input,
@@ -517,6 +531,61 @@ code {
   min-height: 320px;
   resize: vertical;
   line-height: 1.7;
+}
+
+.editor-hint {
+  margin-bottom: 10px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.wang-editor-shell {
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.wang-toolbar {
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-panel-soft);
+}
+
+.wang-editor {
+  min-height: 520px;
+  background: #fff;
+}
+
+.wang-editor-shell:focus-within {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 4px rgba(180, 35, 24, 0.12);
+}
+
+.w-e-toolbar {
+  border-bottom: 0 !important;
+  background: transparent !important;
+}
+
+.w-e-bar-divider {
+  background-color: var(--admin-border) !important;
+}
+
+.w-e-text-container {
+  background: #fff;
+}
+
+.w-e-text-container [data-slate-editor] {
+  min-height: 520px;
+  padding: 18px 20px;
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.9;
+  color: #101828;
+}
+
+.w-e-menu-tooltip-v5 {
+  z-index: 1400;
 }
 
 .required { color: var(--admin-primary); }

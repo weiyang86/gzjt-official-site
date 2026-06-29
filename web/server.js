@@ -230,8 +230,8 @@ const buildArticleListPath = (req) => {
     const channel = (parsedUrl.searchParams.get('channel') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
     const params = {
-        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,date_updated',
-        sort: '-publish_at,-date_updated',
+        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
+        sort: '-publish_at,-id',
         page,
         limit,
         meta: 'filter_count'
@@ -249,14 +249,16 @@ const buildArticleListPath = (req) => {
 };
 
 const getChannelsPath = () => buildDirectusPath('/items/channels', {
-    fields: 'id,name,slug,status,sort',
-    sort: 'sort,name',
+    fields: 'id,name,slug,type,path,sort,status,visible',
+    sort: 'sort,id',
     limit: 100,
-    'filter[status][_eq]': 'enabled'
+    'filter[status][_eq]': 'enabled',
+    'filter[visible][_eq]': 'true',
+    'filter[type][_eq]': 'news'
 });
 
 const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,date_updated'
+    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend'
 });
 
 const normalizeArticleInput = (body, fallbackStatus) => {
