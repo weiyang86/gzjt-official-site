@@ -116,10 +116,10 @@ web/admin/
 推荐使用 `web/server.js` 作为后台 BFF：
 
 1. 浏览器提交账号密码到 `POST /admin-api/login`。
-2. `server.js` 调用 Directus 认证接口，或使用服务端配置的 Directus 管理凭据换取受控 Token。
-3. 登录成功后，`server.js` 写入 `HttpOnly`、`SameSite=Lax`、生产环境 `Secure` 的会话 Cookie。
-4. 浏览器后续只携带 Cookie 请求 `/admin-api/*`。
-5. `server.js` 校验会话后再调用 Directus，不向浏览器暴露 Directus 管理 Token。
+2. `server.js` 使用该客户自己的 Directus 用户账号调用 Directus `/auth/login`，不使用固定 Super Admin Token 代替客户操作。
+3. 登录成功后，`server.js` 将 Directus `access_token` 保存在服务端内存会话中，并向浏览器写入已签名的 `HttpOnly`、`SameSite=Lax`、生产环境 `Secure` 会话 Cookie。
+4. 浏览器后续只携带 Cookie 请求 `/admin-api/*`，前端 JS 不能读取 Directus Token。
+5. `server.js` 校验会话后再带当前用户 Token 调用 Directus，Directus 继续按该用户角色权限控制可操作集合和字段。
 6. `POST /admin-api/logout` 清除 Cookie，并使服务端会话失效。
 
 ### 7.2 会话保存方式
@@ -128,10 +128,19 @@ web/admin/
 
 | 方案 | 说明 | 适用阶段 |
 | --- | --- | --- |
-| 内存会话 | `server.js` 内存 Map 保存 session id 与 Directus token/用户信息 | 本地开发和单实例演示 |
+| 内存会话 | ADMIN-02 采用的最小依赖方案：`server.js` 内存 Map 保存 session id 与 Directus token/用户信息，浏览器仅持有签名后的 `HttpOnly` Cookie | 本地开发和单实例演示 |
 | 持久会话 | Redis、数据库或 Directus 用户 Token 机制 | 生产部署、多实例或更高安全要求 |
 
 生产环境建议至少具备会话过期时间、登出失效、密码错误限频、HTTPS 和 Nginx 反向代理安全头配置。
+
+### 7.3 ADMIN-02 已实现的环境变量
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DIRECTUS_URL` | `http://localhost:8055` | `server.js` 服务端访问 Directus 的地址。 |
+| `ADMIN_SESSION_SECRET` | 本地开发默认值 | 用于签名后台会话 Cookie；生产环境必须设置强随机值，不能使用默认值。 |
+
+ADMIN-02 不新增 cookie/session npm 依赖，采用 Node.js 内置 `crypto`、`http` 和服务端内存 `Map` 实现最小会话能力。该方案适合本地开发和单实例演示；生产环境如需多实例、重启后保持登录、集中注销和更强审计，应升级为 Redis 或数据库持久化会话。
 
 ## 8. 文件上传设计
 
@@ -190,7 +199,7 @@ web/admin/
 ### 9.3 服务端权限原则
 
 - 浏览器只访问 `/admin-api/*`，不持有 Directus 管理 Token。
-- `/admin-api/*` 必须校验登录态和权限。
+- `/admin-api/*` 必须校验登录态和权限；后续 `/admin-api/articles`、`/admin-api/files` 必须复用 `requireAdminAuth`。
 - 后台写接口只允许操作规划范围内集合和字段。
 - 发布动作必须显式校验 `articles.status`，不得绕过权限直接写任意字段。
 - 不在代码库提交 `.env`、账号密码、Token、客户隐私数据。
@@ -256,9 +265,9 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 ## 14. 后续开发顺序建议
 
 1. 创建 `web/admin/` 静态页面骨架和后台独立样式。
-2. 在 `web/server.js` 增加 `/admin-api/login`、`/admin-api/logout`、`/admin-api/me`。
-3. 接入 Directus 登录或服务端会话，并完成 Cookie 安全配置。
-4. 增加 `/admin-api/channels` 与 `/admin-api/articles` 列表读取。
+2. 已在 ADMIN-02 于 `web/server.js` 增加 `/admin-api/login`、`/admin-api/logout`、`/admin-api/me` 和 `requireAdminAuth`。
+3. 已在 ADMIN-02 接入 Directus `/auth/login` 与服务端内存会话，并完成 `HttpOnly` Cookie 基础配置。
+4. 下一步增加 `/admin-api/channels` 与 `/admin-api/articles` 列表读取。
 5. 增加文章新增、编辑、发布和归档接口。
 6. 增加 `/admin-api/files` 上传代理到 Directus Files。
 7. 做本地联调和权限验收：匿名前台只能读 published，后台登录后才能写。
@@ -277,7 +286,7 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 
 ## 16. 回滚方式
 
-本阶段仅新增或更新文档，无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
+ADMIN-02 修改 `web/server.js` 并更新文档，无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
 
 ```bash
 git revert <ADMIN-01文档提交>
