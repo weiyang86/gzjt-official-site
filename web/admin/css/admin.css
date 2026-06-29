@@ -751,3 +751,136 @@ code {
   .module-card-grid { grid-template-columns: 1fr; }
   .parent-tabs { grid-template-columns: 1fr; }
 }
+
+.content-admin-content {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 22px;
+  padding: 28px 32px 48px;
+}
+
+.content-module-sidebar,
+.content-editor-panel {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  background: var(--admin-panel);
+  box-shadow: 0 10px 28px rgba(23, 32, 51, 0.06);
+}
+
+.content-module-sidebar {
+  align-self: start;
+  max-height: calc(100vh - 128px);
+  overflow: auto;
+  padding: 20px;
+}
+
+.content-sidebar-head h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.content-sidebar-tree {
+  display: grid;
+  gap: 10px;
+}
+
+.content-tree-group {
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-panel-soft);
+  overflow: hidden;
+}
+
+.content-tree-group summary {
+  padding: 12px 14px;
+  color: var(--admin-text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.content-tree-children {
+  display: grid;
+  gap: 6px;
+  padding: 0 10px 12px;
+}
+
+.content-module-button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--admin-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.content-module-button small {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.content-module-button:hover,
+.content-module-button.is-active {
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary);
+}
+
+.content-editor-panel {
+  min-width: 0;
+  padding: 22px;
+}
+
+.content-editor-root {
+  display: grid;
+  gap: 20px;
+}
+
+.content-form-card,
+.timeline-editor-card {
+  box-shadow: none;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 12px;
+}
+
+.timeline-item-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-panel-soft);
+}
+
+.timeline-item-card h3 {
+  margin: 6px 0;
+}
+
+.timeline-item-card p {
+  margin: 0 0 8px;
+  color: var(--admin-muted);
+  line-height: 1.6;
+}
+
+.developing-card {
+  border-color: #fedf89;
+  background: #fffcf5;
+}
+
+@media (max-width: 1080px) {
+  .content-admin-content { grid-template-columns: 1fr; }
+  .content-module-sidebar { max-height: none; }
+}
+
+@media (max-width: 720px) {
+  .content-admin-content { padding-left: 18px; padding-right: 18px; }
+  .timeline-item-card { flex-direction: column; }
+}

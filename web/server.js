@@ -198,6 +198,9 @@ const categoryStatuses = new Set(['enabled', 'disabled']);
 const categoryTypes = new Set(['list', 'page', 'link', 'module']);
 const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
+const pageContentStatuses = new Set(['draft', 'published', 'archived']);
+const pageContentItemStatuses = new Set(['enabled', 'disabled']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const maxUploadBytes = 10 * 1024 * 1024;
 const maxMultipartBytes = 12 * 1024 * 1024;
@@ -218,7 +221,7 @@ const getPageModuleRoute = (normalizedPath) => {
     return { id: decodeURIComponent(match[1]) };
 };
 
-const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,dev_status,placeholder_text,remark,sort,status,date_updated';
+const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status,date_updated';
 
 const buildPageModulesPath = (req) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
@@ -280,6 +283,132 @@ const groupPageModules = (modules) => {
         groupMap.get(parentCode).modules.push(module);
     });
     return groups;
+};
+
+const buildContentModulesPath = () => buildDirectusPath('/items/page_modules', {
+    fields: pageModuleFields,
+    sort: 'sort,module_title',
+    limit: 500,
+    'filter[status][_eq]': 'enabled'
+});
+
+const getContentModulePath = (moduleCode) => buildDirectusPath('/items/page_modules', {
+    fields: pageModuleFields,
+    limit: 1,
+    'filter[module_code][_eq]': moduleCode,
+    'filter[status][_eq]': 'enabled'
+});
+
+const buildContentModuleTree = (modules) => {
+    const groups = [];
+    const groupMap = new Map();
+    modules.forEach((module) => {
+        const parentCode = module.parent_code || 'uncategorized';
+        if (!groupMap.has(parentCode)) {
+            const group = {
+                parent_title: module.parent_title || '未分组',
+                parent_code: parentCode,
+                sort: Number.isFinite(Number(module.sort)) ? Number(module.sort) : 0,
+                children: []
+            };
+            groupMap.set(parentCode, group);
+            groups.push(group);
+        }
+        const group = groupMap.get(parentCode);
+        group.sort = Math.min(group.sort, Number.isFinite(Number(module.sort)) ? Number(module.sort) : group.sort);
+        group.children.push(module);
+    });
+    return groups.sort((a, b) => a.sort - b.sort).map((group) => ({
+        parent_title: group.parent_title,
+        parent_code: group.parent_code,
+        children: group.children.sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+    }));
+};
+
+const emptyPageContent = (moduleCode) => ({
+    module_code: moduleCode,
+    title: '',
+    subtitle: '',
+    cover: null,
+    summary: '',
+    content: '',
+    extra_json: {},
+    status: 'draft'
+});
+
+const getPageContentPath = (moduleCode) => buildDirectusPath('/items/page_contents', {
+    fields: 'id,module_code,title,subtitle,cover,summary,content,extra_json,status,date_updated',
+    limit: 1,
+    'filter[module_code][_eq]': moduleCode
+});
+
+const normalizeExtraJson = (value) => {
+    if (value === undefined || value === null || value === '') return {};
+    if (typeof value === 'object' && !Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+        } catch (err) {
+            throw Object.assign(new Error('extra_json must be valid JSON object'), { statusCode: 400 });
+        }
+    }
+    throw Object.assign(new Error('extra_json must be a JSON object'), { statusCode: 400 });
+};
+
+const normalizePageContentInput = (body, moduleCode) => {
+    const status = pageContentStatuses.has(body.status) ? body.status : 'draft';
+    return {
+        module_code: moduleCode,
+        title: typeof body.title === 'string' ? body.title.trim() : '',
+        subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+        cover: body.cover || null,
+        summary: typeof body.summary === 'string' ? body.summary.trim() : '',
+        content: typeof body.content === 'string' ? body.content : '',
+        extra_json: normalizeExtraJson(body.extra_json),
+        status
+    };
+};
+
+const buildPageContentItemsPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const moduleCode = (parsedUrl.searchParams.get('module_code') || '').trim();
+    const params = {
+        fields: 'id,module_code,item_type,title,subtitle,date_label,image,content,link_url,sort,status,extra_json,date_updated',
+        sort: 'sort,id',
+        limit: 500
+    };
+    if (moduleCode) params['filter[module_code][_eq]'] = moduleCode;
+    return buildDirectusPath('/items/page_content_items', params);
+};
+
+const getPageContentItemRoute = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/page-content-items\/([^/]+)(?:\/(disable))?$/);
+    if (!match) return null;
+    return { id: decodeURIComponent(match[1]), action: match[2] || null };
+};
+
+const normalizePageContentItemInput = (body, isCreate = false) => {
+    const moduleCode = typeof body.module_code === 'string' ? body.module_code.trim() : '';
+    if (isCreate && !moduleCode) throw Object.assign(new Error('module_code is required'), { statusCode: 400 });
+    const itemType = pageContentItemTypes.has(body.item_type) ? body.item_type : 'timeline';
+    const status = pageContentItemStatuses.has(body.status) ? body.status : 'enabled';
+    const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0;
+    const payload = {
+        item_type: itemType,
+        title: typeof body.title === 'string' ? body.title.trim() : '',
+        subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+        date_label: typeof body.date_label === 'string' ? body.date_label.trim() : '',
+        image: body.image || null,
+        content: typeof body.content === 'string' ? body.content : '',
+        link_url: typeof body.link_url === 'string' ? body.link_url.trim() : '',
+        sort,
+        status,
+        extra_json: normalizeExtraJson(body.extra_json)
+    };
+    if (isCreate) payload.module_code = moduleCode;
+    if (!payload.title) throw Object.assign(new Error('title is required'), { statusCode: 400 });
+    return payload;
 };
 
 const getCategoryIdFromPath = (normalizedPath) => {
@@ -632,6 +761,79 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             const payload = normalizePageModuleInput(body);
             const module = await directusJsonRequest(`/items/page_modules/${encodeURIComponent(pageModuleRoute.id)}`, session.accessToken, 'PATCH', payload);
             return sendJson(res, 200, { data: module?.data || null });
+        }
+
+        if (normalizedPath === '/admin-api/content-modules/tree' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const modules = await directusJsonRequest(buildContentModulesPath(), session.accessToken);
+            return sendJson(res, 200, { data: buildContentModuleTree(modules?.data || []) });
+        }
+
+        const contentModuleMatch = normalizedPath.match(/^\/admin-api\/content-modules\/([^/]+)$/);
+        if (contentModuleMatch && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const moduleCode = decodeURIComponent(contentModuleMatch[1]);
+            const result = await directusJsonRequest(getContentModulePath(moduleCode), session.accessToken);
+            const module = Array.isArray(result?.data) ? result.data[0] : null;
+            return sendJson(res, module ? 200 : 404, module ? { data: module } : { error: { code: 'NOT_FOUND', message: 'Content module not found' } });
+        }
+
+        const pageContentMatch = normalizedPath.match(/^\/admin-api\/page-contents\/([^/]+)$/);
+        if (pageContentMatch && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const moduleCode = decodeURIComponent(pageContentMatch[1]);
+            const result = await directusJsonRequest(getPageContentPath(moduleCode), session.accessToken);
+            const content = Array.isArray(result?.data) ? result.data[0] : null;
+            return sendJson(res, 200, { data: content || emptyPageContent(moduleCode) });
+        }
+
+        if (pageContentMatch && req.method === 'PUT') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const moduleCode = decodeURIComponent(pageContentMatch[1]);
+            const body = await readJsonBody(req);
+            const payload = normalizePageContentInput(body, moduleCode);
+            const existing = await directusJsonRequest(getPageContentPath(moduleCode), session.accessToken);
+            const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+            const result = found?.id
+                ? await directusJsonRequest(`/items/page_contents/${encodeURIComponent(found.id)}`, session.accessToken, 'PATCH', payload)
+                : await directusJsonRequest('/items/page_contents', session.accessToken, 'POST', payload);
+            return sendJson(res, found?.id ? 200 : 201, { data: result?.data || null });
+        }
+
+        if (normalizedPath === '/admin-api/page-content-items' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const items = await directusJsonRequest(buildPageContentItemsPath(req), session.accessToken);
+            return sendJson(res, 200, { data: items?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/page-content-items' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const payload = normalizePageContentItemInput(body, true);
+            const item = await directusJsonRequest('/items/page_content_items', session.accessToken, 'POST', payload);
+            return sendJson(res, 201, { data: item?.data || null });
+        }
+
+        const pageContentItemRoute = getPageContentItemRoute(normalizedPath);
+        if (pageContentItemRoute) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            if (pageContentItemRoute.action === 'disable' && req.method === 'PATCH') {
+                const item = await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(pageContentItemRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled' });
+                return sendJson(res, 200, { data: item?.data || null });
+            }
+            if (!pageContentItemRoute.action && req.method === 'PATCH') {
+                const body = await readJsonBody(req);
+                const payload = normalizePageContentItemInput(body, false);
+                const item = await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(pageContentItemRoute.id)}`, session.accessToken, 'PATCH', payload);
+                return sendJson(res, 200, { data: item?.data || null });
+            }
         }
 
         if (normalizedPath === '/admin-api/categories' && req.method === 'GET') {
