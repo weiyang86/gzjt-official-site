@@ -10,6 +10,11 @@ export class PublicCmsController {
     return this.cms.getBanners(position)
   }
 
+  @Get('channels')
+  getChannels(@Query('type') type = '') {
+    return this.cms.getChannels(type)
+  }
+
   @Get('home-sections')
   getHomeSections() {
     return this.cms.getHomeSections()
@@ -28,6 +33,25 @@ export class PublicCmsController {
   @Get('articles/by-channel/:channelSlug')
   getArticlesByChannel(@Param('channelSlug') channelSlug: string, @Query('limit') limit = '10') {
     return this.cms.getArticlesByChannel(channelSlug, Number(limit) || 10)
+  }
+
+  @Get('articles')
+  getArticles(
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '10',
+    @Query('channelSlug') channelSlug = '',
+    @Query('newsSubcategory') newsSubcategory = '',
+    @Query('keyword') keyword = '',
+    @Query('excludeId') excludeId = ''
+  ) {
+    return this.cms.listArticles({
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 10,
+      channelSlug,
+      newsSubcategory,
+      keyword,
+      excludeId
+    })
   }
 
   @Get('articles/:id')

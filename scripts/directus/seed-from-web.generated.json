@@ -187,7 +187,7 @@
       "title": "集团概况",
       "slug": "集团概况",
       "content": "<p>以工程建设能力为底盘，以投融资能力为支撑，以数字化治理为引擎，服务区域发展与民生改善。</p>\n<p>PROFILE 企业简介 立足甘孜、服务全州，聚焦交通建设、城市建设、工程咨询、投资运营、数字建投、文旅开发等领域，打造投融建运一体化国有资本运营平台。</p>\n<p>坚持以高质量发展为主线，聚焦重大项目建设与民生保障，强化安全、质量、进度与成本协同管控。</p>\n<p>持续深化改革与治理能力提升，以数字化手段赋能工程监管与经营管理，提升综合竞争力。</p>\n<p>愿景 ：成为西部地区具有核心竞争力的综合性建设投资集团。</p>\n<p>构建“战略牵引、项目为王、合规护航、数字驱动”的运营体系，形成指标化、清单化、闭环化的管理机制。</p>",
-      "cover": "../../配图/雅砻江大桥.jpg",
+      "cover": "../../img/雅砻江大桥.jpg",
       "status": "published",
       "source_file": "web/pages/about/index.html",
       "uncertain": false
@@ -196,7 +196,7 @@
       "title": "新闻中心",
       "slug": "新闻中心",
       "content": "<p>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类 Tab、搜索与分页。</p>\n<p>UPDATES 资讯聚合 按分类浏览或输入关键词搜索，列表支持分页展示。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
-      "cover": "../../配图/雅砻江大桥.jpg",
+      "cover": "../../img/雅砻江大桥.jpg",
       "status": "published",
       "source_file": "web/pages/news/index.html",
       "uncertain": false
@@ -205,7 +205,7 @@
       "title": "业务板块",
       "slug": "业务板块",
       "content": "<p>围绕基础设施建设与区域发展，形成“投融建运”协同的六大业务板块，持续提升专业化能力。</p>\n<p>SECTORS 六大业务板块 统一卡片体系与动效系统，Hover 提升层级与发光边框，保持科技感与商务感平衡。</p>\n<p>以“安全、质量、进度、成本”四维协同为主线，沉淀可复制的管理体系与标准化方法。</p>\n<p>以项目案例串联业务能力，点击进入项目详情模板。</p>\n<p>进入视口触发数字滚动动画，采用统一 KPI 风格组件。</p>\n<p>坚持专业化、标准化、数字化，推动产业协同与高质量发展。</p>",
-      "cover": "../../配图/318康定市过境段公路工程项目434互通工程.jpg",
+      "cover": "../../img/318康定市过境段公路工程项目434互通工程.jpg",
       "status": "published",
       "source_file": "web/pages/business/index.html",
       "uncertain": false
@@ -214,7 +214,7 @@
       "title": "联系我们",
       "slug": "联系我们",
       "content": "<p>提供联系方式、地图、在线留言与招聘入口，统一采用玻璃拟态与动效系统。</p>\n<p>INFO 联系方式 提供地址、电话、邮箱与服务时间，地图可替换为企业自有地图服务。</p>\n<p>表单提交后展示轻量提示，后续可接入后端接口或工单系统。</p>\n<p>我们期待与你沟通合作，共同建设美丽甘孜。</p>",
-      "cover": "../../配图/雅砻江大桥.jpg",
+      "cover": "../../img/雅砻江大桥.jpg",
       "status": "published",
       "source_file": "web/pages/contact/index.html",
       "uncertain": false
@@ -277,7 +277,7 @@
       "title": "党建工作",
       "slug": "党建工作",
       "content": "<p>坚持党建引领，凝聚奋进力量，推动企业高质量发展。聚焦党代会、主题教育、基层党建、学习贯彻二十大精神、专题学习、工会工作、青年工作、统战工作等重点板块。</p>\n<p>TOPICS 党建板块 按板块聚合内容入口，点击进入栏目后可继续扩展图文与专题内容。</p>\n<p>点击图片可放大预览（Lightbox）。</p>\n<p>提供视频栏目入口，具体视频内容可在后续接入媒体资源库。</p>\n<p>坚持党建引领，推动融合发展，形成高质量发展的内生动力。</p>",
-      "cover": "../../配图/雅砻江大桥.jpg",
+      "cover": "../../img/雅砻江大桥.jpg",
       "status": "published",
       "source_file": "web/pages/party/index.html",
       "uncertain": false
@@ -286,7 +286,7 @@
       "title": "项目展示",
       "slug": "项目展示",
       "content": "<p>项目轮播 + 项目地图 + 项目列表 + 筛选条件 + 详情入口，统一采用 C 版设计语言与动效系统。</p>\n<p>MAP 项目地图 地图采用 object-fit: contain，点位层自动对齐图片可见区域，缩放下坐标稳定。</p>\n<p>支持按类型 / 地区 / 年度筛选，卡片点击进入项目详情入口。</p>\n<p>以项目为抓手，形成“地图 + 列表 + 详情”的统一信息链路，提升展示与检索效率。</p>",
-      "cover": "../../配图/雅砻江大桥.jpg",
+      "cover": "../../img/雅砻江大桥.jpg",
       "status": "published",
       "source_file": "web/pages/projects/index.html",
       "uncertain": false
@@ -295,7 +295,7 @@
       "title": "社会责任",
       "slug": "社会责任",
       "content": "<p>聚焦乡村振兴、公益活动、环保建设与社会贡献，形成可量化、可持续的责任体系与成果展示。</p>\n<p>ACTIONS 责任行动 以卡片方式展示重点行动方向，后续可接入真实项目与报道。</p>\n<p>进入视口触发数字滚动动画，可对接年度责任报告指标体系。</p>\n<p>以高质量建设服务民生，以绿色低碳推动可持续发展，以责任担当回馈社会。</p>",
-      "cover": "../../配图/海螺沟路基建成后2.jpg",
+      "cover": "../../img/海螺沟路基建成后2.jpg",
       "status": "published",
       "source_file": "web/pages/responsibility/index.html",
       "uncertain": false
@@ -305,7 +305,7 @@
     {
       "title": "集团概况",
       "subtitle": "集团概况",
-      "image_path": "../../配图/雅砻江大桥.jpg",
+      "image_path": "../../img/雅砻江大桥.jpg",
       "link_url": "/pages/about/index.html",
       "position": "集团概况",
       "sort": 1,
@@ -316,7 +316,7 @@
     {
       "title": "新闻中心",
       "subtitle": "新闻中心",
-      "image_path": "../../配图/雅砻江大桥.jpg",
+      "image_path": "../../img/雅砻江大桥.jpg",
       "link_url": "/pages/news/index.html",
       "position": "新闻中心",
       "sort": 1,
@@ -327,7 +327,7 @@
     {
       "title": "业务板块",
       "subtitle": "业务板块",
-      "image_path": "../../配图/318康定市过境段公路工程项目434互通工程.jpg",
+      "image_path": "../../img/318康定市过境段公路工程项目434互通工程.jpg",
       "link_url": "/pages/business/index.html",
       "position": "业务板块",
       "sort": 1,
@@ -338,7 +338,7 @@
     {
       "title": "联系我们",
       "subtitle": "联系我们",
-      "image_path": "../../配图/雅砻江大桥.jpg",
+      "image_path": "../../img/雅砻江大桥.jpg",
       "link_url": "/pages/contact/index.html",
       "position": "联系我们",
       "sort": 1,
@@ -349,7 +349,7 @@
     {
       "title": "党建工作",
       "subtitle": "党建工作",
-      "image_path": "../../配图/雅砻江大桥.jpg",
+      "image_path": "../../img/雅砻江大桥.jpg",
       "link_url": "/pages/party/index.html",
       "position": "党建工作",
       "sort": 1,
@@ -360,7 +360,7 @@
     {
       "title": "项目展示",
       "subtitle": "项目展示",
-      "image_path": "../../配图/雅砻江大桥.jpg",
+      "image_path": "../../img/雅砻江大桥.jpg",
       "link_url": "/pages/projects/index.html",
       "position": "项目展示",
       "sort": 1,
@@ -371,7 +371,7 @@
     {
       "title": "社会责任",
       "subtitle": "社会责任",
-      "image_path": "../../配图/海螺沟路基建成后2.jpg",
+      "image_path": "../../img/海螺沟路基建成后2.jpg",
       "link_url": "/pages/responsibility/index.html",
       "position": "社会责任",
       "sort": 1,
@@ -479,7 +479,7 @@
       "name": "甘孜州建设投资集团有限公司",
       "slug": "甘孜州建设投资集团有限公司",
       "intro": "围绕基础设施建设与区域发展，形成“投融建运”协同的六大业务板块，持续提升专业化能力。",
-      "cover": "../../配图/318康定市过境段公路工程项目434互通工程.jpg",
+      "cover": "../../img/318康定市过境段公路工程项目434互通工程.jpg",
       "status": "enabled",
       "source_file": "web/pages/business/index.html",
       "uncertain": true

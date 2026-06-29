@@ -4,13 +4,13 @@
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const data = [
-    { id:'p1', name:'川藏铁路康定枢纽站', type:'交通工程', region:'康定市', year:'2026', img:'../../配图/318康定市过境段公路工程项目434互通工程.jpg' },
-    { id:'p2', name:'稻城亚丁机场改扩建', type:'交通工程', region:'稻城县', year:'2025', img:'../../配图/国道318线康定市过境段公路工程项目434互通工程建成前（后北门）.jpeg' },
-    { id:'p3', name:'泸定大渡河特大桥', type:'交通工程', region:'泸定县', year:'2026', img:'../../配图/雅砻江大桥.jpg' },
-    { id:'p4', name:'理塘光伏发电基地', type:'产业投资', region:'理塘县', year:'2024', img:'../../配图/青岗坪隧道建成前.JPG' },
-    { id:'p5', name:'道孚藏族民居改造工程', type:'房建工程', region:'甘孜县', year:'2025', img:'../../配图/青冈坪隧道建成后.jpg' },
-    { id:'p6', name:'丹巴古碉藏寨文旅综合体', type:'文旅开发', region:'九龙县', year:'2024', img:'../../配图/海螺沟路基建成前1.JPG' },
-    { id:'p7', name:'巴塘水电站建设项目', type:'产业投资', region:'巴塘县', year:'2026', img:'../../配图/海螺沟路基建成后2.jpg' }
+    { id:'p1', name:'川藏铁路康定枢纽站', type:'交通工程', region:'康定市', year:'2026', img:'../../img/318康定市过境段公路工程项目434互通工程.jpg' },
+    { id:'p2', name:'稻城亚丁机场改扩建', type:'交通工程', region:'稻城县', year:'2025', img:'../../img/国道318线康定市过境段公路工程项目434互通工程建成前（后北门）.jpeg' },
+    { id:'p3', name:'泸定大渡河特大桥', type:'交通工程', region:'泸定县', year:'2026', img:'../../img/雅砻江大桥.jpg' },
+    { id:'p4', name:'理塘光伏发电基地', type:'产业投资', region:'理塘县', year:'2024', img:'../../img/青岗坪隧道建成前.JPG' },
+    { id:'p5', name:'道孚藏族民居改造工程', type:'房建工程', region:'甘孜县', year:'2025', img:'../../img/青冈坪隧道建成后.jpg' },
+    { id:'p6', name:'丹巴古碉藏寨文旅综合体', type:'文旅开发', region:'九龙县', year:'2024', img:'../../img/海螺沟路基建成前1.JPG' },
+    { id:'p7', name:'巴塘水电站建设项目', type:'产业投资', region:'巴塘县', year:'2026', img:'../../img/海螺沟路基建成后2.jpg' }
   ]
 
   const typeSel = document.getElementById('projectType')

@@ -1593,7 +1593,7 @@
 <!-- ==================== NAVIGATION ==================== -->
 <a href="#hero" class="nav-logo header-logo has-image" aria-label="甘孜州建设投资集团">
     <span class="logo-wrapper">
-        <img class="logo-image" src="/配图/微信图片_20260615213244_3_101-transparent.png" alt="甘孜州建设投资集团" onerror="this.onerror=null;this.src='/%E9%85%8D%E5%9B%BE/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260615213244_3_101-transparent.png'">
+        <img class="logo-image" src="/img/logo.png" alt="甘孜州建设投资集团" onerror="this.onerror=null;this.src='/img/logo.png'">
     </span>
     <div aria-hidden="true">
         <div class="nav-logo-text">甘孜州建设投资集团</div>
@@ -1634,7 +1634,7 @@
 </nav>
 
 <!-- ==================== HERO SECTION ==================== -->
-<section class="hero" id="hero">
+<section class="hero" id="hero" data-home-banners>
     <!-- Snow mountain layers -->
     <div class="hero-mountains">
         <div class="mountain-layer mtn-1"></div>
@@ -1655,13 +1655,13 @@
             <span class="hero-badge-dot"></span>
             GANZI PREFECTURE · SINCE 2010
         </div>
-        <h1 class="hero-title font-serif">
+        <h1 class="hero-title font-serif" data-banner-title>
             <span class="hero-title-line">铺筑人民幸福之路</span>
             <span class="hero-title-line">建造甘孜发展之基</span>
         </h1>
-        <p class="hero-subtitle">甘孜州建设投资集团有限公司</p>
+        <p class="hero-subtitle" data-banner-subtitle>甘孜州建设投资集团有限公司</p>
         <div class="hero-actions">
-            <a href="pages/about/index.html" class="btn-primary">点击进入 <span class="btn-arrow" aria-hidden="true">→</span></a>
+            <a href="pages/about/index.html" class="btn-primary" data-banner-link>点击进入 <span class="btn-arrow" aria-hidden="true">→</span></a>
         </div>
     </div>
 
@@ -1802,7 +1802,7 @@
         </div>
         <div class="map-container reveal">
             <div class="ganzi-map-stage">
-                <img class="ganzi-map-img" src="配图/fb3337e28c107d7330d7ba247ed097ac.png" alt="甘孜州项目分布地图">
+                <img class="ganzi-map-img" src="img/map.png" alt="甘孜州项目分布地图">
                 <div class="map-points-layer">
                     <div class="map-point" data-place="甘孜县" style="left:49.5%; top:44.2%; --delay:0s;"><span class="dot"></span><span class="pulse"></span></div>
                     <div class="map-point" data-place="理塘县" style="left:45.4%; top:55.0%; --delay:0.3s;"><span class="dot"></span><span class="pulse"></span></div>
@@ -1912,10 +1912,10 @@
             <h2 class="section-title font-serif">新闻中心</h2>
             <p class="section-subtitle">关注集团动态，了解最新资讯与发展成果</p>
         </div>
-        <div class="news-layout">
+        <div class="news-layout" data-home-news-layout>
             <!-- Featured news -->
-            <div class="news-featured reveal">
-                <div class="news-featured-bg" style="--news-featured-img: url('配图/雅砻江大桥.jpg');"></div>
+            <div class="news-featured reveal" data-home-news-featured>
+                <div class="news-featured-bg" style="--news-featured-img: url('img/雅砻江大桥.jpg');"></div>
                 <div class="news-featured-pattern"></div>
                 <div class="news-featured-content">
                     <span class="news-tag">头条要闻</span>
@@ -1925,8 +1925,8 @@
                 </div>
             </div>
             <!-- News list -->
-            <div class="news-list">
-                <div class="news-item reveal" style="--news-img: url('配图/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg');">
+            <div class="news-list" data-home-news-list>
+                <div class="news-item reveal" style="--news-img: url('img/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg');">
                     <div class="news-item-date">
                         <div class="nid-day">05</div>
                         <div class="nid-month">Jun</div>
@@ -1939,7 +1939,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="news-item reveal" style="--news-img: url('配图/雀儿山隧道建成前1.jpeg');">
+                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成前1.jpeg');">
                     <div class="news-item-date">
                         <div class="nid-day">02</div>
                         <div class="nid-month">Jun</div>
@@ -1952,7 +1952,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="news-item reveal" style="--news-img: url('配图/雀儿山隧道建成前2.jpeg');">
+                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成前2.jpeg');">
                     <div class="news-item-date">
                         <div class="nid-day">28</div>
                         <div class="nid-month">May</div>
@@ -1965,7 +1965,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="news-item reveal" style="--news-img: url('配图/雀儿山隧道建成后.jpeg');">
+                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成后.jpeg');">
                     <div class="news-item-date">
                         <div class="nid-day">20</div>
                         <div class="nid-month">May</div>
@@ -2076,7 +2076,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <span>&copy; 2025 甘孜州建设投资集团有限公司 版权所有</span>
+                    <span data-site-footer-text>&copy; 2025 甘孜州建设投资集团有限公司 版权所有</span>
             <span><a href="#">蜀ICP备XXXXXXXX号</a> &nbsp;|&nbsp; <a href="#">网站地图</a> &nbsp;|&nbsp; <a href="#">隐私政策</a></span>
         </div>
     </div>
@@ -2090,6 +2090,14 @@
 </template>
 
 <!-- ==================== JAVASCRIPT ==================== -->
+<script>
+(function() {
+    const tpl = document.querySelector('template[data-home-single-screen]');
+    if (!tpl || tpl.dataset.rendered === '1') return;
+    tpl.dataset.rendered = '1';
+    tpl.parentNode.insertBefore(tpl.content.cloneNode(true), tpl);
+})();
+</script>
 <script>
 (function() {
     'use strict';
@@ -2383,6 +2391,7 @@
 </script>
 
 <script src="pages/assets/global-ui.js"></script>
+<script src="pages/assets/home-directus.js"></script>
 
 </body>
 </html>

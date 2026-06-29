@@ -2,7 +2,7 @@
   const pathname = location.pathname.replace(/\\/g, '/')
   let decodedPathname = pathname
   try { decodedPathname = decodeURIComponent(pathname) } catch (e) {}
-  const isHome = decodedPathname === '/' || /\/A版官网首页\.html$/i.test(decodedPathname)
+  const isHome = decodedPathname === '/' || /\/(A版官网首页|index)\.html$/i.test(decodedPathname)
   const isCms = /^\/cms(\/|$)/.test(pathname)
   const isApi = /^\/api(\/|$)/.test(pathname)
   const shouldEnhance = !isHome && !isCms && !isApi

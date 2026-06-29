@@ -64,6 +64,21 @@ async function upsert(token, collection, identity, payload) {
   }
 }
 
+function normalizeAssetPath(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw) || raw.startsWith('/')) return raw
+  return `/${raw.replace(/^(\.\.\/)+/, '').replace(/^\.\//, '').replace(/^web\//, '')}`
+}
+
+function normalizeBannerPosition(item) {
+  const source = String(item?.source_file || '')
+  if (source.includes('/pages/news/')) return 'news'
+  if (source.includes('/pages/business/')) return 'business'
+  if (source.includes('/pages/party/')) return 'party'
+  return 'home'
+}
+
 const seed = JSON.parse(fs.readFileSync(seedFile, 'utf8'))
 const token = await login()
 
@@ -76,11 +91,30 @@ for (const item of seed.pages || []) {
   await upsert(token, 'pages', { slug: item.slug }, { title: item.title, content: item.content || '', status: item.status || 'published', source_file: item.source_file })
 }
 for (const item of seed.banners || []) {
-  await upsert(token, 'banners', { title: item.title, source_file: item.source_file }, { subtitle: item.subtitle || '', link_url: item.link_url || '', position: item.position || 'page', sort: item.sort || 0, status: item.status || 'published', source_file: item.source_file })
+  await upsert(token, 'banners', { title: item.title, source_file: item.source_file }, {
+    subtitle: item.subtitle || '',
+    image_url: normalizeAssetPath(item.image_url || item.image_path || ''),
+    link_url: item.link_url || '',
+    position: normalizeBannerPosition(item),
+    sort: item.sort || 0,
+    status: item.status || 'published',
+    source_file: item.source_file,
+  })
 }
 for (const item of seed.articles || []) {
   const channelId = channelIds.get(item.channel_slug) || null
-  await upsert(token, 'articles', { title: item.title, source_file: item.source_file }, { summary: item.summary || '', content: item.content || '', status: item.status || 'published', main_channel: channelId, source: 'web static extract', author: 'web extract', publish_at: new Date().toISOString(), source_file: item.source_file })
+  await upsert(token, 'articles', { title: item.title, source_file: item.source_file }, {
+    cover_url: normalizeAssetPath(item.cover_url || item.cover_path || ''),
+    summary: item.summary || '',
+    content: item.content || '',
+    status: item.status || 'published',
+    main_channel: channelId,
+    news_subcategory: item.news_subcategory || '',
+    source: 'web static extract',
+    author: 'web extract',
+    publish_at: new Date().toISOString(),
+    source_file: item.source_file,
+  })
 }
 for (const item of seed.companies || []) {
   await upsert(token, 'companies', { slug: item.slug }, { name: item.name, intro: item.intro || '', status: item.status || 'enabled', source_file: item.source_file })

@@ -13,5 +13,9 @@
     "dev:admin": "npm --prefix apps/cms-admin run dev",
     "build:api": "npm --prefix services/cms-api run build",
     "build:admin": "npm --prefix apps/cms-admin run build"
+  },
+  "dependencies": {
+    "@aws-crypto/util": "^5.2.0",
+    "tslib": "^2.8.1"
   }
 }

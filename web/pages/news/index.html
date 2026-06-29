@@ -74,11 +74,11 @@
   <main class="page" aria-label="主要内容" data-news-page>
     <section class="hero">
       <div class="hero-bg">
-        <div class="swiper" data-swiper data-effect="fade" data-speed="1200" data-autoplay="5000" data-loop="true" data-touch="true">
-          <div class="swiper-wrapper">
-            <div class="swiper-slide"><img alt="" src="../../配图/雅砻江大桥.jpg" /></div>
-            <div class="swiper-slide"><img alt="" src="../../配图/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg" /></div>
-            <div class="swiper-slide"><img alt="" src="../../配图/国道317线（川藏公路北线）雀儿山隧道工程.jpg" /></div>
+        <div class="swiper" data-swiper data-news-hero-swiper data-effect="fade" data-speed="1200" data-autoplay="5000" data-loop="true" data-touch="true">
+          <div class="swiper-wrapper" data-news-hero-swiper-wrapper>
+            <div class="swiper-slide"><img alt="" src="../../img/雅砻江大桥.jpg" /></div>
+            <div class="swiper-slide"><img alt="" src="../../img/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg" /></div>
+            <div class="swiper-slide"><img alt="" src="../../img/国道317线（川藏公路北线）雀儿山隧道工程.jpg" /></div>
           </div>
         </div>
       </div>
@@ -87,10 +87,10 @@
       <div class="content hero-inner">
         <div>
           <div class="kicker reveal" data-anim="fadeUp"><i aria-hidden="true"></i><span>NEWS CENTER</span></div>
-          <h1 class="hero-title reveal" data-anim="blurReveal">新闻中心</h1>
-          <p class="hero-sub reveal" data-anim="fadeUp">聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类 Tab、搜索与分页。</p>
+          <h1 class="hero-title reveal" data-anim="blurReveal" data-news-hero-title>新闻中心</h1>
+          <p class="hero-sub reveal" data-anim="fadeUp" data-news-hero-subtitle>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类 Tab、搜索与分页。</p>
           <div class="hero-cta reveal" data-anim="fadeUp">
-            <a class="btn btn--primary" href="#content" data-no-transition>浏览资讯</a>
+            <a class="btn btn--primary" href="#content" data-no-transition data-news-hero-link>浏览资讯</a>
             <a class="btn" href="../contact/index.html">订阅与服务</a>
           </div>
         </div>
@@ -125,7 +125,7 @@
         </div>
 
         <div class="filters reveal" data-anim="fadeUp">
-          <div class="tabs" role="tablist" aria-label="新闻分类">
+          <div class="tabs" role="tablist" aria-label="新闻分类" data-news-tabs>
             <button class="tab is-active" type="button" data-news-tab="全部">全部</button>
             <button class="tab" type="button" data-news-tab="政务简讯">政务简讯</button>
             <button class="tab" type="button" data-news-tab="集团要闻">集团要闻</button>
@@ -166,7 +166,7 @@
           <div class="news-main reveal" data-anim="blurReveal" id="newsFeatured">
             <div class="news-card">
               <div class="news-cover">
-                <img class="lazy" data-lazy="../../配图/雅砻江大桥.jpg" alt="">
+                <img class="lazy" data-lazy="../../img/雅砻江大桥.jpg" alt="">
               </div>
               <div class="news-body">
                 <div class="pill">头条</div>
@@ -174,7 +174,7 @@
                 <div class="meta" data-meta>—</div>
                 <div class="rich" style="margin-top:12px" data-excerpt>—</div>
                 <div style="margin-top:16px">
-                  <a class="btn btn--primary" href="../detail/news-detail.html" data-no-transition>阅读详情</a>
+                  <a class="btn btn--primary" href="../detail/news-detail.html" data-no-transition data-news-featured-link>阅读详情</a>
                 </div>
               </div>
             </div>
