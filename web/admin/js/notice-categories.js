@@ -45,7 +45,7 @@
   });
 
   const validatePayload = (payload) => {
-    if (!payload.name) return '请输入分类名称。';
+    if (!payload.name) return '请输入公示公告分类名称。';
     if (!payload.slug) return '请输入分类标识 slug。';
     if (!/^[a-z0-9][a-z0-9-]*$/.test(payload.slug)) return 'slug 只能使用小写字母、数字和中横线。';
     return '';
@@ -96,7 +96,7 @@
       const row = document.createElement('tr');
       const cell = document.createElement('td');
       cell.colSpan = 6;
-      cell.textContent = '暂无分类。';
+      cell.textContent = '暂无公示公告分类。';
       row.appendChild(cell);
       body.appendChild(row);
       return;
@@ -105,7 +105,7 @@
     const usageMap = new Map();
     await Promise.all(categories.map(async (category) => {
       try {
-        const result = await window.AdminApi.categoryUsage(category.id);
+        const result = await window.AdminApi.categoryUsage(category.id, { scope: 'notice' });
         usageMap.set(category.id, result.data ? result.data.article_count : 0);
       } catch (error) {
         usageMap.set(category.id, '后续支持');
@@ -138,7 +138,7 @@
 
   const loadCategories = async () => {
     body.innerHTML = '<tr><td colspan="6">正在加载…</td></tr>';
-    const result = await window.AdminApi.categories({ keyword: keywordInput.value.trim(), status: statusFilter.value });
+    const result = await window.AdminApi.categories({ scope: 'notice', keyword: keywordInput.value.trim(), status: statusFilter.value });
     await renderRows(result.data || []);
   };
 
@@ -152,10 +152,10 @@
     }
     try {
       if (idInput.value) {
-        await window.AdminApi.updateCategory(idInput.value, payload);
+        await window.AdminApi.updateCategory(idInput.value, payload, { scope: 'notice' });
         showMessage('分类已更新。', 'success');
       } else {
-        await window.AdminApi.createCategory(payload);
+        await window.AdminApi.createCategory(payload, { scope: 'notice' });
         showMessage('分类已新增。', 'success');
       }
       await loadCategories();
@@ -177,32 +177,32 @@
     const action = button.dataset.action;
     try {
       if (action === 'edit') {
-        const result = await window.AdminApi.category(id);
+        const result = await window.AdminApi.category(id, { scope: 'notice' });
         if (result.data) fillForm(result.data);
         return;
       }
       if (action === 'delete') {
-        const usage = await window.AdminApi.categoryUsage(id);
+        const usage = await window.AdminApi.categoryUsage(id, { scope: 'notice' });
         const count = usage.data ? Number(usage.data.article_count || 0) : 0;
         if (count > 0) {
-          showMessage(`该分类已有 ${count} 篇新闻，不能删除。建议改为“停用”。`, 'error');
+          showMessage(`该分类已有 ${count} 条公示公告，不能删除。建议改为“停用”。`, 'error');
           return;
         }
         if (!window.confirm('确认删除该分类？此操作不可恢复。')) return;
-        await window.AdminApi.deleteCategory(id);
+        await window.AdminApi.deleteCategory(id, { scope: 'notice' });
         if (idInput.value && idInput.value === id) resetForm();
         showMessage('分类已删除。', 'success');
         await loadCategories();
         return;
       }
       const enable = action === 'enable';
-      const usage = await window.AdminApi.categoryUsage(id);
+      const usage = await window.AdminApi.categoryUsage(id, { scope: 'notice' });
       const count = usage.data ? Number(usage.data.article_count || 0) : 0;
       const prompt = !enable && count > 0
-        ? `该分类已有 ${count} 篇新闻，停用后不会删除新闻，但新增/编辑新闻时不再可选。确认停用？`
+        ? `该分类已有 ${count} 条公示公告，停用后不会删除数据，但新增/编辑公示公告时不再可选。确认停用？`
         : `确认${enable ? '启用' : '停用'}该分类？`;
       if (!window.confirm(prompt)) return;
-      await window.AdminApi.setCategoryEnabled(id, enable);
+      await window.AdminApi.setCategoryEnabled(id, enable, { scope: 'notice' });
       showMessage(`分类已${enable ? '启用' : '停用'}。`, 'success');
       await loadCategories();
     } catch (err) {
@@ -213,7 +213,7 @@
       }
       if (msg.startsWith('Cannot delete category that has ')) {
         const count = msg.match(/\d+/)?.[0] || '0';
-        showMessage(`该分类已有 ${count} 篇新闻，不能删除。建议改为“停用”。`, 'error');
+        showMessage(`该分类已有 ${count} 条公示公告，不能删除。建议改为“停用”。`, 'error');
         return;
       }
       showMessage(msg || '分类操作失败。', 'error');
@@ -243,7 +243,7 @@
     const slug = slugInput.value.trim();
     if (!slug) return;
     if (!pathInput.value.trim()) {
-      pathInput.value = `/channels/${slug}`;
+      pathInput.value = `/disclosure/${slug}`;
     }
   });
 })();

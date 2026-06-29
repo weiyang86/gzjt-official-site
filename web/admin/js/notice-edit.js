@@ -184,14 +184,14 @@
     setBusy(true);
     try {
       const result = isEdit
-        ? await window.AdminApi.updateArticle(articleId, payload)
-        : await window.AdminApi.createArticle(payload);
+        ? await window.AdminApi.updateArticle(articleId, payload, { scope: 'notice' })
+        : await window.AdminApi.createArticle(payload, { scope: 'notice' });
       const savedId = result && result.data ? result.data.id : articleId;
-      showMessage(statusOverride === 'published' ? '新闻已发布。' : '新闻已保存。', 'success');
+      showMessage(statusOverride === 'published' ? '公示公告已发布。' : '公示公告已保存。', 'success');
       if (!isEdit && savedId) {
-        window.history.replaceState(null, '', `/admin/article-edit.html?id=${encodeURIComponent(savedId)}`);
+        window.history.replaceState(null, '', `/admin/notice-edit.html?id=${encodeURIComponent(savedId)}`);
       }
-      setTimeout(() => { window.location.href = '/admin/articles.html'; }, 500);
+      setTimeout(() => { window.location.href = '/admin/notice-articles.html'; }, 500);
     } catch (err) {
       showMessage(err.message || '保存失败，请稍后重试。', 'error');
     } finally {
@@ -200,7 +200,7 @@
   };
 
   const loadChannels = async () => {
-    const result = await window.AdminApi.channels();
+    const result = await window.AdminApi.channels({ scope: 'notice' });
     (result.data || []).forEach((channel) => {
       const option = document.createElement('option');
       option.value = channel.id;
@@ -233,8 +233,8 @@
 
   const loadArticle = async () => {
     if (!isEdit) return;
-    pageTitle.textContent = '编辑新闻';
-    const result = await window.AdminApi.article(articleId);
+    pageTitle.textContent = '编辑公示公告';
+    const result = await window.AdminApi.article(articleId, { scope: 'notice' });
     if (result && result.data) fillArticle(result.data);
   };
 

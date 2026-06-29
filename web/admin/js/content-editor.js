@@ -46,6 +46,15 @@
   Promise.resolve()
     .then(loadCurrentUser)
     .then(() => window.ContentSidebar.init(treeRoot, selectModule))
+    .then((tree) => {
+      const firstModule = (tree || []).flatMap((group) => group.children || [])[0];
+      if (firstModule && firstModule.module_code) {
+        const button = treeRoot.querySelector(`[data-module-code="${CSS.escape(firstModule.module_code)}"]`);
+        if (button) button.classList.add('is-active');
+        return selectModule(firstModule.module_code);
+      }
+      return null;
+    })
     .catch((error) => {
       if (error.status !== 401) showMessage(error.message || '页面内容管理初始化失败。', 'error');
     });

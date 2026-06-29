@@ -36,6 +36,10 @@
   })()
   const id = qs.get('id') || idFromPath || ''
   const kind = root.getAttribute('data-detail') || ''
+  const isArticleKind = kind === 'news' || kind === 'notice'
+  const detailListPath = kind === 'notice' ? '../disclosure/index.html' : '../news/index.html'
+  const detailPagePath = kind === 'notice' ? '../detail/notice-detail.html' : '../detail/news-detail.html'
+  const articleScope = kind === 'notice' ? 'notice' : 'news'
 
   const newsList = Array.isArray(window.NEWS_LIST) ? window.NEWS_LIST : []
 
@@ -73,7 +77,7 @@
 
   const back = document.querySelector('[data-back]')
   if (back) {
-    const href = kind === 'news' ? '../news/index.html' : (kind === 'project' ? '../projects/index.html' : '../party/index.html')
+    const href = isArticleKind ? detailListPath : (kind === 'project' ? '../projects/index.html' : '../party/index.html')
     back.setAttribute('href', href)
   }
 
@@ -116,10 +120,10 @@
       if (!anchor) return
       const small = anchor.querySelector('small')
       if (item) {
-        anchor.href = `../detail/news-detail.html?id=${encodeURIComponent(item.id)}`
+        anchor.href = `${detailPagePath}?id=${encodeURIComponent(item.id)}`
         if (small) small.textContent = item.title || ''
       } else {
-        anchor.href = '../news/index.html'
+        anchor.href = detailListPath
         if (small) small.textContent = fallbackText
       }
     }
@@ -135,9 +139,9 @@
       return
     }
     relatedGridEl.innerHTML = related.map(item => `
-      <a class="card reveal" data-anim="fadeUp" href="../detail/news-detail.html?id=${encodeURIComponent(item.id)}" style="grid-column:span 4;display:block;">
+      <a class="card reveal" data-anim="fadeUp" href="${detailPagePath}?id=${encodeURIComponent(item.id)}" style="grid-column:span 4;display:block;">
         <div class="card-pad">
-          <div class="pill">${escapeHtml(item.category || '新闻资讯')}</div>
+          <div class="pill">${escapeHtml(item.category || (kind === 'notice' ? '公示公告' : '新闻资讯'))}</div>
           <div style="margin-top:12px;font-weight:950;letter-spacing:.3px;font-size:16px">${escapeHtml(item.title || '')}</div>
           <div class="meta" style="margin-top:10px">${escapeHtml(item.dateText || item.date || '')}</div>
         </div>
@@ -149,8 +153,8 @@
     const title = item.title || fallback.title
     const dateText = longDate(item.publishAt || item.publishDate || item.date) || item.publishDate || item.dateText || fallback.date
     const label = item.newsSubcategory
-      ? `${item.mainChannel?.name || item.category || '新闻中心'} · ${item.newsSubcategory}`
-      : (item.mainChannel?.name || item.category || '新闻中心')
+      ? `${item.mainChannel?.name || item.category || (kind === 'notice' ? '公示公告' : '新闻中心')} · ${item.newsSubcategory}`
+      : (item.mainChannel?.name || item.category || (kind === 'notice' ? '公示公告' : '新闻中心'))
     const sourceParts = [label, item.source, item.author].filter(Boolean)
     if (titleEl) titleEl.textContent = title
     if (metaEl) metaEl.textContent = `发布时间：${dateText}${sourceParts.length ? ` · ${sourceParts.join(' · ')}` : ''}${item.views ? ` · 阅读：${item.views}` : ''}`
@@ -174,7 +178,10 @@
   }
 
   const renderNewsFallback = () => {
-    const fallbackList = newsList.map(item => ({
+    const fallbackList = (kind === 'notice'
+      ? newsList.filter(item => /公告|公示/.test(String(item.category || '')))
+      : newsList
+    ).map(item => ({
       id: String(item.id),
       title: item.title || '',
       date: item.date || '',
@@ -191,7 +198,7 @@
     renderRelated(fallbackList)
   }
 
-  if (kind !== 'news') {
+  if (!isArticleKind) {
     renderNonNewsFallback()
     return
   }
@@ -205,8 +212,8 @@
     renderNewsArticle(detail)
     const channelSlug = detail.mainChannel?.slug || ''
     const query = channelSlug
-      ? `/api/public/cms/articles?page=1&pageSize=100&channelSlug=${encodeURIComponent(channelSlug)}`
-      : '/api/public/cms/articles?page=1&pageSize=100'
+      ? `/api/public/cms/articles?page=1&pageSize=100&scope=${encodeURIComponent(articleScope)}&channelSlug=${encodeURIComponent(channelSlug)}`
+      : `/api/public/cms/articles?page=1&pageSize=100&scope=${encodeURIComponent(articleScope)}`
     const context = await fetchJson(query)
     const contextItems = Array.isArray(context?.items) && context.items.length
       ? context.items.map(item => ({
@@ -220,7 +227,10 @@
           summary: item.summary || '',
           source: item.source || ''
         }))
-      : newsList.map(item => ({
+      : (kind === 'notice'
+          ? newsList.filter(item => /公告|公示/.test(String(item.category || '')))
+          : newsList
+        ).map(item => ({
           id: String(item.id),
           title: item.title || '',
           date: item.date || '',

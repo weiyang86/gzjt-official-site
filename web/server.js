@@ -221,7 +221,7 @@ const getPageModuleRoute = (normalizedPath) => {
     return { id: decodeURIComponent(match[1]) };
 };
 
-const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status,date_updated';
+const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status';
 
 const buildPageModulesPath = (req) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
@@ -337,7 +337,7 @@ const emptyPageContent = (moduleCode) => ({
 });
 
 const getPageContentPath = (moduleCode) => buildDirectusPath('/items/page_contents', {
-    fields: 'id,module_code,title,subtitle,cover,summary,content,extra_json,status,date_updated',
+    fields: 'id,module_code,title,subtitle,cover,summary,content,extra_json,status',
     limit: 1,
     'filter[module_code][_eq]': moduleCode
 });
@@ -375,7 +375,7 @@ const buildPageContentItemsPath = (req) => {
     const moduleCode = (parsedUrl.searchParams.get('module_code') || '').trim();
     const itemType = (parsedUrl.searchParams.get('item_type') || '').trim();
     const params = {
-        fields: 'id,module_code,item_type,title,subtitle,date_label,image,content,link_url,sort,status,extra_json,date_updated',
+        fields: 'id,module_code,item_type,title,subtitle,date_label,image,content,link_url,sort,status,extra_json',
         sort: 'sort,id',
         limit: 500
     };
@@ -423,26 +423,109 @@ const buildCategoryListPath = (req) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
     const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const scope = getAdminScope(req);
     const params = {
-        fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name',
+        fields: 'id,name,slug,type,path,sort,visible,status,is_news_category',
         sort: 'sort,name',
-        limit: 100,
-        'filter[is_news_category][_eq]': true
+        limit: 100
     };
     if (keyword) {
         params['filter[_or][0][name][_contains]'] = keyword;
         params['filter[_or][1][slug][_contains]'] = keyword;
-        params['filter[_or][2][description][_contains]'] = keyword;
     }
     if (status && categoryStatuses.has(status)) params['filter[status][_eq]'] = status;
+    if (scope === 'notice') params['filter[type][_eq]'] = 'notice';
     return buildDirectusPath('/items/channels', params);
 };
 
 const getCategoryDetailPath = (id) => buildDirectusPath(`/items/channels/${encodeURIComponent(id)}`, {
-    fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name'
+    fields: 'id,name,slug,type,path,sort,visible,status,is_news_category'
 });
 
-const normalizeCategoryInput = (body, isCreate = false) => {
+const buildCategoryListFallbackPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const params = {
+        fields: '*',
+        sort: 'sort,name',
+        limit: 100
+    };
+    if (keyword) {
+        params.search = keyword;
+    }
+    return buildDirectusPath('/items/channels', params);
+};
+
+const normalizeEnabledState = (value, defaultValue = 'enabled') => {
+    if (value === undefined || value === null || value === '') return defaultValue;
+    if (value === 'enabled' || value === 'disabled') return value;
+    if (typeof value === 'boolean') return value ? 'enabled' : 'disabled';
+    const normalized = String(value).trim().toLowerCase();
+    if (normalized === '1' || normalized === 'true' || normalized === 'yes') return 'enabled';
+    if (normalized === '0' || normalized === 'false' || normalized === 'no') return 'disabled';
+    return defaultValue;
+};
+
+const normalizeVisibleState = (value, status) => {
+    if (value === undefined || value === null || value === '') return status === 'enabled';
+    if (typeof value === 'boolean') return value;
+    const normalized = String(value).trim().toLowerCase();
+    return !(normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'disabled');
+};
+
+const normalizeChannelRecord = (item = {}) => {
+    const slug = typeof item.slug === 'string' && item.slug.trim()
+        ? item.slug.trim()
+        : (typeof item.code === 'string' ? item.code.trim() : '');
+    const status = normalizeEnabledState(item.status, 'enabled');
+    const isNewsCategory = item.type === 'news' || item.is_news_category === true;
+    const isNoticeCategory = item.type === 'notice';
+    return {
+        id: item.id,
+        name: item.name || '',
+        slug,
+        type: isNewsCategory ? 'news' : (isNoticeCategory ? 'notice' : (item.type || 'list')),
+        path: typeof item.path === 'string' && item.path.trim() ? item.path.trim() : (slug ? `/channels/${slug}` : ''),
+        sort: Number.isFinite(Number(item.sort)) ? Number(item.sort) : 0,
+        visible: normalizeVisibleState(item.visible, status),
+        status,
+        is_news_category: isNewsCategory,
+        is_notice_category: isNoticeCategory
+    };
+};
+
+const getAdminScope = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    return parsedUrl.searchParams.get('scope') === 'notice' ? 'notice' : 'news';
+};
+
+const isCategoryInScope = (item = {}, scope = 'news') => {
+    const normalized = normalizeChannelRecord(item);
+    if (scope === 'notice') return normalized.type === 'notice';
+    return normalized.type === 'news' || normalized.is_news_category === true;
+};
+
+const filterCategoriesForAdmin = (items, req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim().toLowerCase();
+    const statusFilter = (parsedUrl.searchParams.get('status') || '').trim();
+    const scope = getAdminScope(req);
+    return items
+        .map(normalizeChannelRecord)
+        .filter((item) => {
+            if (!isCategoryInScope(item, scope)) return false;
+            if (statusFilter && categoryStatuses.has(statusFilter) && item.status !== statusFilter) return false;
+            if (!keyword) return true;
+            return [item.name, item.slug, item.path].some((value) => String(value || '').toLowerCase().includes(keyword));
+        })
+        .sort((a, b) => {
+            const sortDiff = Number(a.sort || 0) - Number(b.sort || 0);
+            if (sortDiff !== 0) return sortDiff;
+            return String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN');
+        });
+};
+
+const normalizeCategoryInput = (body, isCreate = false, scope = 'news') => {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
     if (!name) throw Object.assign(new Error('name is required'), { statusCode: 400 });
@@ -450,21 +533,28 @@ const normalizeCategoryInput = (body, isCreate = false) => {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
         throw Object.assign(new Error('slug must use lowercase letters, numbers, and hyphens'), { statusCode: 400 });
     }
-    const type = categoryTypes.has(body.type) ? body.type : 'list';
     const status = categoryStatuses.has(body.status) ? body.status : 'enabled';
     const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0;
-    const payload = {
-        name,
-        slug,
-        type,
-        path: typeof body.path === 'string' ? body.path.trim() : `/channels/${slug}`,
-        sort,
-        visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
-        status,
-        is_news_category: true,
-        description: typeof body.description === 'string' ? body.description.trim() : ''
-    };
-    if (body.parent) payload.parent = body.parent;
+    const payload = scope === 'notice'
+        ? {
+            name,
+            slug,
+            type: 'notice',
+            path: typeof body.path === 'string' ? body.path.trim() : `/disclosure/${slug}`,
+            sort,
+            visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
+            status
+        }
+        : {
+            name,
+            slug,
+            type: 'list',
+            path: typeof body.path === 'string' ? body.path.trim() : `/channels/${slug}`,
+            sort,
+            visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
+            status,
+            is_news_category: true
+        };
     if (isCreate) {
         payload.visible = typeof body.visible === 'boolean' ? body.visible : true;
         payload.status = categoryStatuses.has(body.status) ? body.status : 'enabled';
@@ -500,9 +590,10 @@ const buildArticleListPath = (req) => {
     const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
     const channel = (parsedUrl.searchParams.get('channel') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const scope = getAdminScope(req);
     const params = {
-        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,date_updated',
-        sort: '-publish_at,-date_updated',
+        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
+        sort: '-publish_at,-id',
         page,
         limit,
         meta: 'filter_count'
@@ -515,20 +606,70 @@ const buildArticleListPath = (req) => {
     }
     if (channel) params['filter[main_channel][slug][_eq]'] = channel;
     if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
+    if (scope === 'notice') params['filter[main_channel][type][_eq]'] = 'notice';
+    else params['filter[main_channel][type][_neq]'] = 'notice';
 
     return buildDirectusPath('/items/articles', params);
 };
 
-const getChannelsPath = () => buildDirectusPath('/items/channels', {
-    fields: 'id,name,slug,status,sort',
-    sort: 'sort,name',
-    limit: 100,
-    'filter[status][_eq]': 'enabled',
-    'filter[is_news_category][_eq]': true
+const buildArticleListFallbackPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const channel = (parsedUrl.searchParams.get('channel') || '').trim();
+    const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const params = {
+        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
+        sort: '-publish_at,-id',
+        limit: 300
+    };
+    if (keyword) {
+        params['filter[_or][0][title][_contains]'] = keyword;
+        params['filter[_or][1][summary][_contains]'] = keyword;
+        params['filter[_or][2][subtitle][_contains]'] = keyword;
+    }
+    if (channel) params['filter[main_channel][slug][_eq]'] = channel;
+    if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
+    return buildDirectusPath('/items/articles', params);
+};
+
+const filterArticlesForScope = (items = [], scope = 'news', scopedChannels = []) => {
+    const scopedSlugs = new Set((scopedChannels || []).map((item) => String(item.slug || '')));
+    return (items || []).filter((item) => {
+        const articleChannelSlug = item?.main_channel?.slug || '';
+        const isNoticeArticle = scopedSlugs.has(String(articleChannelSlug || ''));
+        return scope === 'notice' ? isNoticeArticle : !isNoticeArticle;
+    });
+};
+
+const getChannelsPath = (scope = 'news') => {
+    const params = {
+        fields: 'id,name,slug,type,path,sort,status,visible,is_news_category',
+        sort: 'sort,id',
+        limit: 100,
+        'filter[status][_eq]': 'enabled',
+        'filter[visible][_eq]': 'true'
+    };
+    if (scope === 'notice') params['filter[type][_eq]'] = 'notice';
+    return buildDirectusPath('/items/channels', params);
+};
+
+const getChannelsFallbackPath = () => buildDirectusPath('/items/channels', {
+    fields: '*',
+    sort: 'sort,id',
+    limit: 100
 });
 
+const filterEnabledChannels = (items, scope = 'news') => items
+    .map(normalizeChannelRecord)
+    .filter((item) => isCategoryInScope(item, scope) && item.status === 'enabled' && item.visible)
+    .sort((a, b) => {
+        const sortDiff = Number(a.sort || 0) - Number(b.sort || 0);
+        if (sortDiff !== 0) return sortDiff;
+        return Number(a.id || 0) - Number(b.id || 0);
+    });
+
 const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,date_updated'
+    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend'
 });
 
 const normalizeArticleInput = (body, fallbackStatus) => {
@@ -650,7 +791,8 @@ const directusUploadRequest = async (req, token) => {
         filename: fileData.filename_download || fileData.filename_disk || fileInfo.filename,
         type: fileData.type || fileInfo.type,
         filesize: fileData.filesize || fileInfo.size,
-        preview_url: `/admin-api/assets/${encodeURIComponent(fileData.id)}`
+        preview_url: `/admin-api/assets/${encodeURIComponent(fileData.id)}`,
+        asset_url: `${directusUrl}/assets/${encodeURIComponent(fileData.id)}`
     };
 };
 
@@ -737,8 +879,19 @@ const handleAdminApi = async (req, res, normalizedPath) => {
         if (normalizedPath === '/admin-api/channels' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const channels = await directusJsonRequest(getChannelsPath(), session.accessToken);
-            return sendJson(res, 200, { data: channels?.data || [] });
+            const scope = getAdminScope(req);
+            let channels = [];
+            try {
+                const result = await directusJsonRequest(getChannelsPath(scope), session.accessToken);
+                channels = filterEnabledChannels(result?.data || [], scope);
+            } catch (err) {
+                if (err.statusCode !== 403) throw err;
+            }
+            if (!channels.length) {
+                const fallback = await directusJsonRequest(getChannelsFallbackPath(), session.accessToken);
+                channels = filterEnabledChannels(fallback?.data || [], scope);
+            }
+            return sendJson(res, 200, { data: channels.map(normalizeChannelRecord) });
         }
 
         if (normalizedPath === '/admin-api/page-modules' && req.method === 'GET') {
@@ -841,15 +994,25 @@ const handleAdminApi = async (req, res, normalizedPath) => {
         if (normalizedPath === '/admin-api/categories' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const categories = await directusJsonRequest(buildCategoryListPath(req), session.accessToken);
-            return sendJson(res, 200, { data: categories?.data || [] });
+            let categories = [];
+            try {
+                const result = await directusJsonRequest(buildCategoryListPath(req), session.accessToken);
+                categories = filterCategoriesForAdmin(result?.data || [], req);
+            } catch (err) {
+                if (err.statusCode !== 403) throw err;
+            }
+            if (!categories.length) {
+                const fallback = await directusJsonRequest(buildCategoryListFallbackPath(req), session.accessToken);
+                categories = filterCategoriesForAdmin(fallback?.data || [], req);
+            }
+            return sendJson(res, 200, { data: categories });
         }
 
         if (normalizedPath === '/admin-api/categories' && req.method === 'POST') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
             const body = await readJsonBody(req);
-            const categoryPayload = normalizeCategoryInput(body, true);
+            const categoryPayload = normalizeCategoryInput(body, true, getAdminScope(req));
             const category = await directusJsonRequest('/items/channels', session.accessToken, 'POST', categoryPayload);
             return sendJson(res, 201, { data: category?.data || null });
         }
@@ -860,24 +1023,49 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             if (!session) return;
 
             if (!categoryRoute.action && req.method === 'GET') {
-                const category = await directusJsonRequest(getCategoryDetailPath(categoryRoute.id), session.accessToken);
-                return sendJson(res, 200, { data: category?.data || null });
+                const scope = getAdminScope(req);
+                let category = null;
+                try {
+                    const result = await directusJsonRequest(getCategoryDetailPath(categoryRoute.id), session.accessToken);
+                    category = result?.data || null;
+                } catch (err) {
+                    if (err.statusCode !== 403) throw err;
+                }
+                if (!category) {
+                    const fallback = await directusJsonRequest(getChannelsFallbackPath(), session.accessToken);
+                    category = (fallback?.data || []).find((item) => String(item.id) === String(categoryRoute.id)) || null;
+                }
+                const normalized = category ? normalizeChannelRecord(category) : null;
+                if (!normalized || !isCategoryInScope(normalized, scope)) {
+                    return sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'Category not found' } });
+                }
+                return sendJson(res, 200, { data: normalized });
             }
 
             if (!categoryRoute.action && req.method === 'PATCH') {
                 const body = await readJsonBody(req);
-                const categoryPayload = normalizeCategoryInput(body, false);
+                const categoryPayload = normalizeCategoryInput(body, false, getAdminScope(req));
                 const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', categoryPayload);
                 return sendJson(res, 200, { data: category?.data || null });
             }
 
+            if (!categoryRoute.action && req.method === 'DELETE') {
+                const usage = await directusJsonRequest(buildCategoryUsagePath(categoryRoute.id), session.accessToken);
+                const count = Number(usage?.meta?.filter_count || 0);
+                if (count > 0) {
+                    return sendJson(res, 400, { error: { code: 'BAD_REQUEST', message: `Cannot delete category that has ${count} articles` } });
+                }
+                await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'DELETE');
+                return sendJson(res, 200, { ok: true });
+            }
+
             if (categoryRoute.action === 'disable' && req.method === 'PATCH') {
-                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled', visible: false, is_news_category: true });
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled', visible: false });
                 return sendJson(res, 200, { data: category?.data || null });
             }
 
             if (categoryRoute.action === 'enable' && req.method === 'PATCH') {
-                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'enabled', visible: true, is_news_category: true });
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'enabled', visible: true });
                 return sendJson(res, 200, { data: category?.data || null });
             }
 
@@ -890,7 +1078,29 @@ const handleAdminApi = async (req, res, normalizedPath) => {
         if (normalizedPath === '/admin-api/articles' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            const articles = await directusJsonRequest(buildArticleListPath(req), session.accessToken);
+            let articles = null;
+            try {
+                articles = await directusJsonRequest(buildArticleListPath(req), session.accessToken);
+            } catch (err) {
+                if (err.statusCode !== 403) throw err;
+                const scope = getAdminScope(req);
+                const parsedUrl = new URL(req.url, 'http://localhost');
+                const { page, limit } = normalizePagination(parsedUrl.searchParams.get('page'), parsedUrl.searchParams.get('limit'));
+                let scopedChannels = [];
+                try {
+                    const channelsResult = await directusJsonRequest(getChannelsPath('notice'), session.accessToken);
+                    scopedChannels = filterEnabledChannels(channelsResult?.data || [], 'notice');
+                } catch (innerErr) {
+                    const channelsFallback = await directusJsonRequest(getChannelsFallbackPath(), session.accessToken);
+                    scopedChannels = filterEnabledChannels(channelsFallback?.data || [], 'notice');
+                }
+                const fallbackArticles = await directusJsonRequest(buildArticleListFallbackPath(req), session.accessToken);
+                const filtered = filterArticlesForScope(fallbackArticles?.data || [], scope, scopedChannels);
+                articles = {
+                    data: filtered.slice((page - 1) * limit, page * limit),
+                    meta: { filter_count: filtered.length }
+                };
+            }
             return sendJson(res, 200, {
                 data: articles?.data || [],
                 meta: articles?.meta || null
@@ -963,8 +1173,8 @@ http.createServer((req, res) => {
     const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, '/'));
     const normalizedNoSlash = normalizedPath.replace(/\/+$/, '') || '/';
 
-    if (normalizedPath === '/admin-api' || normalizedPath.startsWith('/admin-api/')) {
-        handleAdminApi(req, res, normalizedPath);
+    if (normalizedNoSlash === '/admin-api' || normalizedNoSlash.startsWith('/admin-api/')) {
+        handleAdminApi(req, res, normalizedNoSlash);
         return;
     }
 

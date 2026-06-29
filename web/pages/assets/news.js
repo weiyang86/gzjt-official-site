@@ -360,7 +360,7 @@
   })
 
   const refreshApiData = async () => {
-    const params = new URLSearchParams({ page: '1', pageSize: '100' })
+    const params = new URLSearchParams({ page: '1', pageSize: '100', scope: 'news' })
     if (state.activeChannel !== 'all') params.set('channelSlug', state.activeChannel)
     if (state.activeSubcategory) params.set('newsSubcategory', state.activeSubcategory)
     if (state.keyword.trim()) params.set('keyword', state.keyword.trim())
