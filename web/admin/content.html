@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>页面内容管理 - 甘孜建设投资集团官网内容管理后台</title>
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body class="admin-app-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar" aria-label="后台菜单">
+      <div class="sidebar-brand"><span class="brand-mark">甘</span><div><strong>内容管理后台</strong><small>页面内容</small></div></div>
+      <nav class="admin-nav">
+        <a class="admin-nav-link" href="/admin/dashboard.html">工作台</a>
+        <a class="admin-nav-link" href="/admin/articles.html">新闻管理</a>
+        <a class="admin-nav-link" href="/admin/categories.html">新闻分类</a>
+        <a class="admin-nav-link is-active" href="/admin/content.html">页面内容管理</a>
+        <a class="admin-nav-link" href="/admin/article-edit.html">新增新闻</a>
+        <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="eyebrow">Content Modules</p><h1>页面内容管理</h1></div>
+        <div id="topbar-user" class="topbar-user">正在验证登录态…</div>
+      </header>
+
+      <main class="content-admin-content">
+        <aside class="content-module-sidebar" aria-label="官网一级目录和二级页面">
+          <div class="content-sidebar-head">
+            <p class="eyebrow">官网目录</p>
+            <h2>页面目录</h2>
+          </div>
+          <div id="content-sidebar-tree" class="content-sidebar-tree">正在加载目录…</div>
+        </aside>
+
+        <section class="content-editor-panel" aria-live="polite">
+          <div id="content-editor-message" class="inline-message" hidden></div>
+          <div id="content-editor-root" class="content-editor-root">
+            <section class="notice-card">
+              <p class="eyebrow">请选择页面</p>
+              <h2>从左侧选择一个二级页面</h2>
+              <p>后台会根据该模块的 <code>content_type</code> 显示对应维护表单；尚未开放的模块会显示“正在开发中”。</p>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/admin/js/admin-api.js"></script>
+  <script src="/admin/js/content-api.js"></script>
+  <script src="/admin/js/content-forms.js"></script>
+  <script src="/admin/js/content-sidebar.js"></script>
+  <script src="/admin/js/content-editor.js"></script>
+</body>
+</html>
