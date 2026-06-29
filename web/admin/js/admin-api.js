@@ -71,6 +71,12 @@
     createArticle: (payload) => adminFetch('/admin-api/articles', { method: 'POST', body: JSON.stringify(payload) }),
     updateArticle: (id, payload) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     setArticleStatus: (id, action) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, { method: 'PATCH' }),
-    uploadFile: (formData) => adminFetch('/admin-api/files', { method: 'POST', body: formData })
+    uploadFile: (formData) => adminFetch('/admin-api/files', { method: 'POST', body: formData }),
+    categories: (params = {}) => adminFetch(`/admin-api/categories?${new URLSearchParams(params).toString()}`),
+    category: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`),
+    createCategory: (payload) => adminFetch('/admin-api/categories', { method: 'POST', body: JSON.stringify(payload) }),
+    updateCategory: (id, payload) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    setCategoryEnabled: (id, enabled) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, { method: 'PATCH' }),
+    categoryUsage: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/usage`)
   };
 })();

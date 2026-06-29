@@ -240,3 +240,29 @@ curl 'http://localhost:8055/items/articles?fields=id,title,status,source_file&li
 curl 'http://localhost:8055/items/quick_links?fields=id,title,url,source_file&limit=5'
 curl 'http://localhost:8055/items/home_sections?fields=id,title,slug,channel_slug,status&limit=10'
 ```
+
+## 9. ADMIN-06 新闻分类字段与初始化
+
+ADMIN-06 继续复用 `channels` 集合作为新闻分类来源，不新建 `news_categories` 表。重新执行 bootstrap 脚本时，会幂等补齐以下 `channels` 字段：
+
+- `name`：分类名称。
+- `slug`：分类标识，后台和前台查询使用。
+- `parent`：自关联父级分类，当前简单后台暂不开放层级编辑。
+- `type`：`list` / `page` / `link` / `module`。
+- `path`：前台路径或预留路径。
+- `sort`：排序值。
+- `visible`：是否在前台/后台选择中显示。
+- `status`：`enabled` / `disabled`。
+- `is_news_category`：是否作为新闻分类。
+- `description`：分类说明。
+
+本地补齐字段命令：
+
+```bash
+set -a
+source .env.directus
+set +a
+DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
+```
+
+简单后台分类管理接口只操作 `channels` 中 `is_news_category=true` 的记录。停用分类会设置 `status=disabled`、`visible=false`，不会删除分类，也不会修改已关联文章；已发布新闻仍保留原 `main_channel` 关系。

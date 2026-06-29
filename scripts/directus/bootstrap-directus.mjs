@@ -72,8 +72,9 @@ const collections = [
 
 const fields = {
   channels: [
-    stringField('name', true), stringField('slug', true), selectField('type', ['nav', 'news', 'page', 'external']),
-    stringField('path'), stringField('source_file'), integerField('sort'), booleanField('visible', true), selectField('status', ['enabled', 'disabled'], 'enabled'),
+    stringField('name', true), stringField('slug', true), m2oField('parent'), selectField('type', ['list', 'page', 'link', 'module'], 'list'),
+    stringField('path'), integerField('sort'), booleanField('visible', true), selectField('status', ['enabled', 'disabled'], 'enabled'),
+    booleanField('is_news_category', false), textField('description'), stringField('source_file'),
   ],
   companies: [
     stringField('name', true), stringField('short_name'), stringField('slug', true), fileField('logo'), fileField('cover'),
@@ -145,6 +146,7 @@ function createAndRead(collection, permissions = {}) { return [read(collection, 
 function rw(collection, permissions = {}) { return ['read', 'create', 'update'].map((action) => ({ collection, action, permissions, validation: {}, presets: {}, fields: ['*'] })); }
 
 const relations = [
+  { collection: 'channels', field: 'parent', related_collection: 'channels' },
   { collection: 'companies', field: 'logo', related_collection: 'directus_files' },
   { collection: 'companies', field: 'cover', related_collection: 'directus_files' },
   { collection: 'business_sectors', field: 'cover', related_collection: 'directus_files' },
@@ -254,7 +256,7 @@ async function seedData(token) {
   ];
   const channelIds = new Map();
   for (const [name, slug] of channelSeeds) {
-    const id = await upsertBySlug(token, 'channels', slug, { name, type: 'news', path: `/channels/${slug}`, sort: channelIds.size + 1, visible: true, status: 'enabled' });
+    const id = await upsertBySlug(token, 'channels', slug, { name, type: 'list', path: `/channels/${slug}`, sort: channelIds.size + 1, visible: true, status: 'enabled', is_news_category: true, description: `${name}分类` });
     channelIds.set(slug, id);
   }
 

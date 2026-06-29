@@ -194,6 +194,8 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
 });
 
 const articleStatuses = new Set(['draft', 'published', 'archived']);
+const categoryStatuses = new Set(['enabled', 'disabled']);
+const categoryTypes = new Set(['list', 'page', 'link', 'module']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const maxUploadBytes = 10 * 1024 * 1024;
 const maxMultipartBytes = 12 * 1024 * 1024;
@@ -207,6 +209,73 @@ const buildDirectusPath = (pathname, params = {}) => {
     const query = searchParams.toString();
     return query ? `${pathname}?${query}` : pathname;
 };
+
+
+const getCategoryIdFromPath = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/categories\/([^/]+)(?:\/(enable|disable|usage))?$/);
+    if (!match) return null;
+    return { id: decodeURIComponent(match[1]), action: match[2] || null };
+};
+
+const buildCategoryListPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const params = {
+        fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name',
+        sort: 'sort,name',
+        limit: 100,
+        'filter[is_news_category][_eq]': true
+    };
+    if (keyword) {
+        params['filter[_or][0][name][_contains]'] = keyword;
+        params['filter[_or][1][slug][_contains]'] = keyword;
+        params['filter[_or][2][description][_contains]'] = keyword;
+    }
+    if (status && categoryStatuses.has(status)) params['filter[status][_eq]'] = status;
+    return buildDirectusPath('/items/channels', params);
+};
+
+const getCategoryDetailPath = (id) => buildDirectusPath(`/items/channels/${encodeURIComponent(id)}`, {
+    fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name'
+});
+
+const normalizeCategoryInput = (body, isCreate = false) => {
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+    if (!name) throw Object.assign(new Error('name is required'), { statusCode: 400 });
+    if (!slug) throw Object.assign(new Error('slug is required'), { statusCode: 400 });
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+        throw Object.assign(new Error('slug must use lowercase letters, numbers, and hyphens'), { statusCode: 400 });
+    }
+    const type = categoryTypes.has(body.type) ? body.type : 'list';
+    const status = categoryStatuses.has(body.status) ? body.status : 'enabled';
+    const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0;
+    const payload = {
+        name,
+        slug,
+        type,
+        path: typeof body.path === 'string' ? body.path.trim() : `/channels/${slug}`,
+        sort,
+        visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
+        status,
+        is_news_category: true,
+        description: typeof body.description === 'string' ? body.description.trim() : ''
+    };
+    if (body.parent) payload.parent = body.parent;
+    if (isCreate) {
+        payload.visible = typeof body.visible === 'boolean' ? body.visible : true;
+        payload.status = categoryStatuses.has(body.status) ? body.status : 'enabled';
+    }
+    return payload;
+};
+
+const buildCategoryUsagePath = (id) => buildDirectusPath('/items/articles', {
+    fields: 'id',
+    limit: 1,
+    meta: 'filter_count',
+    'filter[main_channel][_eq]': id
+});
 
 const getArticleIdFromPath = (normalizedPath) => {
     const match = normalizedPath.match(/^\/admin-api\/articles\/([^/]+)(?:\/(archive|publish|draft))?$/);
@@ -230,8 +299,8 @@ const buildArticleListPath = (req) => {
     const channel = (parsedUrl.searchParams.get('channel') || '').trim();
     const status = (parsedUrl.searchParams.get('status') || '').trim();
     const params = {
-        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
-        sort: '-publish_at,-id',
+        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,date_updated',
+        sort: '-publish_at,-date_updated',
         page,
         limit,
         meta: 'filter_count'
@@ -249,16 +318,15 @@ const buildArticleListPath = (req) => {
 };
 
 const getChannelsPath = () => buildDirectusPath('/items/channels', {
-    fields: 'id,name,slug,type,path,sort,status,visible',
-    sort: 'sort,id',
+    fields: 'id,name,slug,status,sort',
+    sort: 'sort,name',
     limit: 100,
     'filter[status][_eq]': 'enabled',
-    'filter[visible][_eq]': 'true',
-    'filter[type][_eq]': 'news'
+    'filter[is_news_category][_eq]': true
 });
 
 const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend'
+    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,date_updated'
 });
 
 const normalizeArticleInput = (body, fallbackStatus) => {
@@ -469,6 +537,55 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             if (!session) return;
             const channels = await directusJsonRequest(getChannelsPath(), session.accessToken);
             return sendJson(res, 200, { data: channels?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/categories' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const categories = await directusJsonRequest(buildCategoryListPath(req), session.accessToken);
+            return sendJson(res, 200, { data: categories?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/categories' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const categoryPayload = normalizeCategoryInput(body, true);
+            const category = await directusJsonRequest('/items/channels', session.accessToken, 'POST', categoryPayload);
+            return sendJson(res, 201, { data: category?.data || null });
+        }
+
+        const categoryRoute = getCategoryIdFromPath(normalizedPath);
+        if (categoryRoute) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+
+            if (!categoryRoute.action && req.method === 'GET') {
+                const category = await directusJsonRequest(getCategoryDetailPath(categoryRoute.id), session.accessToken);
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (!categoryRoute.action && req.method === 'PATCH') {
+                const body = await readJsonBody(req);
+                const categoryPayload = normalizeCategoryInput(body, false);
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', categoryPayload);
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (categoryRoute.action === 'disable' && req.method === 'PATCH') {
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled', visible: false, is_news_category: true });
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (categoryRoute.action === 'enable' && req.method === 'PATCH') {
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', { status: 'enabled', visible: true, is_news_category: true });
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (categoryRoute.action === 'usage' && req.method === 'GET') {
+                const usage = await directusJsonRequest(buildCategoryUsagePath(categoryRoute.id), session.accessToken);
+                return sendJson(res, 200, { data: { article_count: Number(usage?.meta?.filter_count || 0) } });
+            }
         }
 
         if (normalizedPath === '/admin-api/articles' && req.method === 'GET') {

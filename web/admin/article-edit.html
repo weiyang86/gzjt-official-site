@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>编辑新闻 - 甘孜建设投资集团官网内容管理后台</title>
   <link rel="stylesheet" href="/admin/css/admin.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css">
 </head>
 <body class="admin-app-page">
   <div class="admin-layout">
@@ -17,6 +16,7 @@
       <nav class="admin-nav">
         <a class="admin-nav-link" href="/admin/dashboard.html">工作台</a>
         <a class="admin-nav-link" href="/admin/articles.html">新闻管理</a>
+        <a class="admin-nav-link" href="/admin/categories.html">新闻分类</a>
         <a class="admin-nav-link is-active" href="/admin/article-edit.html">新增新闻</a>
         <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
       </nav>
@@ -83,15 +83,9 @@
                 <button id="clear-cover" class="text-button" type="button">移除封面</button>
               </div>
             </div>
-            <div class="field-block span-2">
-              <div class="field-label">正文 <span class="required">*</span></div>
-              <div class="editor-hint">支持标题、字号、字体、颜色、对齐、列表、表格、图片、链接和代码块等中文富文本排版操作。</div>
-              <div class="wang-editor-shell">
-                <div id="wang-toolbar" class="wang-toolbar"></div>
-                <div id="wang-editor" class="wang-editor"></div>
-              </div>
-              <textarea id="content" name="content" class="content-editor" rows="16" hidden required></textarea>
-            </div>
+            <label class="span-2">正文 <span class="required">*</span>
+              <textarea id="content" name="content" class="content-editor" rows="16" required></textarea>
+            </label>
           </div>
 
           <div class="form-actions">
@@ -105,7 +99,6 @@
   </div>
 
   <script src="/admin/js/admin-api.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/index.min.js"></script>
   <script src="/admin/js/article-edit.js"></script>
 </body>
 </html>

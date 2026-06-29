@@ -272,8 +272,9 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 4. 已在 ADMIN-04 增加 `/admin-api/channels`、`/admin-api/articles` 列表/详情/新增/编辑接口，并把工作台中的新闻管理/新增新闻入口接到真实页面。
 5. 已在 ADMIN-04 增加文章保存草稿、发布、转草稿和归档接口；不做物理删除。
 6. 已在 ADMIN-05 增加 `/admin-api/files` 上传代理到 Directus Files，并在文章编辑页写入 `articles.cover`。
-7. 做本地联调和权限验收：匿名前台只能读 published，后台登录后才能写。
-8. 部署前备份数据库和 uploads，并确认 Nginx HTTPS、Cookie、上传大小限制。
+7. 已在 ADMIN-06 复用 `channels` 增加新闻分类管理页面和 `/admin-api/categories*` 接口；停用分类只设置 `status=disabled`、`visible=false`，不删除数据。
+8. 做本地联调和权限验收：匿名前台只能读 published，后台登录后才能写。
+9. 部署前备份数据库和 uploads，并确认 Nginx HTTPS、Cookie、上传大小限制。
 
 ## 15. 风险点与控制措施
 
@@ -288,10 +289,31 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 
 ## 16. 回滚方式
 
-ADMIN-05 新增新闻封面图上传、Directus Files 代理和 `articles.cover` 写入，并更新文档；无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
+ADMIN-06 新增新闻分类管理页面、`/admin-api/categories*` 接口，并在 Directus bootstrap 中幂等补齐 `channels` 分类字段；无前台样式变化。回滚方式：
 
 ```bash
 git revert <ADMIN-01文档提交>
 ```
 
 如果后续实现阶段继续扩展 `web/admin/` 或 `/admin-api/*`，可按提交粒度回滚对应文件；生产环境回滚前仍需先备份数据库和 uploads。
+
+## 17. ADMIN-06 新闻分类管理
+
+ADMIN-06 不新建独立 `news_categories` 表，继续复用 Directus `channels` 集合，并通过 `is_news_category=true` 区分新闻分类。
+
+后台新增：
+
+- `/admin/categories.html`：新闻分类列表、新增、编辑、启用、停用。
+- `/admin-api/categories`：分类列表与新增。
+- `/admin-api/categories/:id`：分类详情与编辑。
+- `/admin-api/categories/:id/enable` / `/disable`：启用或停用分类。
+- `/admin-api/categories/:id/usage`：统计该分类下关联文章数量，用于停用前提示。
+
+停用逻辑：
+
+- 不做物理删除。
+- 停用时写入 `status=disabled`、`visible=false`。
+- 新增/编辑新闻的栏目下拉只读取启用且 `is_news_category=true` 的 `channels`。
+- 已有关联新闻不改 `main_channel`，已发布新闻仍保留原分类关系。
+
+当前简单后台暂不开放父级分类编辑；`channels.parent` 由 Directus 模型预留，后续如需多级分类再开放。
