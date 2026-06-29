@@ -1,8 +1,8 @@
-# ADMIN-07 页面模块占位模型与初始化计划
+# ADMIN-07/08R 页面模块占位与内容模型计划
 
 ## 1. 目标与边界
 
-`page_modules` 是面向简单后台的“页面模块占位管理项”，用于把官网一级栏目下的二级页面先纳入后台可见、可维护的开发规划中。
+`page_modules` 已在 ADMIN-08R 升级为后台菜单和模块定义表，用于把官网一级栏目、二级页面、表单类型和是否开放编辑统一纳入后台管理。
 
 本阶段只完成 Directus 模型、初始化数据和文档说明：
 
@@ -10,7 +10,7 @@
 - 不修改 `web/pages/` 下任何页面文件。
 - 不修改官网前台 CSS、布局、动画和路由。
 - 不做二级页面动态化渲染。
-- 所有二级模块默认处于 `dev_status=developing`，占位文案为“正在开发中”。
+- 未开放编辑的二级模块使用 `admin_enabled=false` 和占位文案“正在开发中”；已开放模块使用 `admin_enabled=true`。
 
 ## 2. 新增集合：`page_modules`
 
@@ -21,8 +21,8 @@
 | `parent_title` | String | 一级栏目名称，例如“集团概况”。 |
 | `parent_code` | String | 一级栏目编码，例如 `group-overview`。 |
 | `route_path` | String | 当前对应的前端入口路径，例如 `/pages/about/index.html`。 |
-| `content_type` | Select | 内容形态：`intro` / `timeline` / `org_chart` / `list` / `page` / `static` / `custom`。 |
-| `dev_status` | Select | 开发状态：`developing` / `enabled` / `disabled`，默认 `developing`。 |
+| `content_type` | Select | 表单类型：`single_page` / `timeline` / `image_text` / `org_chart` / `leader_list` / `article_list` / `company_list` / `sector_list` / `contact_info` / `static_placeholder`。 |
+| `admin_enabled` | Boolean | 是否第一阶段开放后台编辑。 |
 | `placeholder_text` | Text | 占位提示，默认“正在开发中”。 |
 | `sort` | Integer | 排序值，按一级栏目分段设置。 |
 | `remark` | Text | 备注，记录当前为 ADMIN-07 占位项。 |
@@ -84,3 +84,13 @@ curl 'http://localhost:8055/items/page_modules?fields=id,parent_title,parent_cod
 - 代码回滚：`git revert <ADMIN-07-commit>`。
 - 本地 Directus 回滚：可在 Directus Studio 删除 `page_modules` 集合及其初始化数据；生产环境必须先备份数据库和 uploads，再评估是否删除集合。
 - 前台回滚：本任务未修改前台页面、样式或路由，无需前台专项回滚。
+
+
+## 8. ADMIN-08R 补充：page_contents 与 page_content_items
+
+ADMIN-08R 新增 `page_contents` 和 `page_content_items`：
+
+- `page_contents` 保存单页主体内容，例如企业简介、组织架构说明、社会责任、电话、邮箱、地址。
+- `page_content_items` 保存重复项，例如发展历程时间轴、领导列表、组织节点、图片链接。
+- 联系方式仍可优先复用 `site_settings.phone/email/address` 作为全站配置来源；`page_contents` 中的联系方式记录用于后台“页面内容管理”统一展示和后续表单扩展。
+- 当前不修改官网前台样式；后续按模块逐步接入动态展示。

@@ -17,7 +17,9 @@
 | `pages` | 单页内容 | 集团概况、联系我们、责任说明等单页型页面 |
 | `banners` | 轮播图和焦点图 | 首页轮播、栏目页头图预留 |
 | `site_settings` | 站点级配置 | 页头页脚、SEO、联系方式、友情链接等全站配置 |
-| `page_modules` | 页面模块占位和开发规划 | 简单后台中的一级栏目/二级页面管理占位，当前不替换前台页面 |
+| `page_modules` | 后台菜单和页面模块定义 | 定义一级目录、二级页面、表单类型、是否开放编辑 |
+| `page_contents` | 页面主体内容 | 企业简介、组织架构说明、社会责任、联系方式等单页主体内容 |
+| `page_content_items` | 页面重复项 | 发展历程时间轴、领导列表、组织节点、图片链接等重复内容 |
 
 ## 3. `channels` 栏目集合
 
@@ -242,31 +244,63 @@
 为支持 `scripts/directus/extract-static-content.mjs` 与 `import-static-content.mjs` 的幂等导入，建议 `channels`、`articles`、`companies`、`business_sectors`、`pages`、`banners`、`home_sections`、`quick_links`、`friend_links` 保留 `source_file` 字段，用于记录内容来源的前端 HTML 文件。该字段仅用于迁移追踪和查重，不应作为前台展示字段。
 
 
-## 13. `page_modules` 页面模块占位集合
+## 13. 页面内容管理模型（ADMIN-08R）
 
 ### 定位
 
-`page_modules` 用于简单后台展示和维护“一级栏目 - 二级页面模块”的占位清单。它记录每个二级页面当前对应的前端入口、内容形态和开发状态，当前阶段仅作为后台占位管理项和开发规划，不替换 `web/pages/` 现有静态页面，也不改变官网前台样式、布局、CSS、动画或路由。
+页面内容管理模型用于支撑简单后台按官网一级目录管理二级页面内容。当前仅调整 Directus 模型、初始化数据和文档，不替换 `web/pages/` 现有静态页面，也不改变官网前台样式、布局、CSS、动画或路由。
 
-### 建议字段
+### `page_modules`：后台菜单和模块定义
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `id` | UUID / Integer | 是 | 主键 |
-| `module_title` | String | 是 | 二级模块名称，例如“企业简介” |
-| `module_code` | String | 是 | 二级模块编码，例如 `group-intro` |
-| `parent_title` | String | 是 | 一级栏目名称，例如“集团概况” |
-| `parent_code` | String | 是 | 一级栏目编码，例如 `group-overview` |
-| `route_path` | String | 否 | 当前前端入口路径，例如 `/pages/about/index.html` |
-| `content_type` | Select | 是 | `intro` / `timeline` / `org_chart` / `list` / `page` / `static` / `custom` |
-| `dev_status` | Select | 是 | `developing` / `enabled` / `disabled`，初始化默认为 `developing` |
-| `placeholder_text` | Text | 否 | 占位提示，默认“正在开发中” |
-| `sort` | Integer | 否 | 排序 |
-| `remark` | Text | 否 | 备注 |
-| `status` | Select | 是 | `enabled` / `disabled` |
+`page_modules` 定义后台一级目录、二级页面、表单类型和是否开放编辑。后台可根据 `parent_title` / `parent_code` 渲染一级目录菜单，根据 `module_title` / `module_code` 渲染二级页面，根据 `content_type` 决定右侧表单类型。
 
-### 与 `channels` 的区别
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `parent_title` / `parent_code` | String | 一级目录名称和编码 |
+| `module_title` / `module_code` | String | 二级页面名称和编码 |
+| `route_path` | String | 对应现有前端路径 |
+| `content_type` | Select | `single_page` / `timeline` / `image_text` / `org_chart` / `leader_list` / `article_list` / `company_list` / `sector_list` / `contact_info` / `static_placeholder` |
+| `admin_enabled` | Boolean | 是否第一阶段开放后台编辑 |
+| `placeholder_text` | Text | 未开放时提示，默认“正在开发中” |
+| `sort` | Integer | 排序 |
+| `status` | Select | `enabled` / `disabled` |
+| `remark` | Text | 备注 |
 
-- `channels` 服务新闻分类和前台栏目，主要用于 `articles.main_channel` 关联、新闻筛选与前台已发布内容读取。
-- `page_modules` 服务后台页面管理占位和开发规划，用于告诉客户一级栏目下有哪些二级页面将逐步接入内容管理。
-- 当前所有初始化二级模块都保持 `dev_status=developing`，后台可显示“正在开发中”；后续每个模块可逐步接入独立内容编辑后再切换为 `enabled`。
+### `page_contents`：页面主体内容
+
+`page_contents` 保存每个二级页面的主体内容，例如企业简介、组织架构说明、社会责任和联系方式。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `module_code` | String | 对应 `page_modules.module_code` |
+| `title` / `subtitle` | String | 标题和副标题 |
+| `cover` | File | 关联 `directus_files` |
+| `summary` | Text | 摘要 |
+| `content` | Rich Text | 正文 |
+| `extra_json` | JSON | 扩展配置 |
+| `status` | Select | `draft` / `published` / `archived` |
+
+### `page_content_items`：页面重复项
+
+`page_content_items` 保存时间轴、领导列表、组织节点、图片链接等重复项。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `module_code` | String | 所属模块编码 |
+| `item_type` | Select | `timeline` / `leader` / `org_node` / `link` / `image` |
+| `title` / `subtitle` | String | 条目标题和副标题 |
+| `date_label` | String | 时间轴日期或阶段标签 |
+| `image` | File | 关联 `directus_files` |
+| `content` | Rich Text | 条目正文 |
+| `link_url` | String | 链接地址 |
+| `sort` | Integer | 排序 |
+| `status` | Select | `enabled` / `disabled` |
+| `extra_json` | JSON | 扩展配置 |
+
+### 第一阶段编辑范围
+
+第一阶段开放编辑的模块由 `page_modules.admin_enabled=true` 标记，包括企业简介、发展历程时间轴、组织架构图、新闻类列表、部分业务板块、下属公司、党建动态、项目建设相关列表、社会责任、人才招聘、公示公告、电话、邮箱和地址。未开放编辑的模块保留 `placeholder_text=正在开发中`，例如集团主要领导、交旅融合、特许服务、新兴产业、群团工作、工会工作、青年工作、乡村振兴、志愿服务、集中招采采购平台。
+
+### 前台接入边界
+
+当前模型不直接驱动前台展示。后续每个模块接入前台动态展示时，应保持现有 HTML/CSS 结构，前台只读取 `published` 或 `enabled` 内容，并逐个模块灰度上线。

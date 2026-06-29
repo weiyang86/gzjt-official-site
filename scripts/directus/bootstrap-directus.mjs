@@ -68,7 +68,9 @@ const collections = [
   ['home_sections', '首页区块'],
   ['quick_links', '快捷链接'],
   ['friend_links', '友情链接'],
-  ['page_modules', '页面模块占位'],
+  ['page_modules', '页面模块定义'],
+  ['page_contents', '页面内容主体'],
+  ['page_content_items', '页面内容重复项'],
 ];
 
 const fields = {
@@ -117,17 +119,41 @@ const fields = {
     stringField('title', true), stringField('url', true), stringField('position'), stringField('source_file'), integerField('sort'), selectField('status', ['enabled', 'disabled'], 'enabled'),
   ],
   page_modules: [
-    stringField('module_title', true),
-    stringField('module_code', true),
     stringField('parent_title', true),
     stringField('parent_code', true),
+    stringField('module_title', true),
+    stringField('module_code', true),
     stringField('route_path'),
-    selectField('content_type', ['intro', 'timeline', 'org_chart', 'list', 'page', 'static', 'custom'], 'static'),
+    selectField('content_type', ['single_page', 'timeline', 'image_text', 'org_chart', 'leader_list', 'article_list', 'company_list', 'sector_list', 'contact_info', 'static_placeholder'], 'static_placeholder'),
+    booleanField('admin_enabled', false),
     selectField('dev_status', ['developing', 'enabled', 'disabled'], 'developing'),
     textField('placeholder_text', 'input-multiline', '正在开发中'),
     integerField('sort'),
-    textField('remark'),
     selectField('status', ['enabled', 'disabled'], 'enabled'),
+    textField('remark'),
+  ],
+  page_contents: [
+    stringField('module_code', true),
+    stringField('title', true),
+    stringField('subtitle'),
+    fileField('cover'),
+    textField('summary'),
+    textField('content', 'input-rich-text-html'),
+    jsonField('extra_json'),
+    selectField('status', ['draft', 'published', 'archived'], 'draft'),
+  ],
+  page_content_items: [
+    stringField('module_code', true),
+    selectField('item_type', ['timeline', 'leader', 'org_node', 'link', 'image'], 'timeline'),
+    stringField('title', true),
+    stringField('subtitle'),
+    stringField('date_label'),
+    fileField('image'),
+    textField('content', 'input-rich-text-html'),
+    stringField('link_url'),
+    integerField('sort'),
+    selectField('status', ['enabled', 'disabled'], 'enabled'),
+    jsonField('extra_json'),
   ],
 };
 
@@ -142,16 +168,16 @@ const customerRoles = [
 
 const rolePermissionPlans = {
   group_content_manager: [
-    rw('articles'), rw('companies'), rw('business_sectors'), rw('pages'), rw('banners'), rw('page_modules'), read('channels'), read('site_settings'), read('directus_files'),
+    rw('articles'), rw('companies'), rw('business_sectors'), rw('pages'), rw('banners'), rw('page_modules'), rw('page_contents'), rw('page_content_items'), read('channels'), read('site_settings'), read('directus_files'),
   ],
   publisher: [
-    rw('articles'), rw('pages'), rw('banners'), read('page_modules'), read('channels'), read('companies'), read('business_sectors'), read('site_settings'), read('directus_files'),
+    rw('articles'), rw('pages'), rw('banners'), read('page_modules'), read('page_contents'), read('page_content_items'), read('channels'), read('companies'), read('business_sectors'), read('site_settings'), read('directus_files'),
   ],
   company_reporter: [
     createAndRead('articles', { status: { _eq: 'draft' } }), read('channels'), read('companies'), read('business_sectors'), read('directus_files'),
   ],
   readonly_viewer: [
-    read('channels'), read('articles'), read('companies'), read('business_sectors'), read('pages'), read('banners'), read('page_modules'), read('site_settings'), read('directus_files'),
+    read('channels'), read('articles'), read('companies'), read('business_sectors'), read('pages'), read('banners'), read('page_modules'), read('page_contents'), read('page_content_items'), read('site_settings'), read('directus_files'),
   ],
 };
 
@@ -172,6 +198,8 @@ const relations = [
   { collection: 'articles', field: 'main_channel', related_collection: 'channels' },
   { collection: 'articles', field: 'related_company', related_collection: 'companies' },
   { collection: 'articles', field: 'related_sector', related_collection: 'business_sectors' },
+  { collection: 'page_contents', field: 'cover', related_collection: 'directus_files' },
+  { collection: 'page_content_items', field: 'image', related_collection: 'directus_files' },
 ];
 
 function stringField(field, required = false) { return { field, type: 'string', meta: { interface: 'input', required }, schema: { is_nullable: !required } }; }
@@ -189,6 +217,7 @@ function datetimeField(field) { return { field, type: 'dateTime', meta: { interf
 function selectField(field, choices, defaultValue) { return { field, type: 'string', meta: { interface: 'select-dropdown', options: selectOptions(choices) }, schema: { default_value: defaultValue, is_nullable: false } }; }
 function fileField(field) { return { field, type: 'uuid', meta: { interface: 'file-image', special: ['file'] }, schema: { is_nullable: true } }; }
 function filesField(field) { return { field, type: 'json', meta: { interface: 'list', note: 'Store attachment file IDs for local bootstrap; can be converted to Directus Files UI later.' }, schema: { is_nullable: true } }; }
+function jsonField(field) { return { field, type: 'json', meta: { interface: 'input-code', options: { language: 'json' } }, schema: { is_nullable: true } }; }
 function m2oField(field) { return { field, type: 'integer', meta: { interface: 'select-dropdown-m2o', special: ['m2o'] }, schema: { is_nullable: true } }; }
 
 async function ensureCollection(token, collection, note) {
@@ -198,7 +227,8 @@ async function ensureCollection(token, collection, note) {
     log(`Collection exists: ${collection}`);
     return;
   }
-  const displayTemplate = collection === 'page_modules' ? '{{module_title}}' : '{{name}}{{title}}{{site_name}}';
+  const displayTemplateMap = { page_modules: '{{parent_title}} / {{module_title}}', page_contents: '{{module_code}} - {{title}}', page_content_items: '{{module_code}} - {{title}}' };
+  const displayTemplate = displayTemplateMap[collection] || '{{name}}{{title}}{{site_name}}';
   await request('/collections', {
     token,
     method: 'POST',
@@ -211,6 +241,15 @@ async function ensureField(token, collection, fieldDef) {
   const fields = await request(`/fields/${collection}`, { token });
   const exists = Array.isArray(fields) && fields.some((item) => item?.field === fieldDef.field);
   if (exists) {
+    if (collection === 'page_modules' && ['content_type', 'admin_enabled', 'placeholder_text', 'status'].includes(fieldDef.field)) {
+      try {
+        await request(`/fields/${collection}/${fieldDef.field}`, { token, method: 'PATCH', body: { meta: fieldDef.meta, schema: fieldDef.schema } });
+        log(`Field exists/updated: ${collection}.${fieldDef.field}`);
+        return;
+      } catch (err) {
+        warn(`Could not update existing field ${collection}.${fieldDef.field}: ${err.message}`);
+      }
+    }
     log(`Field exists: ${collection}.${fieldDef.field}`);
     return;
   }
@@ -274,6 +313,34 @@ async function upsertPageModule(token, moduleCode, item) {
   }
   const created = await request('/items/page_modules', { token, method: 'POST', body });
   log(`Created seed: page_modules.${moduleCode}`);
+  return created.id;
+}
+
+async function upsertPageContent(token, moduleCode, item) {
+  const existing = await request(`/items/page_contents?filter[module_code][_eq]=${encodeURIComponent(moduleCode)}&limit=1`, { token });
+  const found = Array.isArray(existing) ? existing[0] : existing?.[0];
+  const body = { ...item, module_code: moduleCode };
+  if (found?.id) {
+    await request(`/items/page_contents/${found.id}`, { token, method: 'PATCH', body });
+    log(`Updated seed: page_contents.${moduleCode}`);
+    return found.id;
+  }
+  const created = await request('/items/page_contents', { token, method: 'POST', body });
+  log(`Created seed: page_contents.${moduleCode}`);
+  return created.id;
+}
+
+async function upsertPageContentItem(token, moduleCode, itemType, title, item) {
+  const existing = await request(`/items/page_content_items?filter[module_code][_eq]=${encodeURIComponent(moduleCode)}&filter[item_type][_eq]=${encodeURIComponent(itemType)}&filter[title][_eq]=${encodeURIComponent(title)}&limit=1`, { token });
+  const found = Array.isArray(existing) ? existing[0] : existing?.[0];
+  const body = { ...item, module_code: moduleCode, item_type: itemType, title };
+  if (found?.id) {
+    await request(`/items/page_content_items/${found.id}`, { token, method: 'PATCH', body });
+    log(`Updated seed: page_content_items.${moduleCode}.${title}`);
+    return found.id;
+  }
+  const created = await request('/items/page_content_items', { token, method: 'POST', body });
+  log(`Created seed: page_content_items.${moduleCode}.${title}`);
   return created.id;
 }
 
@@ -535,53 +602,120 @@ async function seedData(token) {
   }
 
   const pageModuleSeeds = [
-    ['集团概况', 'group-overview', '企业简介', 'group-intro', '/pages/about/index.html', 'intro', 101],
-    ['集团概况', 'group-overview', '发展历程时间轴', 'group-history', '/pages/about/index.html', 'timeline', 102],
-    ['集团概况', 'group-overview', '组织架构图', 'org-chart', '/pages/about/index.html', 'org_chart', 103],
-    ['集团概况', 'group-overview', '集团主要领导', 'leaders', '/pages/about/index.html', 'list', 104],
-    ['新闻中心', 'news-center', '集团新闻', 'group-news', '/pages/news/index.html', 'list', 201],
-    ['新闻中心', 'news-center', '行业要闻', 'industry-news', '/pages/news/index.html', 'list', 202],
-    ['新闻中心', 'news-center', '媒体聚焦', 'media-focus', '/pages/news/index.html', 'list', 203],
-    ['业务板块', 'business', '项目建设', 'project-construction', '/pages/business/index.html', 'page', 301],
-    ['业务板块', 'business', '经营管理', 'operation-management', '/pages/business/index.html', 'page', 302],
-    ['业务板块', 'business', '交旅融合', 'transport-tourism', '/pages/business/index.html', 'page', 303],
-    ['业务板块', 'business', '特许服务', 'franchise-service', '/pages/business/index.html', 'page', 304],
-    ['业务板块', 'business', '新兴产业', 'emerging-industry', '/pages/business/index.html', 'page', 305],
-    ['下属公司', 'companies', '公司列表', 'company-list', '/pages/org', 'list', 401],
-    ['下属公司', 'companies', '公司简介', 'company-intro', '/pages/org', 'intro', 402],
-    ['下属公司', 'companies', '公司动态', 'company-news', '/pages/org', 'list', 403],
-    ['党建群团', 'party-mass', '党建动态', 'party-news', '/pages/party/index.html', 'list', 501],
-    ['党建群团', 'party-mass', '群团工作', 'mass-work', '/pages/party/index.html', 'list', 502],
-    ['党建群团', 'party-mass', '工会工作', 'union-work', '/pages/party/index.html', 'list', 503],
-    ['党建群团', 'party-mass', '青年工作', 'youth-work', '/pages/party/index.html', 'list', 504],
-    ['项目建设', 'projects', '项目动态', 'project-news', '/pages/projects/index.html', 'list', 601],
-    ['项目建设', 'projects', '安全环保', 'safety-environment', '/pages/projects/index.html', 'list', 602],
-    ['项目建设', 'projects', '科技创新', 'technology-innovation', '/pages/projects/index.html', 'list', 603],
-    ['社会责任', 'responsibility', '社会责任', 'social-responsibility', '/pages/responsibility/index.html', 'page', 701],
-    ['社会责任', 'responsibility', '乡村振兴', 'rural-revitalization', '/pages/responsibility/index.html', 'list', 702],
-    ['社会责任', 'responsibility', '志愿服务', 'volunteer-service', '/pages/responsibility/index.html', 'list', 703],
-    ['信息公开', 'information', '人才招聘', 'recruitment', '/disclosure', 'list', 801],
-    ['信息公开', 'information', '公示公告', 'announcements', '/disclosure', 'list', 802],
-    ['信息公开', 'information', '集中招采采购平台', 'procurement-platform', '/disclosure', 'custom', 803],
-    ['联系我们', 'contact', '电话', 'phone', '/pages/contact/index.html', 'static', 901],
-    ['联系我们', 'contact', '邮箱', 'email', '/pages/contact/index.html', 'static', 902],
-    ['联系我们', 'contact', '地址', 'address', '/pages/contact/index.html', 'static', 903],
+    ['集团概况', 'group-overview', '企业简介', 'group-intro', '/pages/about/index.html', 'single_page', true, 101],
+    ['集团概况', 'group-overview', '发展历程时间轴', 'group-history', '/pages/about/index.html', 'timeline', true, 102],
+    ['集团概况', 'group-overview', '组织架构图', 'org-chart', '/pages/about/index.html', 'org_chart', true, 103],
+    ['集团概况', 'group-overview', '集团主要领导', 'leaders', '/pages/about/index.html', 'leader_list', false, 104],
+    ['新闻中心', 'news-center', '集团新闻', 'group-news', '/pages/news/index.html', 'article_list', true, 201],
+    ['新闻中心', 'news-center', '行业要闻', 'industry-news', '/pages/news/index.html', 'article_list', true, 202],
+    ['新闻中心', 'news-center', '媒体聚焦', 'media-focus', '/pages/news/index.html', 'article_list', true, 203],
+    ['业务板块', 'business', '项目建设', 'project-construction', '/pages/business/index.html', 'sector_list', true, 301],
+    ['业务板块', 'business', '经营管理', 'operation-management', '/pages/business/index.html', 'sector_list', true, 302],
+    ['业务板块', 'business', '交旅融合', 'transport-tourism', '/pages/business/index.html', 'sector_list', false, 303],
+    ['业务板块', 'business', '特许服务', 'franchise-service', '/pages/business/index.html', 'sector_list', false, 304],
+    ['业务板块', 'business', '新兴产业', 'emerging-industry', '/pages/business/index.html', 'sector_list', false, 305],
+    ['下属公司', 'companies', '公司列表', 'company-list', '/pages/org', 'company_list', true, 401],
+    ['下属公司', 'companies', '公司简介', 'company-intro', '/pages/org', 'company_list', true, 402],
+    ['下属公司', 'companies', '公司动态', 'company-news', '/pages/org', 'article_list', true, 403],
+    ['党建群团', 'party-mass', '党建动态', 'party-news', '/pages/party/index.html', 'article_list', true, 501],
+    ['党建群团', 'party-mass', '群团工作', 'mass-work', '/pages/party/index.html', 'article_list', false, 502],
+    ['党建群团', 'party-mass', '工会工作', 'union-work', '/pages/party/index.html', 'article_list', false, 503],
+    ['党建群团', 'party-mass', '青年工作', 'youth-work', '/pages/party/index.html', 'article_list', false, 504],
+    ['项目建设', 'projects', '项目动态', 'project-news', '/pages/projects/index.html', 'article_list', true, 601],
+    ['项目建设', 'projects', '安全环保', 'safety-environment', '/pages/projects/index.html', 'article_list', true, 602],
+    ['项目建设', 'projects', '科技创新', 'technology-innovation', '/pages/projects/index.html', 'article_list', true, 603],
+    ['社会责任', 'responsibility', '社会责任', 'social-responsibility', '/pages/responsibility/index.html', 'single_page', true, 701],
+    ['社会责任', 'responsibility', '乡村振兴', 'rural-revitalization', '/pages/responsibility/index.html', 'article_list', false, 702],
+    ['社会责任', 'responsibility', '志愿服务', 'volunteer-service', '/pages/responsibility/index.html', 'article_list', false, 703],
+    ['信息公开', 'information', '人才招聘', 'recruitment', '/disclosure', 'article_list', true, 801],
+    ['信息公开', 'information', '公示公告', 'announcements', '/disclosure', 'article_list', true, 802],
+    ['信息公开', 'information', '集中招采采购平台', 'procurement-platform', '/disclosure', 'static_placeholder', false, 803],
+    ['联系我们', 'contact', '电话', 'phone', '/pages/contact/index.html', 'contact_info', true, 901],
+    ['联系我们', 'contact', '邮箱', 'email', '/pages/contact/index.html', 'contact_info', true, 902],
+    ['联系我们', 'contact', '地址', 'address', '/pages/contact/index.html', 'contact_info', true, 903],
   ];
 
-  for (const [parentTitle, parentCode, moduleTitle, moduleCode, routePath, contentType, sort] of pageModuleSeeds) {
+  for (const [parentTitle, parentCode, moduleTitle, moduleCode, routePath, contentType, adminEnabled, sort] of pageModuleSeeds) {
     await upsertPageModule(token, moduleCode, {
-      module_title: moduleTitle,
       parent_title: parentTitle,
       parent_code: parentCode,
+      module_title: moduleTitle,
       route_path: routePath,
       content_type: contentType,
-      dev_status: 'developing',
-      placeholder_text: '正在开发中',
+      admin_enabled: adminEnabled,
+      dev_status: adminEnabled ? 'enabled' : 'developing',
+      placeholder_text: adminEnabled ? '' : '正在开发中',
       sort,
-      remark: 'ADMIN-07 初始化的后台页面模块占位项；当前不替换前台页面。',
       status: 'enabled',
+      remark: adminEnabled ? 'ADMIN-08R 第一阶段开放后台编辑。' : 'ADMIN-08R 暂未开放具体编辑器，后台显示正在开发中。',
     });
   }
+
+  await upsertPageContent(token, 'group-intro', {
+    title: '企业简介',
+    subtitle: '甘孜建设投资集团简介',
+    summary: '用于后台页面内容管理的企业简介初始内容。',
+    content: '<p>甘孜建设投资集团企业简介内容由 Directus page_contents 管理。本条为本地初始化占位内容，后续可在简单后台开放富文本编辑。</p>',
+    cover: null,
+    extra_json: { source: 'ADMIN-08R bootstrap', route_path: '/pages/about/index.html' },
+    status: 'published',
+  });
+  await upsertPageContent(token, 'org-chart', {
+    title: '组织架构图',
+    subtitle: '集团组织架构',
+    summary: '组织架构图说明和图片占位，cover 字段关联 Directus Files，可后续上传组织架构图片。',
+    content: '<p>组织架构图当前使用 page_contents.cover 关联 Directus Files，后台后续可开放图片上传与说明维护。</p>',
+    cover: null,
+    extra_json: { image_upload_supported: true, source: 'ADMIN-08R bootstrap', route_path: '/pages/about/index.html' },
+    status: 'published',
+  });
+  await upsertPageContent(token, 'social-responsibility', {
+    title: '社会责任',
+    subtitle: '履行国企责任，服务地方发展',
+    summary: '社会责任单页初始内容。',
+    content: '<p>社会责任页面主体内容由 Directus page_contents 管理。本条为本地初始化占位内容。</p>',
+    cover: null,
+    extra_json: { source: 'ADMIN-08R bootstrap', route_path: '/pages/responsibility/index.html' },
+    status: 'published',
+  });
+  await upsertPageContent(token, 'phone', {
+    title: '联系电话',
+    subtitle: '',
+    summary: '联系电话可优先与 site_settings.phone 保持一致。',
+    content: '<p>000-00000000</p>',
+    cover: null,
+    extra_json: { preferred_source: 'site_settings.phone', source: 'ADMIN-08R bootstrap' },
+    status: 'published',
+  });
+  await upsertPageContent(token, 'email', {
+    title: '电子邮箱',
+    subtitle: '',
+    summary: '邮箱可优先与 site_settings.email 保持一致。',
+    content: '<p>admin@example.com</p>',
+    cover: null,
+    extra_json: { preferred_source: 'site_settings.email', source: 'ADMIN-08R bootstrap' },
+    status: 'published',
+  });
+  await upsertPageContent(token, 'address', {
+    title: '联系地址',
+    subtitle: '',
+    summary: '地址可优先与 site_settings.address 保持一致。',
+    content: '<p>示例地址</p>',
+    cover: null,
+    extra_json: { preferred_source: 'site_settings.address', source: 'ADMIN-08R bootstrap' },
+    status: 'published',
+  });
+
+  await upsertPageContentItem(token, 'group-history', 'timeline', '集团发展历程占位节点', {
+    subtitle: '时间轴示例',
+    date_label: 'YYYY',
+    image: null,
+    content: '<p>发展历程时间轴重复项由 page_content_items 管理，本条为本地初始化示例。</p>',
+    link_url: '',
+    sort: 1,
+    status: 'enabled',
+    extra_json: { source: 'ADMIN-08R bootstrap' },
+  });
 }
 
 
