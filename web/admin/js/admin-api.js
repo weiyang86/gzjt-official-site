@@ -37,12 +37,6 @@
       headers
     });
     const payload = await parseJson(response);
-    if (payload && payload.error && payload.error.code === 'INVALID_JSON') {
-      const error = new Error('后台接口未就绪：/admin-api 返回了非 JSON 响应。请确认使用 web/server.js 启动本地站点服务。');
-      error.status = 502;
-      error.payload = payload;
-      throw error;
-    }
 
     if (response.status === 401) {
       redirectToLogin();
@@ -70,6 +64,12 @@
       body: JSON.stringify({ email, password })
     }),
     logout: () => adminFetch('/admin-api/logout', { method: 'POST' }),
-    me: () => adminFetch('/admin-api/me')
+    me: () => adminFetch('/admin-api/me'),
+    channels: () => adminFetch('/admin-api/channels'),
+    articles: (params = {}) => adminFetch(`/admin-api/articles?${new URLSearchParams(params).toString()}`),
+    article: (id) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`),
+    createArticle: (payload) => adminFetch('/admin-api/articles', { method: 'POST', body: JSON.stringify(payload) }),
+    updateArticle: (id, payload) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    setArticleStatus: (id, action) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, { method: 'PATCH' })
   };
 })();

@@ -267,9 +267,9 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 1. 已在 ADMIN-03 创建 `web/admin/` 登录页、工作台页面、后台独立样式和基础 JS。
 2. 已在 ADMIN-02 于 `web/server.js` 增加 `/admin-api/login`、`/admin-api/logout`、`/admin-api/me` 和 `requireAdminAuth`。
 3. 已在 ADMIN-02 接入 Directus `/auth/login` 与服务端内存会话，并完成 `HttpOnly` Cookie 基础配置。
-4. 下一步增加 `/admin-api/channels` 与 `/admin-api/articles` 列表读取，并把工作台中的新闻管理/新增新闻入口接到真实页面。
-5. 增加文章新增、编辑、发布和归档接口。
-6. 增加 `/admin-api/files` 上传代理到 Directus Files。
+4. 已在 ADMIN-04 增加 `/admin-api/channels`、`/admin-api/articles` 列表/详情/新增/编辑接口，并把工作台中的新闻管理/新增新闻入口接到真实页面。
+5. 已在 ADMIN-04 增加文章保存草稿、发布、转草稿和归档接口；不做物理删除。
+6. 下一步增加 `/admin-api/files` 上传代理到 Directus Files。
 7. 做本地联调和权限验收：匿名前台只能读 published，后台登录后才能写。
 8. 部署前备份数据库和 uploads，并确认 Nginx HTTPS、Cookie、上传大小限制。
 
@@ -286,7 +286,7 @@ ADMIN-01 后续实现阶段建议只做最小可用新闻后台：
 
 ## 16. 回滚方式
 
-ADMIN-03 新增 `web/admin/` 后台页面、样式和脚本，并更新文档；无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
+ADMIN-04 新增新闻列表与新增/编辑页面，补充 `/admin-api/channels` 和 `/admin-api/articles*` 后台接口，并更新文档；无数据库结构变化、无部署配置变化、无前台样式变化。回滚方式：
 
 ```bash
 git revert <ADMIN-01文档提交>

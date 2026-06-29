@@ -193,6 +193,99 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
     ...(body ? { body: JSON.stringify(body) } : {})
 });
 
+const articleStatuses = new Set(['draft', 'published', 'archived']);
+
+const buildDirectusPath = (pathname, params = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        searchParams.set(key, String(value));
+    });
+    const query = searchParams.toString();
+    return query ? `${pathname}?${query}` : pathname;
+};
+
+const getArticleIdFromPath = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/articles\/([^/]+)(?:\/(archive|publish|draft))?$/);
+    if (!match) return null;
+    return {
+        id: decodeURIComponent(match[1]),
+        action: match[2] || null
+    };
+};
+
+const normalizePagination = (rawPage, rawLimit) => {
+    const page = Math.max(1, Number.parseInt(rawPage || '1', 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(rawLimit || '10', 10) || 10));
+    return { page, limit };
+};
+
+const buildArticleListPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const { page, limit } = normalizePagination(parsedUrl.searchParams.get('page'), parsedUrl.searchParams.get('limit'));
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const channel = (parsedUrl.searchParams.get('channel') || '').trim();
+    const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const params = {
+        fields: 'id,title,subtitle,summary,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,date_updated',
+        sort: '-publish_at,-date_updated',
+        page,
+        limit,
+        meta: 'filter_count'
+    };
+
+    if (keyword) {
+        params['filter[_or][0][title][_contains]'] = keyword;
+        params['filter[_or][1][summary][_contains]'] = keyword;
+        params['filter[_or][2][subtitle][_contains]'] = keyword;
+    }
+    if (channel) params['filter[main_channel][slug][_eq]'] = channel;
+    if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
+
+    return buildDirectusPath('/items/articles', params);
+};
+
+const getChannelsPath = () => buildDirectusPath('/items/channels', {
+    fields: 'id,name,slug,status,sort',
+    sort: 'sort,name',
+    limit: 100,
+    'filter[status][_eq]': 'enabled'
+});
+
+const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
+    fields: 'id,title,subtitle,summary,content,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,date_updated'
+});
+
+const normalizeArticleInput = (body, fallbackStatus) => {
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const mainChannel = body.main_channel || body.channel || null;
+    const status = articleStatuses.has(body.status) ? body.status : fallbackStatus;
+    const payload = {
+        title,
+        subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+        summary: typeof body.summary === 'string' ? body.summary.trim() : '',
+        content: typeof body.content === 'string' ? body.content : '',
+        main_channel: mainChannel,
+        source: typeof body.source === 'string' ? body.source.trim() : '',
+        author: typeof body.author === 'string' ? body.author.trim() : '',
+        publish_at: body.publish_at || new Date().toISOString(),
+        status
+    };
+
+    if (!payload.title) {
+        throw Object.assign(new Error('title is required'), { statusCode: 400 });
+    }
+    if (!payload.main_channel) {
+        throw Object.assign(new Error('main_channel is required'), { statusCode: 400 });
+    }
+    return payload;
+};
+
+const updateArticleStatus = (id, status, token) => directusJsonRequest(`/items/articles/${encodeURIComponent(id)}`, token, 'PATCH', {
+    status,
+    ...(status === 'published' ? { publish_at: new Date().toISOString() } : {})
+});
+
 const requireAdminAuth = (req, res) => {
     const session = getAdminSession(req);
     if (!session) {
@@ -254,10 +347,61 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             return sendJson(res, 200, { data: me?.data || null });
         }
 
-        if (normalizedPath.startsWith('/admin-api/articles') || normalizedPath.startsWith('/admin-api/files')) {
+        if (normalizedPath === '/admin-api/channels' && req.method === 'GET') {
             const session = requireAdminAuth(req, res);
             if (!session) return;
-            return sendJson(res, 501, { error: { code: 'NOT_IMPLEMENTED', message: 'This admin API endpoint is reserved for the next implementation task' } });
+            const channels = await directusJsonRequest(getChannelsPath(), session.accessToken);
+            return sendJson(res, 200, { data: channels?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/articles' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const articles = await directusJsonRequest(buildArticleListPath(req), session.accessToken);
+            return sendJson(res, 200, {
+                data: articles?.data || [],
+                meta: articles?.meta || null
+            });
+        }
+
+        if (normalizedPath === '/admin-api/articles' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const articlePayload = normalizeArticleInput(body, 'draft');
+            const article = await directusJsonRequest('/items/articles', session.accessToken, 'POST', articlePayload);
+            return sendJson(res, 201, { data: article?.data || null });
+        }
+
+        const articleRoute = getArticleIdFromPath(normalizedPath);
+        if (articleRoute) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+
+            if (!articleRoute.action && req.method === 'GET') {
+                const article = await directusJsonRequest(getArticleDetailPath(articleRoute.id), session.accessToken);
+                return sendJson(res, 200, { data: article?.data || null });
+            }
+
+            if (!articleRoute.action && req.method === 'PATCH') {
+                const body = await readJsonBody(req);
+                const articlePayload = normalizeArticleInput(body, body.status || 'draft');
+                const article = await directusJsonRequest(`/items/articles/${encodeURIComponent(articleRoute.id)}`, session.accessToken, 'PATCH', articlePayload);
+                return sendJson(res, 200, { data: article?.data || null });
+            }
+
+            if (articleRoute.action && req.method === 'PATCH') {
+                const statusMap = { archive: 'archived', publish: 'published', draft: 'draft' };
+                const nextStatus = statusMap[articleRoute.action];
+                const article = await updateArticleStatus(articleRoute.id, nextStatus, session.accessToken);
+                return sendJson(res, 200, { data: article?.data || null });
+            }
+        }
+
+        if (normalizedPath.startsWith('/admin-api/files')) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            return sendJson(res, 501, { error: { code: 'NOT_IMPLEMENTED', message: 'File upload will be implemented in a later task' } });
         }
 
         return sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'Admin API endpoint not found' } });
