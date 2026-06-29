@@ -37,6 +37,12 @@
       headers
     });
     const payload = await parseJson(response);
+    if (payload && payload.error && payload.error.code === 'INVALID_JSON') {
+      const error = new Error('后台接口未就绪：/admin-api 返回了非 JSON 响应。请确认使用 web/server.js 启动本地站点服务。');
+      error.status = 502;
+      error.payload = payload;
+      throw error;
+    }
 
     if (response.status === 401) {
       redirectToLogin();
