@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>集团概况｜甘孜州建设投资集团有限公司</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="../assets/theme.css" />
+  <link rel="stylesheet" href="../assets/pages.css" />
+  <link rel="stylesheet" href="../assets/global-ui.css" />
+  <style>
+    .about-overview-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:24px;align-items:start}
+    .about-story-card{position:relative;overflow:hidden}
+    .about-story-card::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,#a3171a,#d19a4b,#235d8c)}
+    .about-copy{display:grid;gap:16px;margin-top:16px;color:rgba(11,18,32,.84);line-height:1.9}
+    .about-copy p{margin:0}
+    .about-lead-quote{padding:18px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(163,23,26,.08),rgba(35,93,140,.08));border:1px solid rgba(35,93,140,.12);font-weight:700;color:#0d2f5a}
+    .about-meta-stack{display:grid;gap:14px}
+    .about-meta-card{padding:20px 22px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,249,252,.96));border:1px solid rgba(13,47,90,.10);box-shadow:0 18px 40px rgba(13,24,51,.06)}
+    .about-meta-card h3{margin:0 0 10px;font-size:17px;color:#0d2f5a}
+    .about-meta-card p{margin:0;color:rgba(11,18,32,.72);line-height:1.8}
+    .about-data-list{display:grid;gap:12px}
+    .about-data-item{display:grid;grid-template-columns:104px 1fr;gap:14px;padding:14px 0;border-bottom:1px dashed rgba(13,47,90,.12)}
+    .about-data-item:last-child{border-bottom:0;padding-bottom:0}
+    .about-data-item dt{margin:0;font-size:12px;font-weight:800;letter-spacing:.08em;color:rgba(11,18,32,.46);text-transform:uppercase}
+    .about-data-item dd{margin:0;font-size:15px;font-weight:700;color:#111827;line-height:1.7}
+    .about-stats-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+    .about-mini-stat{padding:16px 14px;border-radius:18px;background:#fff;border:1px solid rgba(13,47,90,.09);text-align:center}
+    .about-mini-stat b{display:block;font-size:24px;line-height:1;color:#a3171a}
+    .about-mini-stat span{display:block;margin-top:8px;font-size:12px;color:rgba(11,18,32,.58)}
+    .about-history-note{max-width:760px}
+    #history{overflow:visible}
+    #history .content{overflow:visible}
+    #history .section-head{position:relative;z-index:1}
+    #history .timeline.timeline-h{height:372px;overflow:visible}
+    #history .timeline.timeline-h .timeline-h-track{position:relative;z-index:3;gap:36px;padding:148px 28px 52px;scroll-padding-inline:28px}
+    #history .timeline.timeline-h .timeline-h-track::before,
+    #history .timeline.timeline-h .timeline-h-track::after{bottom:98px}
+    #history .timeline.timeline-h .tl-node{width:138px}
+    #history .timeline.timeline-h .tl-dot{width:60px;height:60px;background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(248,249,251,.88))}
+    #history .timeline.timeline-h .tl-node::after{bottom:100px;height:52px}
+    #history .timeline.timeline-h .tl-pop{bottom:124px;width:300px;padding:18px 18px 16px;border-radius:20px;z-index:8}
+    #history .timeline.timeline-h .tl-pop-title{font-size:16px;line-height:1.6}
+    #history .timeline.timeline-h .tl-pop-desc{font-size:13px;line-height:1.9}
+    #history .timeline.timeline-h .tl-year{margin-top:18px;font-size:22px;line-height:1.08;letter-spacing:.02em;text-align:center;white-space:nowrap}
+    #history .timeline.timeline-h .tl-year--text{font-size:18px;letter-spacing:.04em}
+    #history .timeline.timeline-h .tl-year--range{font-size:18px;letter-spacing:0;white-space:normal}
+    #history .timeline.timeline-h .tl-node:first-child{width:164px}
+    #history .timeline.timeline-h .tl-node:first-child .tl-pop{width:316px;--tl-arrow-x:74px}
+    #history .timeline.timeline-h .tl-node:last-child{width:148px}
+    @media (max-width: 768px){
+      #history .timeline.timeline-h{height:334px}
+      #history .timeline.timeline-h .timeline-h-track{gap:26px;padding:134px 16px 46px}
+      #history .timeline.timeline-h .timeline-h-track::before,
+      #history .timeline.timeline-h .timeline-h-track::after{bottom:90px}
+      #history .timeline.timeline-h .tl-node{width:122px}
+      #history .timeline.timeline-h .tl-node:first-child{width:146px}
+      #history .timeline.timeline-h .tl-dot{width:54px;height:54px}
+      #history .timeline.timeline-h .tl-node::after{bottom:92px;height:40px}
+      #history .timeline.timeline-h .tl-pop{bottom:118px;width:min(260px,82vw)}
+      #history .timeline.timeline-h .tl-year{font-size:20px}
+      #history .timeline.timeline-h .tl-year--text,
+      #history .timeline.timeline-h .tl-year--range{font-size:17px}
+    }
+    .about-culture-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
+    .about-culture-card{height:100%}
+    .about-culture-card .card-pad{height:100%}
+    .about-culture-card.is-accent .card-pad{background:linear-gradient(135deg,#0d2f5a,#1d4e89);color:#fff}
+    .about-culture-card.is-accent .pill{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.18)}
+    .about-culture-card .culture-title{margin:14px 0 10px;font-size:24px;font-weight:900;color:#0f172a}
+    .about-culture-card.is-accent .culture-title{color:#fff}
+    .about-culture-card .culture-copy{margin:0;color:rgba(11,18,32,.76);line-height:1.9}
+    .about-culture-card.is-accent .culture-copy{color:rgba(255,255,255,.84)}
+    .about-culture-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .about-culture-pills span{padding:8px 12px;border-radius:999px;background:rgba(163,23,26,.08);color:#a3171a;font-size:13px;font-weight:700}
+    .about-culture-card.is-accent .about-culture-pills span{background:rgba(255,255,255,.14);color:#fff}
+    @media (max-width: 1024px){
+      .about-overview-grid{grid-template-columns:1fr}
+      .about-culture-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+    }
+    @media (max-width: 768px){
+      .about-data-item{grid-template-columns:1fr}
+      .about-stats-panel{grid-template-columns:1fr 1fr}
+      .about-culture-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="page-transition"></div>
+
+  <header class="site-header" aria-label="顶部导航">
+    <div class="container">
+      <div class="header-inner">
+        <a class="brand" href="../../index.html" data-no-transition>
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-text">
+            <b>甘孜州建设投资集团</b>
+            <span>GANZI CONSTRUCTION INVESTMENT GROUP</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="一级导航">
+          <a href="../../index.html" data-no-transition>首页</a>
+          <a href="../about/index.html" aria-current="page">集团概况</a>
+          <a href="/disclosure">公示公告</a>
+          <a href="../news/index.html">新闻中心</a>
+          <a href="../business/index.html">业务板块</a>
+          <a href="../projects/index.html">项目展示</a>
+          <a href="../party/index.html">党建工作</a>
+          <a href="../responsibility/index.html">社会责任</a>
+          <a href="../contact/index.html">联系我们</a>
+        </nav>
+        <div class="header-actions">
+          <a class="btn btn--primary" href="../contact/index.html">在线服务</a>
+          <button class="menu-toggle" type="button" aria-label="打开菜单" data-menu-toggle aria-expanded="false"><i></i></button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer" data-drawer aria-hidden="true">
+    <div class="drawer-backdrop" data-drawer-close></div>
+    <div class="drawer-panel" role="dialog" aria-label="移动端菜单">
+      <div class="drawer-top">
+        <b style="letter-spacing:.6px">导航</b>
+        <button class="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
+      </div>
+      <div class="drawer-links" aria-label="移动端导航链接">
+        <a href="../../index.html" data-no-transition>首页</a>
+        <a href="../about/index.html" aria-current="page">集团概况</a>
+        <a href="/disclosure">公示公告</a>
+          <a href="../news/index.html">新闻中心</a>
+        <a href="../business/index.html">业务板块</a>
+        <a href="../projects/index.html">项目展示</a>
+        <a href="../party/index.html">党建工作</a>
+        <a href="../responsibility/index.html">社会责任</a>
+        <a href="../contact/index.html">联系我们</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="breadcrumb" aria-label="面包屑导航">
+    <div class="content">
+      <div class="crumb-inner">
+        <a href="../../index.html" data-no-transition>首页</a>
+        <span class="crumb-sep">›</span>
+        <span>集团概况</span>
+      </div>
+    </div>
+  </div>
+
+  <main class="page" aria-label="主要内容">
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="swiper" data-swiper data-effect="fade" data-speed="1200" data-autoplay="5000" data-loop="true" data-touch="true">
+          <div class="swiper-wrapper">
+            <div class="swiper-slide"><img alt="" src="../../img/雅砻江大桥.jpg" /></div>
+            <div class="swiper-slide"><img alt="" src="../../img/国道317线（川藏公路北线）雀儿山隧道工程.jpg" /></div>
+            <div class="swiper-slide"><img alt="" src="../../img/318康定市过境段公路工程项目434互通工程.jpg" /></div>
+            <div class="swiper-slide"><img alt="" src="../../img/海螺沟路基建成后2.jpg" /></div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-noise" aria-hidden="true"></div>
+      <div class="content hero-inner">
+        <div>
+          <div class="kicker reveal" data-anim="fadeUp"><i aria-hidden="true"></i><span>ABOUT GANZI GROUP</span></div>
+          <h1 class="hero-title reveal" data-anim="blurReveal">集团概况</h1>
+          <p class="hero-sub reveal" data-anim="fadeUp">甘孜州建设投资集团有限公司为州属一级国有企业，聚焦交通和城乡基础设施项目投融资、建设、开发与资产经营，持续夯实雪域高原现代化建设底盘。</p>
+          <div class="hero-cta reveal" data-anim="fadeUp">
+            <a class="btn btn--primary" href="../business/index.html">了解业务布局</a>
+            <a class="btn" href="../news/index.html">查看最新动态</a>
+          </div>
+        </div>
+        <div class="glass reveal" data-anim="scaleIn" aria-label="关键指标">
+          <div class="kpi-grid">
+            <div class="kpi" data-countup data-target="10" data-decimals="0"><b data-num>10</b><span>注册资本（亿元）</span></div>
+            <div class="kpi" data-countup data-target="85.56" data-decimals="2"><b data-num>85.56</b><span>资产规模（亿元）</span></div>
+            <div class="kpi" data-countup data-target="12" data-decimals="0"><b data-num>12</b><span>二三级公司（家）</span></div>
+            <div class="kpi" data-countup data-target="17" data-decimals="0"><b data-num>17</b><span>资质数量（项）</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="swiper-ui" aria-label="轮播控制">
+        <button class="swiper-nav" type="button" data-swiper-prev aria-label="上一张">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="swiper-pagination" aria-label="分页器"></div>
+        <button class="swiper-nav" type="button" data-swiper-next aria-label="下一张">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="section" aria-label="企业简介">
+      <div class="content">
+        <div class="section-head reveal" data-anim="fadeUp">
+          <div>
+            <div class="kicker"><i aria-hidden="true"></i><span>PROFILE</span></div>
+            <div class="h2">企业简介</div>
+            <p class="lead">围绕“交通先行”“城乡提升”“乡村振兴”战略，承担全州政府性投资交通和城乡基础设施项目的投融资、建设、开发、资产经营等职责。</p>
+          </div>
+        </div>
+        <div class="about-overview-grid">
+          <div class="reveal" data-anim="fadeUp">
+            <div class="card about-story-card">
+              <div class="card-pad">
+                <div class="pill">企业画像</div>
+                <div class="about-copy">
+                  <div class="about-lead-quote">甘孜州建设投资集团有限公司为州属一级国有企业，是甘孜州交通和城乡基础设施建设的重要实施主体与国有资本运营平台。</div>
+                  <p>前身为甘孜州交通基础设施建设领导小组办公室。2018年5月，根据改革发展需要，组建甘孜州交通投资建设集团有限公司；2018年12月，甘孜州城投公司整体划入集团，更名为甘孜州交通和城乡建设投资集团有限公司；2025年5月，正式更名为甘孜州建设投资集团有限公司。</p>
+                  <p>集团主要承担全州政府性投资交通和城乡基础设施项目的投融资、建设、开发、资产经营等职责，经营范围涉及交通和城乡基础设施工程的建设、管理、测绘、勘察、监理、检测等业务，注册资本10亿元，总资产85.56亿元。</p>
+                  <p>目前下设二级子公司9家，其中全资5家、控股2家、参股2家；三级子公司3家，均为控股公司；下属规上、限上企业6家，具备公路工程、房建市政施工总承包等资质17个。</p>
+                  <p>集团自组建以来，在州委、州政府坚强领导下，在州国资委、州交通运输局、州住房和城乡建设局精心指导下，全力抓好重点交通和城建项目建设及企业经营发展。近5年来，累计承担CZ铁路配套公路、“9.5”泸定灾后重建、大香格里拉交旅融合等50个、2248.4公里国省公路改扩建项目，完成投资175.6亿元；累计实现营业收入13.38亿元、利润总额1.74亿元，年均增长率分别达到27%、19%。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="about-meta-stack reveal" data-anim="fadeLeft">
+            <div class="about-meta-card">
+              <h3>经营职责</h3>
+              <p>围绕交通与城乡基础设施全生命周期，统筹投融资、建设实施、开发运营与资产经营，服务全州重大项目落地与区域协同发展。</p>
+            </div>
+            <div class="about-meta-card">
+              <h3>核心数据</h3>
+              <dl class="about-data-list">
+                <div class="about-data-item">
+                  <dt>注册资本</dt>
+                  <dd>10亿元</dd>
+                </div>
+                <div class="about-data-item">
+                  <dt>总资产</dt>
+                  <dd>85.56亿元</dd>
+                </div>
+                <div class="about-data-item">
+                  <dt>承担项目</dt>
+                  <dd>近5年累计承担50个、2248.4公里国省公路改扩建项目</dd>
+                </div>
+                <div class="about-data-item">
+                  <dt>经营成效</dt>
+                  <dd>累计营业收入13.38亿元，利润总额1.74亿元</dd>
+                </div>
+              </dl>
+              <div class="about-stats-panel">
+                <div class="about-mini-stat"><b>9</b><span>二级子公司</span></div>
+                <div class="about-mini-stat"><b>3</b><span>三级子公司</span></div>
+                <div class="about-mini-stat"><b>6</b><span>规上限上企业</span></div>
+                <div class="about-mini-stat"><b>17</b><span>企业资质</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="history" aria-label="发展历程">
+      <div class="content">
+        <div class="section-head reveal" data-anim="fadeUp">
+          <div>
+            <div class="kicker"><i aria-hidden="true"></i><span>HISTORY</span></div>
+            <div class="h2">发展历程时间轴</div>
+            <p class="lead about-history-note">从州级交通建设管理机构起步，到形成统筹交通和城乡基础设施建设的州属一级国企，集团的每一步都紧扣改革发展与重大项目建设需要。</p>
+          </div>
+        </div>
+        <div class="timeline timeline-h" data-stagger="80">
+          <div class="timeline-h-track" aria-label="发展历程横向时间轴">
+            <div class="tl-node reveal" data-anim="fadeUp">
+              <div class="tl-pop" aria-hidden="true">
+                <div class="tl-pop-top"><span class="tl-pop-year">前身阶段</span><span class="pill">积淀</span></div>
+                <div class="tl-pop-title">交通基础设施建设管理基础形成</div>
+                <div class="tl-pop-desc">前身为甘孜州交通基础设施建设领导小组办公室，为后续集团化、市场化运营打下组织与项目基础。</div>
+              </div>
+              <div class="tl-dot" aria-hidden="true"></div>
+              <div class="tl-year tl-year--text">前身阶段</div>
+            </div>
+
+            <div class="tl-node reveal" data-anim="fadeUp">
+              <div class="tl-pop" aria-hidden="true">
+                <div class="tl-pop-top"><span class="tl-pop-year">2018.05</span><span class="pill">组建</span></div>
+                <div class="tl-pop-title">甘孜州交通投资建设集团有限公司成立</div>
+                <div class="tl-pop-desc">根据改革发展需要正式组建，逐步承担州级重大交通基础设施项目投融资与建设职责。</div>
+              </div>
+              <div class="tl-dot" aria-hidden="true"></div>
+              <div class="tl-year">2018.05</div>
+            </div>
+
+            <div class="tl-node reveal" data-anim="fadeUp">
+              <div class="tl-pop" aria-hidden="true">
+                <div class="tl-pop-top"><span class="tl-pop-year">2018.12</span><span class="pill">整合</span></div>
+                <div class="tl-pop-title">州城投公司整体划入并完成更名</div>
+                <div class="tl-pop-desc">甘孜州城投公司整体划入集团，更名为甘孜州交通和城乡建设投资集团有限公司，业务边界拓展至城乡基础设施领域。</div>
+              </div>
+              <div class="tl-dot" aria-hidden="true"></div>
+              <div class="tl-year">2018.12</div>
+            </div>
+
+            <div class="tl-node reveal" data-anim="fadeUp">
+              <div class="tl-pop" aria-hidden="true">
+                <div class="tl-pop-top"><span class="tl-pop-year">2020-2024</span><span class="pill">攻坚</span></div>
+                <div class="tl-pop-title">重大项目建设与经营发展同步提速</div>
+                <div class="tl-pop-desc">围绕“交通先行”“城乡提升”“乡村振兴”战略，持续推进重大交通和城建项目建设，形成投融建运协同格局。</div>
+              </div>
+              <div class="tl-dot" aria-hidden="true"></div>
+              <div class="tl-year tl-year--range">2020-2024</div>
+            </div>
+
+            <div class="tl-node reveal" data-anim="fadeUp">
+              <div class="tl-pop" aria-hidden="true">
+                <div class="tl-pop-top"><span class="tl-pop-year">2025.05</span><span class="pill">焕新</span></div>
+                <div class="tl-pop-title">正式更名为甘孜州建设投资集团有限公司</div>
+                <div class="tl-pop-desc">企业名称与职能定位更加统一，持续承担全州交通和城乡基础设施建设投资、开发运营与资产经营职责。</div>
+              </div>
+              <div class="tl-dot" aria-hidden="true"></div>
+              <div class="tl-year">2025.05</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+    <section class="section" aria-label="组织架构">
+      <div class="content">
+        <div class="section-head reveal" data-anim="fadeUp">
+          <div>
+            <div class="kicker"><i aria-hidden="true"></i><span>ORGANIZATION</span></div>
+            <div class="h2">组织架构图</div>
+            <p class="lead">形成“集团总部 + 专业子公司 + 项目公司”的组织体系，保障战略落地与专业化运营。</p>
+            <div class="hero-cta">
+              <a class="btn btn--primary" href="/group/organization">查看组织架构层级入口</a>
+            </div>
+          </div>
+        </div>
+        <div class="org reveal" data-anim="blurReveal">
+          <svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="组织架构图（概览）">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="rgba(198,0,24,.92)"/>
+                <stop offset="1" stop-color="rgba(13,47,90,.92)"/>
+              </linearGradient>
+            </defs>
+
+            <rect x="310" y="28" width="340" height="64" rx="20" fill="url(#g1)" opacity="0.92"/>
+            <text x="480" y="70" text-anchor="middle" font-size="20" font-weight="900" fill="#fff">组织架构（概览）</text>
+
+            <g fill="none" stroke="rgba(13,47,90,.22)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M480 92v28"/>
+              <path d="M180 120h600"/>
+              <path d="M300 120v30"/>
+              <path d="M660 120v30"/>
+            </g>
+
+            <g font-size="16" font-weight="900" fill="rgba(11,18,32,.86)">
+              <a href="/group/organization/headquarters" xlink:href="/group/organization/headquarters" aria-label="进入集团总部">
+                <g>
+                  <rect x="140" y="150" width="320" height="64" rx="20" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.14)"/>
+                  <text x="300" y="190" text-anchor="middle">集团总部</text>
+                </g>
+              </a>
+              <a href="/group/organization/subsidiaries" xlink:href="/group/organization/subsidiaries" aria-label="进入集团所属公司">
+                <g>
+                  <rect x="500" y="150" width="320" height="64" rx="20" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.14)"/>
+                  <text x="660" y="190" text-anchor="middle">集团所属公司</text>
+                </g>
+              </a>
+            </g>
+
+            <g fill="none" stroke="rgba(13,47,90,.18)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M300 214v36"/>
+              <path d="M660 214v46"/>
+              <path d="M220 250h380"/>
+              <path d="M220 250v20"/>
+              <path d="M380 250v20"/>
+              <path d="M300 250v86"/>
+            </g>
+
+            <g font-size="14" font-weight="850" fill="rgba(11,18,32,.82)">
+              <a href="/group/organization/headquarters/party-committee" xlink:href="/group/organization/headquarters/party-committee" aria-label="进入党委">
+                <g>
+                  <rect x="150" y="270" width="140" height="54" rx="18" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.12)"/>
+                  <text x="220" y="294" text-anchor="middle">党委</text>
+                  <text x="220" y="312" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(11,18,32,.62)">含纪委、群团</text>
+                </g>
+              </a>
+              <a href="/group/organization/headquarters/board" xlink:href="/group/organization/headquarters/board" aria-label="进入董事会">
+                <g>
+                  <rect x="310" y="270" width="140" height="54" rx="18" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.12)"/>
+                  <text x="380" y="294" text-anchor="middle">董事会</text>
+                  <text x="380" y="312" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(11,18,32,.62)">含四委员会</text>
+                </g>
+              </a>
+              <a href="/group/organization/headquarters" xlink:href="/group/organization/headquarters" aria-label="进入职能部门">
+                <g>
+                  <rect x="150" y="336" width="300" height="54" rx="18" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.12)"/>
+                  <text x="300" y="368" text-anchor="middle">职能部门</text>
+                </g>
+              </a>
+            </g>
+
+            <g fill="none" stroke="rgba(13,47,90,.18)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M660 260v46"/>
+              <path d="M660 324v26"/>
+              <path d="M590 350h140"/>
+              <path d="M590 350v20"/>
+              <path d="M730 350v20"/>
+            </g>
+
+            <g font-size="14" font-weight="850" fill="rgba(11,18,32,.82)">
+              <a href="/group/organization/subsidiaries/level-4" xlink:href="/group/organization/subsidiaries/level-4" aria-label="进入第四层级下属公司（9家）">
+                <g>
+                  <rect x="520" y="260" width="280" height="64" rx="20" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.12)"/>
+                  <text x="660" y="286" text-anchor="middle">第四层级 - 下属公司</text>
+                  <text x="660" y="308" text-anchor="middle" font-size="12" font-weight="750" fill="rgba(11,18,32,.62)">（9家）</text>
+                </g>
+              </a>
+              <a href="/group/organization/subsidiaries/level-4/pm" xlink:href="/group/organization/subsidiaries/level-4/pm" aria-label="进入下属公司示例（公司简介）">
+                <g>
+                  <rect x="520" y="370" width="140" height="54" rx="18" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.12)"/>
+                  <text x="590" y="403" text-anchor="middle">公司简介</text>
+                </g>
+              </a>
+              <a href="/group/organization/subsidiaries/level-4/pm/dynamics" xlink:href="/group/organization/subsidiaries/level-4/pm/dynamics" aria-label="进入下属公司示例（业务动态）">
+                <g>
+                  <rect x="680" y="370" width="140" height="54" rx="18" fill="rgba(255,255,255,.92)" stroke="rgba(13,47,90,.12)"/>
+                  <text x="750" y="403" text-anchor="middle">业务动态</text>
+                </g>
+              </a>
+            </g>
+
+            <text x="660" y="462" text-anchor="middle" font-size="12" font-weight="700" fill="rgba(11,18,32,.56)">详细架构与9家公司入口见右侧“层级入口”</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+    -->
+
+    <!--
+    <section class="section" aria-label="领导班子">
+      <div class="content">
+        <div class="section-head reveal" data-anim="fadeUp">
+          <div>
+            <div class="kicker"><i aria-hidden="true"></i><span>LEADERSHIP</span></div>
+            <div class="h2">领导班子</div>
+            <p class="lead">坚持党建引领与治理协同，强化战略执行与合规经营，推动高质量发展。</p>
+          </div>
+        </div>
+        <div class="grid" data-stagger="70">
+          <div class="card reveal" data-anim="fadeUp" style="grid-column:span 4">
+            <div class="card-pad leader">
+              <div class="avatar" aria-hidden="true">A</div>
+              <div>
+                <b>党委书记、董事长</b>
+                <span>统筹集团战略规划与重大事项决策，推动改革创新与风险防控体系建设。</span>
+              </div>
+            </div>
+          </div>
+          <div class="card reveal" data-anim="fadeUp" style="grid-column:span 4">
+            <div class="card-pad leader">
+              <div class="avatar" aria-hidden="true">B</div>
+              <div>
+                <b>党委副书记、总经理</b>
+                <span>负责经营管理与项目统筹，强化安全质量管控与生产组织，提升履约能力。</span>
+              </div>
+            </div>
+          </div>
+          <div class="card reveal" data-anim="fadeUp" style="grid-column:span 4">
+            <div class="card-pad leader">
+              <div class="avatar" aria-hidden="true">C</div>
+              <div>
+                <b>党委委员、副总经理</b>
+                <span>分管工程管理与技术质量体系，推进标准化建设与数字化监管应用落地。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    -->
+
+    <section class="section" aria-label="企业文化">
+      <div class="content">
+        <div class="section-head reveal" data-anim="fadeUp">
+          <div>
+            <div class="kicker"><i aria-hidden="true"></i><span>CULTURE</span></div>
+            <div class="h2">企业文化</div>
+            <p class="lead">以使命凝聚方向、以愿景校准目标、以精神塑造作风、以理念规范经营，让建设者文化转化为推动高质量发展的组织动力。</p>
+          </div>
+        </div>
+        <div class="about-culture-grid" data-stagger="80">
+          <div class="card about-culture-card is-accent reveal" data-anim="fadeUp" style="grid-column:span 6">
+            <div class="card-pad">
+              <div class="pill">使命</div>
+              <div class="culture-title">铺筑人民幸福之路 建造甘孜发展之基</div>
+              <p class="culture-copy">把项目建设成果转化为群众出行便利、城乡品质提升和区域发展动能，让每一项工程都成为支撑民生、服务大局的坚实底盘。</p>
+            </div>
+          </div>
+          <div class="card about-culture-card reveal" data-anim="fadeUp" style="grid-column:span 6">
+            <div class="card-pad">
+              <div class="pill">愿景</div>
+              <div class="culture-title">打造涉藏地区建设领域一流综合性投资运营商</div>
+              <p class="culture-copy">围绕“投资、建设、运营、服务”全链条能力建设，持续增强区域竞争力、专业化服务能力与国企品牌影响力。</p>
+            </div>
+          </div>
+          <div class="card about-culture-card reveal" data-anim="fadeUp" style="grid-column:span 4">
+            <div class="card-pad">
+              <div class="pill">企业精神</div>
+              <div class="culture-title" style="font-size:22px">赤诚奉献 克难奋进 求实求精 创新有为</div>
+              <div class="about-culture-pills">
+                <span>赤诚奉献</span>
+                <span>克难奋进</span>
+                <span>求实求精</span>
+                <span>创新有为</span>
+              </div>
+            </div>
+          </div>
+          <div class="card about-culture-card reveal" data-anim="fadeUp" style="grid-column:span 4">
+            <div class="card-pad">
+              <div class="pill">企业宗旨</div>
+              <div class="culture-title" style="font-size:22px">匠心筑路 畅通甘孜 建者无疆 善作善成</div>
+              <p class="culture-copy">把工程品质、履约效率和区域价值创造放在同等重要的位置，以建设者担当回应时代与发展需求。</p>
+            </div>
+          </div>
+          <div class="card about-culture-card reveal" data-anim="fadeUp" style="grid-column:span 4">
+            <div class="card-pad">
+              <div class="pill">廉洁理念</div>
+              <div class="culture-title" style="font-size:22px">守住道德底线 不触法纪红线</div>
+              <p class="culture-copy">把廉洁从业贯穿投资决策、工程建设、经营管理全过程，以清正作风护航企业持续健康发展。</p>
+            </div>
+          </div>
+          <div class="card about-culture-card reveal" data-anim="fadeUp" style="grid-column:span 12">
+            <div class="card-pad">
+              <div class="pill">经营理念</div>
+              <div class="culture-title" style="font-size:22px">科学发展，诚实守信，质效至上，价值创造，守法合规，行稳致远</div>
+              <div class="about-culture-pills">
+                <span>科学发展</span>
+                <span>诚实守信</span>
+                <span>质效至上</span>
+                <span>价值创造</span>
+                <span>守法合规</span>
+                <span>行稳致远</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer" aria-label="页脚信息">
+    <div class="content">
+      <div class="footer-inner">
+        <div>
+          <h3>甘孜州建设投资集团有限公司</h3>
+          <p>地址：四川省康定市榆林街道榆磨路60号<br>电话：0836-2876659</p>
+        </div>
+        <div>
+          <dl>
+            <dt>友情链接</dt>
+            <dd>
+              <a href="https://www.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州人民政府</a><br>
+              <a href="http://jtj.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州交通运输局</a><br>
+              <a href="http://jsj.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州住房和城乡建设局</a>
+            </dd>
+          </dl>
+        </div>
+      </div>
+      <div class="footbar">
+        <span>甘孜州建设投资集团有限公司 2022 版权所有</span>
+        <span><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">蜀ICP备2022013144号-1</a> · <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51332102000065" target="_blank" rel="noopener noreferrer">川公网安备 51332102000065号</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="lightbox" data-lightbox aria-hidden="true">
+    <div class="lightbox-backdrop"></div>
+    <div class="lightbox-panel">
+      <img alt="">
+      <button class="lightbox-close" type="button" data-lightbox-close aria-label="关闭">×</button>
+    </div>
+  </div>
+
+  <div class="toast" data-toast="提交成功"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="../assets/app.js"></script>
+  <script src="../assets/global-ui.js"></script>
+</body>
+</html>

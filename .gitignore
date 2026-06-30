@@ -26,6 +26,8 @@ dist/
 build/
 web/dist/
 web/build/
+web/.next/
+web/tsconfig.tsbuildinfo
 web/services/cms-api/dist/
 
 # docker/runtime data
