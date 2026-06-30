@@ -3,20 +3,27 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { AdminScope, ArticleRow, Channel, MessageState } from './types';
+import { formatPreviewDate, getCoverId, normalizePreviewArticle, type PreviewArticle } from './article-preview';
 
 const statusText: Record<string, string> = { draft: '草稿', published: '已发布', archived: '已归档' };
 
-const formatDate = (value?: string) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('zh-CN', { hour12: false });
-};
-
-const getCoverId = (cover: ArticleRow['cover']) => {
-  if (!cover) return '';
-  if (typeof cover === 'object') return cover.id || '';
-  return cover;
+const copyTextToClipboard = async (value: string) => {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  if (typeof document === 'undefined') {
+    throw new Error('当前环境不支持复制。');
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
 };
 
 export function ArticleListPage({ scope }: { scope: AdminScope }) {
@@ -30,6 +37,11 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const [total, setTotal] = useState(0);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState('');
+  const [previewLoadingId, setPreviewLoadingId] = useState('');
+  const [copyingId, setCopyingId] = useState('');
+  const [previewItem, setPreviewItem] = useState<PreviewArticle | null>(null);
+  const [previewShareUrl, setPreviewShareUrl] = useState('');
   const limit = 10;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -46,6 +58,14 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
     editHref: (id: string) => isNotice ? `/admin/notice-edit?id=${encodeURIComponent(id)}` : `/admin/article-edit?id=${encodeURIComponent(id)}`,
     confirmArchive: isNotice ? '确认归档这条公示公告？' : '确认归档这条新闻？',
     confirmStatus: isNotice ? '确认修改公示公告状态？' : '确认修改新闻状态？',
+    confirmDelete: isNotice ? '确认删除这条公示公告？删除后不可恢复。' : '确认删除这条新闻？删除后不可恢复。',
+    deleteSuccess: isNotice ? '公示公告已删除。' : '新闻已删除。',
+    previewLinkCopied: isNotice ? '公示公告游客预览链接已复制到剪切板。' : '新闻游客预览链接已复制到剪切板。',
+    previewLinkCopyFailed: isNotice ? '公示公告游客预览链接复制失败，请稍后重试。' : '新闻游客预览链接复制失败，请稍后重试。',
+    previewDialogTitle: isNotice ? '公示公告预览' : '新闻预览',
+    previewLoading: isNotice ? '正在加载公示公告预览...' : '正在加载新闻预览...',
+    previewEmpty: isNotice ? '暂无可预览内容。' : '暂无可预览内容。',
+    openPreviewLink: isNotice ? '打开游客预览页' : '打开游客预览页',
   }), [isNotice]);
 
   const loadChannels = async () => {
@@ -102,6 +122,60 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
       setMessage({ text: err instanceof Error ? err.message : '状态更新失败', type: 'error' });
     }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(copy.confirmDelete)) return;
+    setDeletingId(id);
+    try {
+      await AdminApi.deleteArticle(id, { scope });
+      setMessage({ text: copy.deleteSuccess, type: 'success' });
+      const nextPage = items.length === 1 && page > 1 ? page - 1 : page;
+      await loadArticles(nextPage);
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '删除失败', type: 'error' });
+    } finally {
+      setDeletingId('');
+    }
+  };
+
+  const handleOpenPreview = async (id: string) => {
+    setPreviewLoadingId(id);
+    setMessage(null);
+    setPreviewShareUrl('');
+    try {
+      const [articleResult, previewLinkResult] = await Promise.all([
+        AdminApi.article(id, { scope }),
+        AdminApi.articlePreviewLink(id, { scope }),
+      ]);
+      setPreviewItem(normalizePreviewArticle(articleResult.data));
+      setPreviewShareUrl(previewLinkResult.data?.url || '');
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : copy.error, type: 'error' });
+    } finally {
+      setPreviewLoadingId('');
+    }
+  };
+
+  const handleCopyPreviewLink = async (id: string) => {
+    setCopyingId(id);
+    try {
+      const result = await AdminApi.articlePreviewLink(id, { scope });
+      const path = result.data?.url || '';
+      if (!path) throw new Error(copy.previewLinkCopyFailed);
+      const absoluteUrl = typeof window === 'undefined' ? path : new URL(path, window.location.origin).toString();
+      await copyTextToClipboard(absoluteUrl);
+      setMessage({ text: copy.previewLinkCopied, type: 'success' });
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : copy.previewLinkCopyFailed, type: 'error' });
+    } finally {
+      setCopyingId('');
+    }
+  };
+
+  const previewCoverId = getCoverId(previewItem?.cover);
+  const previewHref = previewShareUrl
+    ? (typeof window === 'undefined' ? previewShareUrl : new URL(previewShareUrl, window.location.origin).toString())
+    : '';
 
   return (
     <main className="dashboard-content">
@@ -161,16 +235,31 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
                 return (
                   <tr key={item.id}>
                     <td>{coverId ? <img className="article-cover-thumb" src={`/admin-api/assets/${encodeURIComponent(coverId)}`} alt="封面图" /> : '-'}</td>
-                    <td>{item.title || (isNotice ? '未命名公示公告' : '未命名新闻')}</td>
+                    <td>
+                      <button
+                        className="table-title-button"
+                        type="button"
+                        onClick={() => handleOpenPreview(item.id)}
+                        disabled={previewLoadingId === item.id}
+                      >
+                        {previewLoadingId === item.id ? copy.previewLoading : item.title || (isNotice ? '未命名公示公告' : '未命名新闻')}
+                      </button>
+                    </td>
                     <td>{item.main_channel?.name || '-'}</td>
                     <td><span className={`status-badge status-${item.status || 'draft'}`}>{statusText[item.status || ''] || item.status || '-'}</span></td>
-                    <td>{formatDate(item.publish_at)}</td>
+                    <td>{formatPreviewDate(item.publish_at)}</td>
                     <td>
                       <div className="table-actions">
+                        <button className="text-button" type="button" onClick={() => handleCopyPreviewLink(item.id)} disabled={copyingId === item.id}>
+                          {copyingId === item.id ? '复制中...' : '预览'}
+                        </button>
                         <a className="text-link" href={copy.editHref(item.id)}>编辑</a>
                         {item.status !== 'published' ? <button className="text-button" type="button" onClick={() => handleStatus(item.id, 'publish')}>发布</button> : null}
                         {item.status !== 'draft' ? <button className="text-button" type="button" onClick={() => handleStatus(item.id, 'draft')}>转草稿</button> : null}
                         {item.status !== 'archived' ? <button className="text-button" type="button" onClick={() => handleStatus(item.id, 'archive')}>归档</button> : null}
+                        <button className="text-button" type="button" onClick={() => handleDelete(item.id)} disabled={deletingId === item.id}>
+                          {deletingId === item.id ? '删除中...' : '删除'}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -187,6 +276,68 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
           <button className="secondary-button" type="button" disabled={page >= totalPages || isLoading} onClick={() => loadArticles(Math.min(totalPages, page + 1))}>下一页</button>
         </div>
       </section>
+
+      {previewItem ? (
+        <dialog className="admin-dialog article-preview-dialog" open>
+          <div className="dialog-card">
+            <div className="section-title-row">
+              <div>
+                <p className="eyebrow">{copy.previewDialogTitle}</p>
+                <h2>{previewItem.title || copy.previewEmpty}</h2>
+              </div>
+              <div className="toolbar-actions">
+                {previewHref ? <a className="secondary-button" href={previewHref} target="_blank" rel="noreferrer">{copy.openPreviewLink}</a> : null}
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => {
+                    setPreviewItem(null);
+                    setPreviewShareUrl('');
+                  }}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+
+            <div className="preview-meta-grid">
+              <div><span>栏目</span><strong>{previewItem.main_channel?.name || '-'}</strong></div>
+              <div><span>状态</span><strong>{statusText[previewItem.status || ''] || previewItem.status || '-'}</strong></div>
+              <div><span>发布时间</span><strong>{formatPreviewDate(previewItem.publish_at)}</strong></div>
+              <div><span>作者/来源</span><strong>{[previewItem.author, previewItem.source].filter(Boolean).join(' / ') || '-'}</strong></div>
+            </div>
+
+            {previewCoverId ? (
+              <img
+                className="article-preview-cover"
+                src={`/admin-api/assets/${encodeURIComponent(previewCoverId)}`}
+                alt={previewItem.title || '预览封面'}
+              />
+            ) : null}
+
+            {previewItem.summary ? <p className="article-preview-summary">{previewItem.summary}</p> : null}
+
+            <div
+              className="article-preview-body"
+              dangerouslySetInnerHTML={{ __html: previewItem.content || `<p>${previewItem.summary || copy.previewEmpty}</p>` }}
+            />
+
+            {previewItem.attachments?.length ? (
+              <div className="attachment-list article-preview-attachments">
+                {previewItem.attachments.map((attachment, index) => (
+                  <div className="attachment-item" key={`${attachment.url || attachment.title || 'attachment'}-${index}`}>
+                    <div className="attachment-meta">
+                      <strong>{attachment.title || `附件${index + 1}`}</strong>
+                      <span className="attachment-name">{attachment.url || '-'}</span>
+                    </div>
+                    {attachment.url ? <a className="text-link" href={attachment.url} target="_blank" rel="noreferrer">打开附件</a> : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </dialog>
+      ) : null}
     </main>
   );
 }

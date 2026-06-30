@@ -113,6 +113,7 @@ export const AdminApi = {
   channels: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/channels', params)),
   articles: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/articles', params)),
   article: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params)),
+  articlePreviewLink: (id: string, params: AdminQuery = {}) => adminFetch<{ url?: string }>(withQuery(`/admin-api/articles/${encodeURIComponent(id)}/preview-link`, params)),
   createArticle: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/articles', params), {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -120,6 +121,9 @@ export const AdminApi = {
   updateArticle: (id: string, payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params), {
     method: 'PATCH',
     body: JSON.stringify(payload),
+  }),
+  deleteArticle: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params), {
+    method: 'DELETE',
   }),
   setArticleStatus: (id: string, action: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, params), {
     method: 'PATCH',

@@ -1,46 +1,12 @@
-import { fallbackNewsChannels } from '@/lib/cms/fallback-news';
 import { getPublicArticles, getPublicChannels } from '@/lib/cms';
 import { Drawer, Footer, Header, NewsAssets } from '../news/components';
-import type { Article, Channel, PublicArticleListPayload } from '@/types/cms';
+import type { Channel, PublicArticleListPayload } from '@/types/cms';
 
 export const dynamic = 'force-dynamic';
 
 type DisclosurePageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-const fallbackNoticeChannel: Channel = {
-  id: 'announcements',
-  slug: 'announcements',
-  name: '公示公告',
-  type: 'notice',
-  path: '/disclosure',
-};
-
-const fallbackNoticeArticles: Article[] = [
-  {
-    id: 'notice-1',
-    title: '甘孜州建设投资集团有限公司公示公告栏目上线',
-    cover: '/img/雅砻江大桥.jpg',
-    summary: '本栏目用于集中展示集团公告、公示、采购招采等公开信息。Directus 可用后将自动读取 CMS 已发布公告。',
-    publishAt: '2025-06-10',
-    publishDate: '2025-06-10',
-    status: 'published',
-    mainChannel: fallbackNoticeChannel,
-    content: '<p>本栏目用于集中展示集团公告、公示、采购招采等公开信息。</p>',
-  },
-  {
-    id: 'notice-2',
-    title: '关于集团公开信息发布渠道的提示',
-    cover: '/img/318康定市过境段公路工程项目434互通工程.jpg',
-    summary: '请以集团官方网站发布的公告、公示信息为准，后续可在 CMS 中按栏目维护。',
-    publishAt: '2025-06-05',
-    publishDate: '2025-06-05',
-    status: 'published',
-    mainChannel: fallbackNoticeChannel,
-    content: '<p>请以集团官方网站发布的公告、公示信息为准。</p>',
-  },
-];
 
 const getFirst = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
@@ -81,21 +47,10 @@ const buildHref = (params: { channel?: string; keyword?: string; page?: number }
   return query ? `/disclosure?${query}` : '/disclosure';
 };
 
-const getFallbackNoticePayload = (searchParams: URLSearchParams): PublicArticleListPayload => {
+const getEmptyNoticePayload = (searchParams: URLSearchParams): PublicArticleListPayload => {
   const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || '8', 10) || 8));
-  const channel = searchParams.get('channelSlug') || searchParams.get('channel') || 'all';
-  const keyword = (searchParams.get('keyword') || '').trim().toLowerCase();
-  const filtered = fallbackNoticeArticles
-    .filter((item) => channel === 'all' || !channel ? true : item.mainChannel?.slug === channel)
-    .filter((item) => !keyword ? true : `${item.title} ${item.summary || ''}`.toLowerCase().includes(keyword));
-
-  return {
-    page,
-    pageSize,
-    total: filtered.length,
-    items: filtered.slice((page - 1) * pageSize, page * pageSize),
-  };
+  return { page, pageSize, total: 0, items: [] };
 };
 
 async function loadNotices(searchParams: URLSearchParams) {
@@ -110,18 +65,16 @@ async function loadNotices(searchParams: URLSearchParams) {
       getPublicChannels('notice'),
       getPublicArticles(withScope),
     ]);
-    const fallbackChannels = fallbackNewsChannels.filter((item) => item.type === 'notice');
     return {
-      channels: channels.length ? channels : fallbackChannels.length ? fallbackChannels : [fallbackNoticeChannel],
+      channels,
       payload,
-      isFallback: false,
+      error: '',
     };
-  } catch {
-    const fallbackChannels = fallbackNewsChannels.filter((item) => item.type === 'notice');
+  } catch (error) {
     return {
-      channels: fallbackChannels.length ? fallbackChannels : [fallbackNoticeChannel],
-      payload: getFallbackNoticePayload(withScope),
-      isFallback: true,
+      channels: [],
+      payload: getEmptyNoticePayload(withScope),
+      error: error instanceof Error ? error.message : '公示公告数据加载失败',
     };
   }
 }
@@ -141,21 +94,38 @@ function Tabs({ channels, active, keyword }: { channels: Channel[]; active: stri
 
 function Pager({ payload, channel, keyword }: { payload: PublicArticleListPayload; channel: string; keyword: string }) {
   const pages = Math.max(1, Math.ceil(payload.total / payload.pageSize));
+  if (pages <= 1) return null;
+
   const current = Math.min(payload.page, pages);
+  const isFirst = current <= 1;
+  const isLast = current >= pages;
   const visible = Array.from({ length: pages }, (_, index) => index + 1)
     .filter((page) => pages <= 7 || page === 1 || page === pages || Math.abs(page - current) <= 1);
 
   return (
-    <div className="pagination reveal is-visible" style={{ marginTop: 26 }}>
-      <a className="page-btn" href={buildHref({ channel, keyword, page: Math.max(1, current - 1) })}>上一页</a>
+    <nav className="pagination disclosure-pagination reveal is-visible" style={{ marginTop: 26 }} aria-label="公告分页">
+      <a
+        className={`page-btn page-btn--nav${isFirst ? ' is-disabled' : ''}`}
+        href={buildHref({ channel, keyword, page: Math.max(1, current - 1) })}
+        aria-disabled={isFirst ? 'true' : undefined}
+      >
+        <span aria-hidden="true">‹</span> 上一页
+      </a>
+      <span className="page-count">第 {current} / {pages} 页</span>
       {visible.map((page, index) => (
         <span key={page}>
           {index > 0 && page - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>...</span> : null}
           <a className={`page-btn${page === current ? ' is-active' : ''}`} href={buildHref({ channel, keyword, page })}>{page}</a>
         </span>
       ))}
-      <a className="page-btn" href={buildHref({ channel, keyword, page: Math.min(pages, current + 1) })}>下一页</a>
-    </div>
+      <a
+        className={`page-btn page-btn--nav${isLast ? ' is-disabled' : ''}`}
+        href={buildHref({ channel, keyword, page: Math.min(pages, current + 1) })}
+        aria-disabled={isLast ? 'true' : undefined}
+      >
+        下一页 <span aria-hidden="true">›</span>
+      </a>
+    </nav>
   );
 }
 
@@ -164,25 +134,27 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
   const params = toSearchParams(rawSearchParams);
   const activeChannel = getFirst(rawSearchParams.channel) || 'all';
   const keyword = getFirst(rawSearchParams.keyword) || '';
-  const { channels, payload, isFallback } = await loadNotices(params);
+  const { channels, payload, error } = await loadNotices(params);
+  const selectedChannel = activeChannel !== 'all' ? channels.find((channel) => channel.slug === activeChannel) : null;
+  const activeCategoryName = selectedChannel?.name || '公示公告';
 
   return (
     <>
       <NewsAssets />
-      <Header active="disclosure" />
-      <Drawer active="disclosure" />
+      <Header active="disclosure" noticeChannels={channels} />
+      <Drawer active="disclosure" noticeChannels={channels} />
 
       <div className="breadcrumb" aria-label="面包屑导航">
         <div className="content">
           <div className="crumb-inner">
             <a href="/" data-no-transition>首页</a>
             <span className="crumb-sep">›</span>
-            <span>公示公告</span>
+            <span>{activeCategoryName}</span>
           </div>
         </div>
       </div>
 
-      <main className="page" aria-label="主要内容" data-news-page>
+      <main className="page" aria-label="主要内容" data-news-page data-disclosure-page>
         <section className="hero">
           <div className="hero-bg"><img alt="" src="/img/雅砻江大桥.jpg" /></div>
           <div className="hero-grid" aria-hidden="true" />
@@ -201,8 +173,8 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
               <div className="kpi-grid">
                 <div className="kpi"><b>{channels.length}</b><span>公告分类</span></div>
                 <div className="kpi"><b>{payload.total}</b><span>已发布公告</span></div>
-                <div className="kpi"><b>{payload.page}</b><span>当前页码</span></div>
-                <div className="kpi"><b>{isFallback ? '本地' : 'CMS'}</b><span>数据来源</span></div>
+                <div className="kpi"><b>{payload.page}</b><span>当前页</span></div>
+                <div className="kpi"><b>公开</b><span>信息类型</span></div>
               </div>
             </div>
           </div>
@@ -213,8 +185,8 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
             <div className="section-head reveal is-visible">
               <div>
                 <div className="kicker"><i aria-hidden="true" /><span>ANNOUNCEMENTS</span></div>
-                <div className="h2">公告列表</div>
-                <p className="lead">前台只展示 CMS 中状态为 published 的公告内容。</p>
+                <div className="h2">{activeCategoryName}</div>
+                {error ? <p className="lead">公告数据暂时无法加载，请稍后重试。</p> : null}
               </div>
             </div>
 
@@ -228,11 +200,34 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
             </div>
 
             <div className="news-grid news-grid--list-only" style={{ marginTop: 30 }}>
-              <aside className="news-side reveal is-visible" aria-label="公告列表">
+              <aside className="news-side reveal is-visible" aria-label={`${activeCategoryName}列表`}>
                 <div className="news-list">
-                  {payload.items.length ? payload.items.map((item) => {
+                  {payload.items.length ? payload.items.map((item, index) => {
                     const publishValue = item.publishAt || item.publishDate;
                     const channel = item.mainChannel || item.main_channel;
+                    const isFeatured = index === 0;
+                    if (isFeatured) {
+                      return (
+                        <a className="news-item reveal is-visible news-item--featured" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
+                          <span className="thumb thumb--featured"><img src={item.cover || '/img/雅砻江大桥.jpg'} alt="" /></span>
+                          <span className="news-content">
+                            <span className="news-featured-top">
+                              <span className="news-cat-tag">{channel?.name || '公示公告'}</span>
+                              <span className="news-featured-date">{formatDate(publishValue)}</span>
+                            </span>
+                            <b className="news-title">{item.title}</b>
+                            <span className="news-desc">{item.summary || '查看公告详情。'}</span>
+                            <span className="news-meta-row">
+                              <span className="news-date-tag news-date-tag--featured">
+                                <span className="nd-day">{dayText(publishValue)}</span>
+                                <span className="nd-month">{monthText(publishValue)}</span>
+                              </span>
+                              <span className="news-featured-hint">点击查看公告详情</span>
+                            </span>
+                          </span>
+                        </a>
+                      );
+                    }
                     return (
                       <a className="news-item reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
                         <span className="news-date-tag">

@@ -92,7 +92,7 @@ export class DirectusCmsService {
       page: String(page),
       limit: String(pageSize),
       meta: 'filter_count',
-      sort: '-is_top,sort,-publish_at,-id',
+      sort: '-publish_at,-id',
       fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,related_company,related_sector'
     }
     if (options.channelSlug && options.channelSlug !== 'all') {
@@ -136,7 +136,7 @@ export class DirectusCmsService {
       'filter[status][_eq]': 'published',
       'filter[main_channel][_eq]': channelId,
       limit: String(Math.min(Number(limit) || 10, 50)),
-      sort: '-is_top,sort,-publish_at,-id',
+      sort: '-publish_at,-id',
       fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,related_company,related_sector'
     }, item => this.mapArticleSummary(item, channelMap))
   }

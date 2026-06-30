@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getPublicArticleById } from '@/lib/cms';
 import { fallbackNewsArticles } from '@/lib/cms/fallback-news';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

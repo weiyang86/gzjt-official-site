@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { AdminScope, Channel } from '../lists/types';
 
@@ -22,6 +22,12 @@ type ArticleEditorRow = {
   publish_at?: string;
   content?: string;
   cover?: string | { id?: string } | null;
+  attachments?: Array<{
+    title?: string;
+    file?: string | { id?: string; filename_download?: string } | null;
+    directus_files_id?: string | { id?: string; filename_download?: string } | null;
+    file_id?: string | null;
+  }>;
 };
 
 type UploadPayload = {
@@ -29,6 +35,14 @@ type UploadPayload = {
   filename?: string;
   preview_url?: string;
   asset_url?: string;
+};
+
+type AttachmentItem = {
+  id: string;
+  title: string;
+  file: string;
+  filename: string;
+  url: string;
 };
 
 type EditorApi = {
@@ -54,6 +68,14 @@ let wangEditorLoadPromise: Promise<void> | null = null;
 const wangEditorCssHref = 'https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css';
 const wangEditorScriptSrc = 'https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/index.min.js';
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+const allowedAttachmentTypes = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+const allowedAttachmentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
 const maxUploadBytes = 10 * 1024 * 1024;
 
 const getCoverId = (cover: ArticleEditorRow['cover']) => {
@@ -119,6 +141,40 @@ const normalizeStatus = (value?: string): ArticleStatus => {
   return 'draft';
 };
 
+const normalizeAttachmentEntries = (value: ArticleEditorRow['attachments']): AttachmentItem[] => {
+  if (!Array.isArray(value)) return [];
+  const items = value
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const rawFile = entry.file ?? entry.directus_files_id ?? entry.file_id;
+      const file = typeof rawFile === 'string'
+        ? rawFile
+        : rawFile && typeof rawFile === 'object' && rawFile.id
+          ? rawFile.id
+          : '';
+      if (!file) return null;
+      const filename = rawFile && typeof rawFile === 'object' ? rawFile.filename_download || '' : '';
+      return {
+        id: `${file}-${index}`,
+        title: entry.title || filename || `附件${index + 1}`,
+        file,
+        filename,
+        url: `/admin-api/assets/${encodeURIComponent(file)}`,
+      };
+    });
+  return items.filter((item): item is AttachmentItem => item !== null);
+};
+
+const validateAttachmentFile = (file?: File | null) => {
+  if (!file) return '请选择附件文件。';
+  const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || '' : '';
+  if (!allowedAttachmentTypes.includes(file.type) && !allowedAttachmentExtensions.includes(extension)) {
+    return '附件仅支持 PDF、Word、Excel 文件。';
+  }
+  if (file.size > maxUploadBytes) return '附件不能超过 10MB。';
+  return '';
+};
+
 const emptyArticle = (): ArticleEditorRow => ({
   title: '',
   subtitle: '',
@@ -142,12 +198,17 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const [isBusy, setIsBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [editorReady, setEditorReady] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [editorFallback, setEditorFallback] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [draggingAttachmentId, setDraggingAttachmentId] = useState('');
+  const [dragOverAttachmentId, setDragOverAttachmentId] = useState('');
   const editorRef = useRef<EditorApi | null>(null);
   const toolbarRef = useRef<{ destroy?: () => void } | null>(null);
   const contentRef = useRef('');
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const contentAttachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   const copy = useMemo(() => ({
     eyebrow: isNotice ? 'Notice Editor' : 'Article Editor',
@@ -160,18 +221,11 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     archiveText: isNotice ? '公示公告已归档。' : '新闻已归档。',
     coverHelp: isNotice ? '上传成功后会写入公示公告 cover 字段，文件保存在 Directus File Library。' : '上传成功后会写入文章 cover 字段，文件保存在 Directus File Library。',
     coverAlt: isNotice ? '公示公告封面预览' : '新闻封面预览',
+    attachmentHelp: isNotice ? '支持上传 PDF、Word、Excel 作为公告附件，前台详情页可下载查看。' : '支持上传 PDF、Word、Excel 作为新闻附件，前台详情页可下载查看。',
   }), [isNotice]);
 
   const setField = (field: keyof ArticleEditorRow, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const setEditorContent = (value: string) => {
-    contentRef.current = value || '';
-    setForm((prev) => ({ ...prev, content: value || '' }));
-    if (editorRef.current) {
-      editorRef.current.setHtml(value || '<p><br></p>');
-    }
   };
 
   const getEditorContent = () => {
@@ -235,7 +289,6 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           selector: '#wang-toolbar',
           mode: 'default',
         });
-        setEditorReady(true);
       })
       .catch(() => {
         if (!isMounted) return;
@@ -261,6 +314,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     const loadInitialData = async () => {
       setIsLoading(true);
       setMessage(null);
+      updateAttachments([]);
       try {
         const channelResult = await AdminApi.channels({ scope });
         const channelRows = (channelResult.data || []) as Channel[];
@@ -291,9 +345,11 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
             publish_at: toLocalDateTime(article.publish_at),
             cover: coverId,
             content: article.content || '',
+            attachments: article.attachments || [],
           });
           contentRef.current = article.content || '';
           setCoverPreview(coverId ? `/admin-api/assets/${encodeURIComponent(coverId)}` : '');
+          updateAttachments(normalizeAttachmentEntries(article.attachments));
           if (editorRef.current) editorRef.current.setHtml(article.content || '<p><br></p>');
         }
       } catch (err) {
@@ -313,6 +369,74 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const setCover = (fileId: string, previewUrl = '') => {
     setForm((prev) => ({ ...prev, cover: fileId }));
     setCoverPreview(fileId ? previewUrl || `/admin-api/assets/${encodeURIComponent(fileId)}` : '');
+  };
+
+  const updateAttachments = (next: AttachmentItem[]) => {
+    setAttachments(next);
+    setForm((prev) => ({
+      ...prev,
+      attachments: next.map((item) => ({ title: item.title, file: item.file })),
+    }));
+  };
+
+  const setEditorHtml = (html: string) => {
+    contentRef.current = html;
+    setForm((prev) => ({ ...prev, content: html }));
+    if (editorRef.current) editorRef.current.setHtml(html);
+  };
+
+  const buildAttachmentLinkHtml = (item: AttachmentItem) => {
+    const href = item.url || '';
+    if (!href) return '';
+    const title = (item.title || item.filename || '附件').replace(/"/g, '&quot;');
+    const filename = (item.filename || item.title || 'attachment').replace(/"/g, '&quot;');
+    return `<p><a href="${href}" target="_blank" rel="noopener noreferrer" download="${filename}">附件下载：${title}</a></p>`;
+  };
+
+  const insertAttachmentLinksIntoContent = (items: AttachmentItem[]) => {
+    if (!items.length) return;
+    const currentHtml = getEditorContent();
+    const attachmentHtml = items.map(buildAttachmentLinkHtml).filter(Boolean).join('');
+    if (!attachmentHtml) return;
+    const nextHtml = `${currentHtml || '<p><br></p>'}${attachmentHtml}`;
+    setEditorHtml(nextHtml);
+  };
+
+  const removeAttachmentLinksFromContent = (item: AttachmentItem) => {
+    const currentHtml = getEditorContent();
+    if (!currentHtml || typeof window === 'undefined') return;
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(currentHtml, 'text/html');
+    const anchors = Array.from(doc.querySelectorAll('a')).filter((anchor) => anchor.getAttribute('href') === item.url);
+    if (!anchors.length) return;
+    anchors.forEach((anchor) => {
+      const parent = anchor.parentElement;
+      const parentText = parent?.textContent?.trim() || '';
+      if (parent?.tagName === 'P' && parentText === anchor.textContent?.trim()) {
+        parent.remove();
+      } else {
+        anchor.remove();
+      }
+    });
+    setEditorHtml(doc.body.innerHTML || '<p><br></p>');
+  };
+
+  const reorderAttachments = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    const sourceIndex = attachments.findIndex((item) => item.id === sourceId);
+    const targetIndex = attachments.findIndex((item) => item.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const next = [...attachments];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    updateAttachments(next);
+  };
+
+  const removeAttachment = (id: string) => {
+    const current = attachments.find((item) => item.id === id);
+    if (!current) return;
+    removeAttachmentLinksFromContent(current);
+    updateAttachments(attachments.filter((item) => item.id !== id));
   };
 
   const uploadCover = async () => {
@@ -338,6 +462,50 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     }
   };
 
+  const uploadAttachments = async (
+    files: File[],
+    options: { insertIntoContent?: boolean; resetInput?: () => void } = {},
+  ): Promise<AttachmentItem[]> => {
+    if (!files.length) {
+      setMessage({ text: '请选择附件文件。', type: 'error' });
+      return [];
+    }
+    const validationError = files.map((file) => validateAttachmentFile(file)).find(Boolean);
+    if (validationError) {
+      setMessage({ text: validationError, type: 'error' });
+      return [];
+    }
+    setIsUploadingAttachment(true);
+    try {
+      const uploadedItems: AttachmentItem[] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const result = await AdminApi.uploadFile(formData);
+        const uploaded = (result.data || {}) as UploadPayload;
+        if (!uploaded.id) throw new Error('上传成功但未返回附件文件 ID。');
+        uploadedItems.push({
+          id: `${uploaded.id}-${Date.now()}-${uploadedItems.length}`,
+          title: uploaded.filename || file.name,
+          file: uploaded.id,
+          filename: uploaded.filename || file.name,
+          url: uploaded.asset_url || uploaded.preview_url || `/admin-api/assets/${encodeURIComponent(uploaded.id)}`,
+        });
+      }
+      const nextList = [...attachments, ...uploadedItems];
+      updateAttachments(nextList);
+      if (options.insertIntoContent) insertAttachmentLinksIntoContent(uploadedItems);
+      setMessage({ text: files.length > 1 ? `已上传 ${files.length} 个附件。` : '附件上传成功。', type: 'success' });
+      options.resetInput?.();
+      return uploadedItems;
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '附件上传失败，请稍后重试。', type: 'error' });
+      return [];
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
   const buildPayload = (statusOverride: ArticleStatus) => ({
     title: String(form.title || '').trim(),
     subtitle: String(form.subtitle || '').trim(),
@@ -349,6 +517,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     publish_at: fromLocalDateTime(String(form.publish_at || '')),
     content: getEditorContent(),
     cover: getCoverId(form.cover),
+    attachments: attachments.map((item) => ({ title: item.title.trim() || item.filename || '附件', file: item.file })),
   });
 
   const validatePayload = (payload: ReturnType<typeof buildPayload>) => {
@@ -389,7 +558,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     }
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: { preventDefault: () => void }) => {
     event.preventDefault();
   };
 
@@ -470,8 +639,111 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
             ) : null}
           </div>
 
+          <div className="cover-field span-2">
+            <label htmlFor="attachment-file">附件上传（PDF / Word / Excel，10MB以内）</label>
+            <div className="cover-upload-row">
+              <input
+                id="attachment-file"
+                ref={attachmentInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              />
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={isUploadingAttachment}
+                onClick={() => uploadAttachments(Array.from(attachmentInputRef.current?.files || []), {
+                  resetInput: () => {
+                    if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+                  },
+                })}
+              >
+                {isUploadingAttachment ? '正在上传...' : '上传附件'}
+              </button>
+            </div>
+            <p className="field-help">{copy.attachmentHelp} 支持一次选择多个文件，附件列表支持拖动排序。</p>
+            {attachments.length ? (
+              <div className="attachment-list">
+                {attachments.map((item, index) => (
+                  <div
+                    className={`attachment-item ${dragOverAttachmentId === item.id ? 'is-drag-over' : ''}`.trim()}
+                    key={item.id}
+                    draggable
+                    onDragStart={() => {
+                      setDraggingAttachmentId(item.id);
+                      setDragOverAttachmentId(item.id);
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      if (dragOverAttachmentId !== item.id) setDragOverAttachmentId(item.id);
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      reorderAttachments(draggingAttachmentId, item.id);
+                      setDraggingAttachmentId('');
+                      setDragOverAttachmentId('');
+                    }}
+                    onDragEnd={() => {
+                      setDraggingAttachmentId('');
+                      setDragOverAttachmentId('');
+                    }}
+                  >
+                    <div className="attachment-drag-handle" aria-hidden="true" title="拖动排序">::</div>
+                    <div className="attachment-meta">
+                      <input
+                        type="text"
+                        value={item.title}
+                        maxLength={120}
+                        onChange={(event) => {
+                          const next = attachments.map((entry, entryIndex) => entryIndex === index ? { ...entry, title: event.target.value } : entry);
+                          updateAttachments(next);
+                        }}
+                        placeholder="附件标题"
+                      />
+                      <span className="attachment-name">{item.filename || item.title}</span>
+                    </div>
+                    <div className="table-actions">
+                      <a className="text-link" href={item.url || `/admin-api/assets/${encodeURIComponent(item.file)}`} target="_blank" rel="noreferrer">预览</a>
+                      <button
+                        className="text-button"
+                        type="button"
+                        onClick={() => removeAttachment(item.id)}
+                      >
+                        移除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           <div className="span-2">
             <label htmlFor="wang-editor">正文 <span className="required">*</span></label>
+            <div className="content-editor-tools">
+              <input
+                ref={contentAttachmentInputRef}
+                className="content-editor-file"
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              />
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={isUploadingAttachment}
+                onClick={() => uploadAttachments(Array.from(contentAttachmentInputRef.current?.files || []), {
+                  insertIntoContent: true,
+                  resetInput: () => {
+                    if (contentAttachmentInputRef.current) contentAttachmentInputRef.current.value = '';
+                  },
+                })}
+              >
+                {isUploadingAttachment ? '正在上传附件...' : '上传附件并插入正文'}
+              </button>
+            </div>
+            <p className="field-help">在正文区域可一次上传多个 PDF、Word、Excel，系统会按当前顺序批量插入可下载链接；上方附件列表支持删除和拖动排序。</p>
             <div id="wang-toolbar" className="wang-toolbar" />
             <div id="wang-editor" className="wang-editor" aria-label="正文富文本编辑器" />
             <textarea

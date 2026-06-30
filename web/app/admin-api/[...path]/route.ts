@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
+import { createArticlePreviewPath } from '@/lib/preview/article-preview';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -28,6 +29,14 @@ const pageContentStatuses = new Set(['draft', 'published', 'archived']);
 const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image']);
 const pageContentItemStatuses = new Set(['enabled', 'disabled']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const allowedDocumentTypes = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]);
+const allowedDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx']);
 const maxUploadBytes = 10 * 1024 * 1024;
 const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status';
 
@@ -502,8 +511,22 @@ const normalizePageContentItemInput = (body: Record<string, unknown>, isCreate =
 };
 
 const getArticleDetailPath = (id: string) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-  fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,content',
+  fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,content,attachments,attachments.*,attachments.file,attachments.file.id,attachments.file.filename_download,attachments.directus_files_id,attachments.directus_files_id.id,attachments.directus_files_id.filename_download,attachments.file_id',
 });
+
+const normalizeAttachmentsInput = (value: unknown) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const item = entry as Record<string, unknown>;
+      const file = typeof item.file === 'string' ? item.file.trim() : '';
+      const title = typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `附件${index + 1}`;
+      if (!file) return null;
+      return { title, file };
+    })
+    .filter(Boolean);
+};
 
 const normalizeArticleInput = async (request: NextRequest) => {
   const body = await request.json() as Record<string, unknown>;
@@ -530,6 +553,7 @@ const normalizeArticleInput = async (request: NextRequest) => {
     publish_at: publishAt,
     content,
     cover: typeof body.cover === 'string' && body.cover.trim() ? body.cover.trim() : null,
+    attachments: normalizeAttachmentsInput(body.attachments),
   };
 };
 
@@ -690,10 +714,60 @@ const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => 
     return NextResponse.json({ data: result.data || null });
   }
 
+  if (action === 'preview-link' && request.method === 'GET') {
+    const detail = await directusJsonRequest<{ data?: { main_channel?: { id?: string } | string | null } }>(getArticleDetailPath(id), session.accessToken);
+    const current = detail.data || null;
+    if (!current) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Article not found' } },
+        { status: 404 },
+      );
+    }
+    const noticeChannels = await getNoticeChannels(session.accessToken);
+    const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
+    const rawChannel = current.main_channel;
+    const mainChannelId = typeof rawChannel === 'object' && rawChannel ? String(rawChannel.id || '') : String(rawChannel || '');
+    const scope = getAdminScope(request);
+    const isNoticeArticle = mainChannelId ? noticeChannelIds.has(mainChannelId) : false;
+    if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Article not found in current scope' } },
+        { status: 404 },
+      );
+    }
+    const url = createArticlePreviewPath(id, isNoticeArticle ? 'notice' : 'news');
+    return NextResponse.json({ data: { url } });
+  }
+
   if (!action && request.method === 'PATCH') {
     const payload = await normalizeArticleInput(request);
     const result = await directusJsonRequest<{ data?: unknown }>(`/items/articles/${encodeURIComponent(id)}`, session.accessToken, 'PATCH', payload);
     return NextResponse.json({ data: result.data || null });
+  }
+
+  if (!action && request.method === 'DELETE') {
+    const detail = await directusJsonRequest<{ data?: { main_channel?: { id?: string } | string | null } }>(getArticleDetailPath(id), session.accessToken);
+    const current = detail.data || null;
+    if (!current) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Article not found' } },
+        { status: 404 },
+      );
+    }
+    const noticeChannels = await getNoticeChannels(session.accessToken);
+    const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
+    const rawChannel = current.main_channel;
+    const mainChannelId = typeof rawChannel === 'object' && rawChannel ? String(rawChannel.id || '') : String(rawChannel || '');
+    const scope = getAdminScope(request);
+    const isNoticeArticle = mainChannelId ? noticeChannelIds.has(mainChannelId) : false;
+    if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Article not found in current scope' } },
+        { status: 404 },
+      );
+    }
+    await directusJsonRequest(`/items/articles/${encodeURIComponent(id)}`, session.accessToken, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
   }
 
   if (action && request.method === 'PATCH') {
@@ -716,13 +790,16 @@ const handleLocalFileUpload = async (request: NextRequest) => {
   const file = formData.get('file');
   if (!(file instanceof File)) {
     return NextResponse.json(
-      { error: { code: 'BAD_REQUEST', message: 'image file is required' } },
+      { error: { code: 'BAD_REQUEST', message: 'file is required' } },
       { status: 400 },
     );
   }
-  if (!allowedImageTypes.has(file.type)) {
+  const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || '' : '';
+  const isImage = allowedImageTypes.has(file.type);
+  const isDocument = allowedDocumentTypes.has(file.type) || (!!extension && allowedDocumentExtensions.has(extension));
+  if (!isImage && !isDocument) {
     return NextResponse.json(
-      { error: { code: 'BAD_REQUEST', message: 'Only JPG, PNG, and WEBP images are allowed' } },
+      { error: { code: 'BAD_REQUEST', message: 'Only JPG, PNG, WEBP, PDF, Word, and Excel files are allowed' } },
       { status: 400 },
     );
   }
@@ -753,6 +830,7 @@ const handleLocalFileUpload = async (request: NextRequest) => {
       type: fileData.type || file.type,
       filesize: fileData.filesize || file.size,
       preview_url: `/admin-api/assets/${encodedId}`,
+      asset_url: `${directusUrl}/assets/${encodedId}`,
     },
   }, { status: 201 });
 };

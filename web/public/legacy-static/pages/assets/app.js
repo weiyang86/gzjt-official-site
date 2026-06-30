@@ -112,6 +112,7 @@
       const existingWrapper = targetLink.parentElement && targetLink.parentElement.classList.contains('nav-item')
         ? targetLink.parentElement
         : null
+      if (existingWrapper && existingWrapper.dataset.cmsDropdown === 'server') return
       const wrapper = existingWrapper || (() => {
         const el = document.createElement('div')
         el.className = 'nav-item'
@@ -247,6 +248,30 @@
       el.style.transitionDelay = `${i * step}ms`
     })
   })
+
+  const aboutTiltEls = Array.from(document.querySelectorAll('[data-about-tilt]'))
+  if (aboutTiltEls.length && !prefersReduced) {
+    aboutTiltEls.forEach(el => {
+      el.addEventListener('pointermove', (event) => {
+        const rect = el.getBoundingClientRect()
+        if (!rect.width || !rect.height) return
+        const px = (event.clientX - rect.left) / rect.width
+        const py = (event.clientY - rect.top) / rect.height
+        const rx = (0.5 - py) * 3.6
+        const ry = (px - 0.5) * 4.8
+        el.style.setProperty('--mx', `${Math.max(0, Math.min(100, px * 100))}%`)
+        el.style.setProperty('--my', `${Math.max(0, Math.min(100, py * 100))}%`)
+        el.style.setProperty('--rx', `${rx.toFixed(2)}deg`)
+        el.style.setProperty('--ry', `${ry.toFixed(2)}deg`)
+      })
+      el.addEventListener('pointerleave', () => {
+        el.style.removeProperty('--mx')
+        el.style.removeProperty('--my')
+        el.style.removeProperty('--rx')
+        el.style.removeProperty('--ry')
+      })
+    })
+  }
 
   const animateCount = (el) => {
     const target = Number(el.getAttribute('data-target') || '0')

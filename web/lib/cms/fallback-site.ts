@@ -7,7 +7,7 @@ export const fallbackSinglePages: PageContent[] = [
     slug: 'about',
     cover: '/img/318康定市过境段公路工程项目434互通工程.jpg',
     status: 'published',
-    content: '<p>甘孜州建设投资集团有限公司为州属一级国有企业，是甘孜州交通和城乡基础设施建设的重要实施主体与国有资本运营平台。</p><p>集团主要承担全州政府性投资交通和城乡基础设施项目的投融资、建设、开发、资产经营等职责，经营范围涉及交通和城乡基础设施工程的建设、管理、测绘、勘察、监理、检测等业务。</p><p>本页面已接入 Next.js 单页模型。Directus 配置可用后，将优先读取 CMS 中 slug 对应的 published 单页内容。</p>',
+    content: '<p>甘孜州建设投资集团有限公司为州属一级国有企业，是甘孜州交通和城乡基础设施建设的重要实施主体与国有资本运营平台。</p><p>集团主要承担全州政府性投资交通和城乡基础设施项目的投融资、建设、开发、资产经营等职责，经营范围涉及交通和城乡基础设施工程的建设、管理、测绘、勘察、监理、检测等业务。</p><p>集团以交通产业为引领，统筹基础设施建设、资产经营和产业协同发展，持续服务全州经济社会高质量发展。</p>',
   },
   {
     id: 'party',
@@ -23,7 +23,7 @@ export const fallbackSinglePages: PageContent[] = [
     slug: 'businessDynamics',
     cover: '/img/318康定市过境段公路工程项目434互通工程.jpg',
     status: 'published',
-    content: '<p>业务动态用于集中发布集团重点项目推进、经营管理、工程服务、协同发展等业务一线信息。Directus 配置可用后，将优先读取 CMS 中对应 slug 的已发布单页内容。</p>',
+    content: '<p>业务动态集中发布集团重点项目推进、经营管理、工程服务、协同发展等业务一线信息，展示建设运营与改革发展的最新成果。</p>',
   },
   {
     id: 'clean-gov',
@@ -31,7 +31,7 @@ export const fallbackSinglePages: PageContent[] = [
     slug: 'cleanGov',
     cover: '/img/雀儿山隧道建成后.jpeg',
     status: 'published',
-    content: '<p>廉洁建投围绕纪律监督、廉洁教育、作风建设和风险防控展示集团清廉国企建设成果。后续可在 CMS 中维护专题内容并发布到前台。</p>',
+    content: '<p>廉洁建投围绕纪律监督、廉洁教育、作风建设和风险防控展示集团清廉国企建设成果，持续营造风清气正的发展环境。</p>',
   },
   {
     id: 'responsibility',
@@ -55,7 +55,7 @@ export const fallbackSinglePages: PageContent[] = [
     slug: 'projects',
     cover: '/img/map.png',
     status: 'published',
-    content: '<p>项目展示用于集中呈现集团重点交通、城乡基础设施、产业与文旅项目。后续可接入项目内容模型，支持地图、筛选和详情。</p>',
+    content: '<p>项目展示集中呈现集团重点交通、城乡基础设施、产业与文旅项目，展现服务区域发展和民生改善的建设成果。</p>',
   },
 ];
 

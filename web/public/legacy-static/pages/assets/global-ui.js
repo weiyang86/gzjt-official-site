@@ -84,6 +84,8 @@
       .filter(x => !x.hidden)
       .map(x => ({ title: x.title, path: x.path }))
 
+    if (navEl?.querySelector('[data-cms-dropdown="server"]')) return
+
     if (navEl && items.length) {
       navEl.innerHTML = items.map(i => `<a href="${i.path}">${i.title}</a>`).join('')
     }

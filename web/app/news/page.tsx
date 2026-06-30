@@ -101,21 +101,38 @@ function Tabs({ channels, active, keyword }: { channels: Channel[]; active: stri
 
 function Pager({ payload, channel, keyword }: { payload: PublicArticleListPayload; channel: string; keyword: string }) {
   const pages = Math.max(1, Math.ceil(payload.total / payload.pageSize));
+  if (pages <= 1) return null;
+
   const current = Math.min(payload.page, pages);
+  const isFirst = current <= 1;
+  const isLast = current >= pages;
   const visible = Array.from({ length: pages }, (_, index) => index + 1)
     .filter((page) => pages <= 7 || page === 1 || page === pages || Math.abs(page - current) <= 1);
 
   return (
-    <div className="pagination reveal is-visible" id="newsPager" style={{ marginTop: 26 }}>
-      <a className="page-btn" href={buildHref({ channel, keyword, page: Math.max(1, current - 1) })}>上一页</a>
+    <nav className="pagination news-pagination reveal is-visible" id="newsPager" style={{ marginTop: 26 }} aria-label="新闻分页">
+      <a
+        className={`page-btn page-btn--nav${isFirst ? ' is-disabled' : ''}`}
+        href={buildHref({ channel, keyword, page: Math.max(1, current - 1) })}
+        aria-disabled={isFirst ? 'true' : undefined}
+      >
+        <span aria-hidden="true">‹</span> 上一页
+      </a>
+      <span className="page-count">第 {current} / {pages} 页</span>
       {visible.map((page, index) => (
         <span key={page}>
           {index > 0 && page - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>…</span> : null}
           <a className={`page-btn${page === current ? ' is-active' : ''}`} href={buildHref({ channel, keyword, page })}>{page}</a>
         </span>
       ))}
-      <a className="page-btn" href={buildHref({ channel, keyword, page: Math.min(pages, current + 1) })}>下一页</a>
-    </div>
+      <a
+        className={`page-btn page-btn--nav${isLast ? ' is-disabled' : ''}`}
+        href={buildHref({ channel, keyword, page: Math.min(pages, current + 1) })}
+        aria-disabled={isLast ? 'true' : undefined}
+      >
+        下一页 <span aria-hidden="true">›</span>
+      </a>
+    </nav>
   );
 }
 
@@ -124,13 +141,13 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
   const params = toSearchParams(rawSearchParams);
   const activeChannel = getFirst(rawSearchParams.channel) || 'all';
   const keyword = getFirst(rawSearchParams.keyword) || '';
-  const { channels, payload, isFallback } = await loadNews(params);
+  const { channels, payload } = await loadNews(params);
 
   return (
     <>
       <NewsAssets />
-      <Header />
-      <Drawer />
+      <Header active="news" newsChannels={channels} />
+      <Drawer active="news" newsChannels={channels} />
 
       <div className="breadcrumb" aria-label="面包屑导航">
         <div className="content">
@@ -164,7 +181,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
                 <div className="kpi"><b>{channels.length}</b><span>新闻分类</span></div>
                 <div className="kpi"><b>{payload.total}</b><span>已发布资讯</span></div>
                 <div className="kpi"><b>{payload.page}</b><span>当前页码</span></div>
-                <div className="kpi"><b>{isFallback ? '本地' : 'CMS'}</b><span>数据来源</span></div>
+                <div className="kpi"><b>公开</b><span>信息发布</span></div>
               </div>
             </div>
           </div>
@@ -180,23 +197,11 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
               </div>
             </div>
 
-            <div className="filters reveal is-visible">
+            <div className="filters news-filter-tabs reveal is-visible">
               <Tabs channels={channels} active={activeChannel} keyword={keyword} />
-              <form className="search" aria-label="搜索" action="/news">
-                {activeChannel !== 'all' ? <input type="hidden" name="channel" value={activeChannel} /> : null}
-                <input className="input" name="keyword" defaultValue={keyword} placeholder="搜索标题 / 摘要 / 来源" />
-                <button className="btn" type="submit">搜索</button>
-              </form>
             </div>
 
-            <div className="corp-stats reveal is-visible" style={{ marginTop: 32 }}>
-              <div className="stat-item"><div className="stat-num">{payload.total}</div><div className="stat-label">新闻总数</div></div>
-              <div className="stat-item"><div className="stat-num">{channels.length}</div><div className="stat-label">分类数量</div></div>
-              <div className="stat-item"><div className="stat-num">{payload.pageSize}</div><div className="stat-label">每页展示</div></div>
-              <div className="stat-item"><div className="stat-num">2010</div><div className="stat-label">成立年份</div></div>
-            </div>
-
-            <div className="news-grid news-grid--list-only" style={{ marginTop: 18 }}>
+            <div className="news-grid news-grid--list-only" style={{ marginTop: 26 }}>
               <aside className="news-side reveal is-visible" aria-label="新闻列表">
                 <div className="news-list" id="newsList">
                   {payload.items.length ? payload.items.map((item) => {

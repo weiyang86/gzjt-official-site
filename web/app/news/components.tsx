@@ -1,4 +1,7 @@
 import Script from 'next/script';
+import { Fragment } from 'react';
+import { getPublicChannels } from '@/lib/cms';
+import type { Channel } from '@/types/cms';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
 
@@ -15,11 +18,37 @@ const navItems: Array<{ key: NavKey; href: string; label: string }> = [
   { key: 'contact', href: '/contact-us', label: '联系我们' },
 ];
 
-export function Header({ active = 'news', actionHref = '/contact-us', actionLabel = '在线服务' }: {
+async function getChannelsForNav(scope: 'news' | 'notice', channels?: Channel[]) {
+  if (channels?.length) return channels;
+  try {
+    return await getPublicChannels(scope);
+  } catch {
+    return [];
+  }
+}
+
+export async function Header({ active = 'news', actionHref = '/contact-us', actionLabel = '在线服务', noticeChannels, newsChannels }: {
   active?: NavKey;
   actionHref?: string;
   actionLabel?: string;
+  noticeChannels?: Channel[];
+  newsChannels?: Channel[];
 }) {
+  const [resolvedNoticeChannels, resolvedNewsChannels] = await Promise.all([
+    getChannelsForNav('notice', noticeChannels),
+    getChannelsForNav('news', newsChannels),
+  ]);
+
+  const dropdownMap: Partial<Record<NavKey, Channel[]>> = {
+    disclosure: resolvedNoticeChannels,
+    news: resolvedNewsChannels,
+  };
+
+  const hrefMap: Partial<Record<NavKey, (slug: string) => string>> = {
+    disclosure: (slug) => `/disclosure?channel=${encodeURIComponent(slug)}`,
+    news: (slug) => `/news?channel=${encodeURIComponent(slug)}`,
+  };
+
   return (
     <>
       <div className="page-transition" />
@@ -34,11 +63,31 @@ export function Header({ active = 'news', actionHref = '/contact-us', actionLabe
               </span>
             </a>
             <nav className="nav" aria-label="一级导航">
-              {navItems.map((item) => (
-                <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined} key={item.key}>
-                  {item.label}
-                </a>
-              ))}
+              {navItems.map((item) => {
+                const dropdownItems = dropdownMap[item.key] || [];
+                const buildHref = hrefMap[item.key];
+                if (dropdownItems.length && buildHref) {
+                  return (
+                    <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.key}>
+                      <a href={item.href} aria-current={active === item.key ? 'page' : undefined} aria-haspopup="true" aria-expanded="false">
+                        {item.label}
+                      </a>
+                      <div className="nav-dropdown" role="menu" data-source="server">
+                        {dropdownItems.map((channel) => (
+                          <a href={buildHref(channel.slug)} role="menuitem" key={channel.slug}>
+                            {channel.name}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined} key={item.key}>
+                    {item.label}
+                  </a>
+                );
+              })}
             </nav>
             <div className="header-actions">
               <a className="btn btn--primary" href={actionHref}>{actionLabel}</a>
@@ -51,7 +100,22 @@ export function Header({ active = 'news', actionHref = '/contact-us', actionLabe
   );
 }
 
-export function Drawer({ active = 'news' }: { active?: NavKey }) {
+export async function Drawer({ active = 'news', noticeChannels, newsChannels }: { active?: NavKey; noticeChannels?: Channel[]; newsChannels?: Channel[] }) {
+  const [resolvedNoticeChannels, resolvedNewsChannels] = await Promise.all([
+    getChannelsForNav('notice', noticeChannels),
+    getChannelsForNav('news', newsChannels),
+  ]);
+
+  const dropdownMap: Partial<Record<NavKey, Channel[]>> = {
+    disclosure: resolvedNoticeChannels,
+    news: resolvedNewsChannels,
+  };
+
+  const hrefMap: Partial<Record<NavKey, (slug: string) => string>> = {
+    disclosure: (slug) => `/disclosure?channel=${encodeURIComponent(slug)}`,
+    news: (slug) => `/news?channel=${encodeURIComponent(slug)}`,
+  };
+
   return (
     <div className="drawer" data-drawer aria-hidden="true">
       <div className="drawer-backdrop" data-drawer-close />
@@ -61,11 +125,24 @@ export function Drawer({ active = 'news' }: { active?: NavKey }) {
           <button className="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
-          {navItems.map((item) => (
-            <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined} key={item.key}>
-              {item.label}
-            </a>
-          ))}
+          {navItems.map((item) => {
+            const dropdownItems = dropdownMap[item.key] || [];
+            const buildHref = hrefMap[item.key];
+            return (
+              <Fragment key={item.key}>
+                <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined}>
+                  {item.label}
+                </a>
+                {dropdownItems.length && buildHref ? (
+                  <div className="drawer-submenu" data-source="server">
+                    {dropdownItems.map((channel) => (
+                      <a href={buildHref(channel.slug)} key={channel.slug}>{channel.name}</a>
+                    ))}
+                  </div>
+                ) : null}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
     </div>
