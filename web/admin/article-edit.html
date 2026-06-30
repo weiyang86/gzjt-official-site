@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>编辑新闻 - 甘孜建设投资集团官网内容管理后台</title>
   <link rel="stylesheet" href="/admin/css/admin.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css">
 </head>
 <body class="admin-app-page">
   <div class="admin-layout">
@@ -85,12 +84,9 @@
                 <button id="clear-cover" class="text-button" type="button">移除封面</button>
               </div>
             </div>
-            <div class="span-2">
-              <label for="wang-editor">正文 <span class="required">*</span></label>
-              <div id="wang-toolbar" class="wang-toolbar"></div>
-              <div id="wang-editor" class="wang-editor" aria-label="正文富文本编辑器"></div>
-              <textarea id="content" name="content" class="content-editor" rows="16" required hidden></textarea>
-            </div>
+            <label class="span-2">正文 <span class="required">*</span>
+              <textarea id="content" name="content" class="content-editor" rows="16" required></textarea>
+            </label>
           </div>
 
           <div class="form-actions">
@@ -104,7 +100,6 @@
   </div>
 
   <script src="/admin/js/admin-api.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/index.min.js"></script>
   <script src="/admin/js/article-edit.js"></script>
 </body>
 </html>

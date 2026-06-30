@@ -253,18 +253,6 @@ code {
   padding: 28px 32px 48px;
 }
 
-.split-grid {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: 22px;
-  align-items: start;
-}
-
-.split-grid-right {
-  display: grid;
-  gap: 22px;
-}
-
 .notice-card,
 .quick-card,
 .user-card {
@@ -349,7 +337,6 @@ code {
 @media (max-width: 920px) {
   .admin-layout { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; }
-  .split-grid { grid-template-columns: 1fr; }
   .admin-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-grid,
   .user-details { grid-template-columns: 1fr; }
@@ -530,38 +517,6 @@ code {
   min-height: 320px;
   resize: vertical;
   line-height: 1.7;
-}
-
-.wang-toolbar {
-  margin-top: 8px;
-  border: 1px solid var(--admin-border);
-  border-bottom: 0;
-  border-radius: 12px 12px 0 0;
-  background: #fff;
-  overflow: visible;
-  position: relative;
-  z-index: 5;
-}
-
-.wang-editor {
-  min-height: 320px;
-  border: 1px solid var(--admin-border);
-  border-radius: 0 0 12px 12px;
-  background: #fff;
-}
-
-.wang-editor .w-e-text-container {
-  min-height: 320px !important;
-}
-
-.wang-toolbar .w-e-bar {
-  flex-wrap: wrap;
-}
-
-.wang-toolbar .w-e-drop-panel,
-.wang-toolbar .w-e-panel-container,
-.wang-toolbar .w-e-menu-panel {
-  z-index: 30 !important;
 }
 
 .required { color: var(--admin-primary); }
