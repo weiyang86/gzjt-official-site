@@ -117,3 +117,75 @@ node scripts/migrate/legacy-site-crawler.mjs \
 ```
 
 扩大范围前建议先只生成 preview JSON，经人工确认后再执行导入。
+
+## 5. MIGRATE-FIX-02：排查 items=0
+
+### 5.1 抓取 2026 年 6 月份数据
+
+建议先开启 `--debug` 观察每个栏目、列表页、列表项、详情页日期和过滤结果：
+
+```bash
+node scripts/migrate/legacy-site-crawler.mjs \
+  --channels=group-news,announcements,bid-announcement \
+  --date-from=2026-06-01 \
+  --date-to=2026-06-30 \
+  --max-pages=5 \
+  --stop-when-before-date \
+  --debug \
+  --output=scripts/migrate/output/legacy-articles-2026-06-preview.json
+```
+
+### 5.2 如果 items=0 如何排查
+
+```bash
+node - <<'NODE'
+const f = require('./scripts/migrate/output/legacy-articles-2026-06-preview.json');
+
+console.log('items:', f.items?.length || 0);
+console.log('skipped:', f.skipped?.length || 0);
+console.log('errors:', f.errors?.length || 0);
+
+const reasons = {};
+for (const x of f.skipped || []) {
+  const r = x.skipped_reason || x.reason || 'unknown';
+  reasons[r] = (reasons[r] || 0) + 1;
+}
+console.log(reasons);
+
+console.log((f.skipped || []).slice(0, 10));
+NODE
+```
+
+重点查看：
+
+- `skipped_reason=invalid-date`：说明列表页和详情页都没有解析到有效日期；
+- `skipped_reason=before-range` / `after-range`：说明解析到了日期，但不在本次范围内；
+- `warnings` 包含 `date-mismatch`：说明列表页日期和详情页日期不一致，脚本以详情页日期为准；
+- `errors` 不为空：一般是网络、旧站响应异常或页面结构变化，单条失败不会中断整体流程。
+
+### 5.3 如何使用 debug
+
+`--debug` 会输出以下关键信息，不输出正文 HTML：
+
+1. 当前栏目名称、channel slug 和 category URL；
+2. 当前抓取页 URL；
+3. 每页解析出的列表项数量；
+4. 每条列表项的标题、详情 URL、legacy_id 和列表日期；
+5. 详情页解析出的详情日期、最终 `publish_at` 和过滤状态；
+6. `stop-when-before-date` 是否触发以及触发原因。
+
+### 5.4 日期过滤说明
+
+`--date-from=2026-06-01` 和 `--date-to=2026-06-30` 都包含边界日期：
+
+- 起始边界为 `2026-06-01 00:00:00`；
+- 结束边界为 `2026-06-30 23:59:59`；
+- 因此 2026-06-01 和 2026-06-30 当天内容都应进入 `items`；
+- 日期解析优先使用详情页标题下方发布时间区域，详情页解析不到时再使用列表页日期，避免被页脚、推荐列表、上一篇/下一篇日期误覆盖。
+
+### 5.5 日期解析自检
+
+```bash
+node scripts/migrate/debug-legacy-date-parser.mjs
+node scripts/migrate/debug-legacy-date-parser.mjs "甘孜建设投资集团召开会议 2026-06-09"
+```
