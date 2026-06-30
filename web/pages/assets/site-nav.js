@@ -32,6 +32,11 @@
 
   window.SITE_NAV = [
     {
+      title: "首页",
+      path: "/index.html",
+      children: []
+    },
+    {
       title: '集团概况',
       path: '/group',
       children: [

@@ -199,12 +199,12 @@
     if (button) button.href = `../detail/notice-detail.html?id=${encodeURIComponent(item.id)}`
   }
 
-  function renderList(items) {
+  function renderList(items, showEmpty = true) {
     if (!listEl) return
     const start = (state.page - 1) * state.pageSize
     const slice = items.slice(start, start + state.pageSize)
     if (!slice.length) {
-      listEl.innerHTML = '<div class="notice-empty">暂无符合条件的公示公告。</div>'
+      listEl.innerHTML = showEmpty ? '<div class="notice-empty">暂无符合条件的公示公告。</div>' : ''
       return
     }
     listEl.innerHTML = slice.map(item => `
@@ -295,7 +295,7 @@
     const featured = items[0] || null
     const rest = items.length > 1 ? items.slice(1) : []
     setFeatured(featured)
-    renderList(rest)
+    renderList(rest, items.length === 0)
     renderPager(rest.length)
     updateHeroSubtitle(items)
     ensureReveal(root)

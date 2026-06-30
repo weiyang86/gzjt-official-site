@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>编辑新闻 - 甘孜建设投资集团官网内容管理后台</title>
   <link rel="stylesheet" href="/admin/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css">
 </head>
 <body class="admin-app-page">
   <div class="admin-layout">
@@ -17,6 +18,9 @@
         <a class="admin-nav-link" href="/admin/dashboard.html">工作台</a>
         <a class="admin-nav-link" href="/admin/articles.html">新闻管理</a>
         <a class="admin-nav-link" href="/admin/categories.html">新闻分类</a>
+        <a class="admin-nav-link" href="/admin/notice-articles.html">公示公告管理</a>
+        <a class="admin-nav-link" href="/admin/notice-categories.html">公示公告分类</a>
+        <a class="admin-nav-link" href="/admin/notice-edit.html">新增公示公告</a>
         <a class="admin-nav-link" href="/admin/content.html">页面内容管理</a>
         <a class="admin-nav-link is-active" href="/admin/article-edit.html">新增新闻</a>
         <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
@@ -84,9 +88,12 @@
                 <button id="clear-cover" class="text-button" type="button">移除封面</button>
               </div>
             </div>
-            <label class="span-2">正文 <span class="required">*</span>
-              <textarea id="content" name="content" class="content-editor" rows="16" required></textarea>
-            </label>
+            <div class="span-2">
+              <label for="wang-editor">正文 <span class="required">*</span></label>
+              <div id="wang-toolbar" class="wang-toolbar"></div>
+              <div id="wang-editor" class="wang-editor" aria-label="正文富文本编辑器"></div>
+              <textarea id="content" name="content" class="content-editor" rows="16" required hidden></textarea>
+            </div>
           </div>
 
           <div class="form-actions">
@@ -100,6 +107,7 @@
   </div>
 
   <script src="/admin/js/admin-api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/index.min.js"></script>
   <script src="/admin/js/article-edit.js"></script>
 </body>
 </html>

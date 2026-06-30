@@ -145,6 +145,11 @@
     page: 1,
     pageSize: 6,
     items: staticData,
+    totalCount: (() => {
+      const preset = Number(window.__NEWS_TOTAL_COUNT)
+      if (Number.isFinite(preset) && preset > 0) return preset
+      return staticData.length
+    })(),
     channels: [],
     availableSubcategories: []
   }
@@ -303,11 +308,12 @@
     }
   }
 
-  const updateStats = (allItems) => {
-    if (heroStats[0]) heroStats[0].querySelector('.stat-num')?.setAttribute('data-target', String(allItems.length || 0))
+  const updateStats = () => {
+    const total = Number.isFinite(Number(state.totalCount)) ? Number(state.totalCount) : state.items.length || 0
+    if (heroStats[0]) heroStats[0].querySelector('.stat-num')?.setAttribute('data-target', String(total))
     if (heroStats[0]) {
       const num = heroStats[0].querySelector('.stat-num')
-      if (num) num.textContent = String(allItems.length || 0)
+      if (num) num.textContent = String(total)
     }
   }
 
@@ -368,8 +374,32 @@
     if (!result || !Array.isArray(result.items)) return false
     state.mode = 'api'
     state.items = result.items.map(normalizeApiArticle)
+    if (state.activeChannel === 'all' && !state.activeSubcategory && !state.keyword.trim()) {
+      const total = Number(result.total)
+      if (Number.isFinite(total) && total >= 0) state.totalCount = total
+    }
     state.availableSubcategories = []
     return true
+  }
+
+  const refreshTotalCount = async () => {
+    try {
+      const res = await fetch('/api/public/news-total')
+      if (res.ok) {
+        const payload = await res.json()
+        if (Number.isFinite(Number(payload && payload.total))) {
+          state.totalCount = Number(payload.total)
+          return true
+        }
+      }
+    } catch (error) {}
+    const result = await fetchJson('/api/public/cms/articles?page=1&pageSize=1&scope=news')
+    if (!result) return false
+    if (Number.isFinite(Number(result.total))) {
+      state.totalCount = Number(result.total)
+      return true
+    }
+    return false
   }
 
   const loadChannels = async () => {
@@ -392,9 +422,12 @@
     setFeatured(featured)
     renderList(listItems)
     renderPager(listItems.length)
-    updateStats(items)
+    updateStats()
     enhanceDynamic(featuredEl)
   }
+
+  // Sync the stats block immediately so the first paint doesn't show a stale placeholder.
+  updateStats()
 
   if (searchInput) {
     let timer = 0
@@ -413,6 +446,7 @@
     await renderHero()
     await loadChannels()
     if (state.activeChannel === 'gov-briefs') state.activeSubcategory = defaultSubcategories[0]
+    await refreshTotalCount()
     await refreshApiData()
     update()
   })()

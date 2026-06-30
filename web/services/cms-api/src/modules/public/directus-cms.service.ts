@@ -77,6 +77,13 @@ export class DirectusCmsService {
     const page = Math.max(1, Number(options.page) || 1)
     const pageSize = Math.min(Math.max(1, Number(options.pageSize) || 10), 100)
     const channelMap = await this.getChannelMap()
+    const allChannels = Array.from(channelMap.values())
+    const newsChannelIds = allChannels
+      .filter(channel => channel?.type === 'news')
+      .map(channel => String(channel.id))
+    const noticeChannelIds = allChannels
+      .filter(channel => channel?.type === 'notice')
+      .map(channel => String(channel.id))
     const channelId = options.channelSlug && options.channelSlug !== 'all'
       ? this.findChannelIdBySlug(channelMap, options.channelSlug)
       : null
@@ -92,6 +99,14 @@ export class DirectusCmsService {
       if (!channelId) return { page, pageSize, total: 0, availableSubcategories: [], items: [] }
       params['filter[main_channel][_eq]'] = channelId
     }
+    const selectedChannel = channelId ? channelMap.get(channelId) : null
+    if (options.scope === 'notice') {
+      if (selectedChannel && selectedChannel.type !== 'notice') return { page, pageSize, total: 0, availableSubcategories: [], items: [] }
+      if (!selectedChannel && noticeChannelIds.length) params['filter[main_channel][_in]'] = noticeChannelIds.join(',')
+    } else if (options.scope === 'news') {
+      if (selectedChannel && selectedChannel.type === 'notice') return { page, pageSize, total: 0, availableSubcategories: [], items: [] }
+      if (!selectedChannel && newsChannelIds.length) params['filter[main_channel][_in]'] = newsChannelIds.join(',')
+    }
     if (options.newsSubcategory) params['filter[news_subcategory][_eq]'] = options.newsSubcategory
     if (options.excludeId) params['filter[id][_neq]'] = options.excludeId
     if (options.keyword) params.search = options.keyword
@@ -99,18 +114,13 @@ export class DirectusCmsService {
     try {
       const result = await this.fetchDirectus<{ data?: any[]; meta?: { filter_count?: number } }>('/items/articles', params)
       const items = Array.isArray(result.data) ? result.data.map(item => this.mapArticleSummary(item, channelMap)) : []
-      const scopedItems = items.filter(item => {
-        if (options.scope === 'notice') return item.mainChannel?.type === 'notice'
-        if (options.scope === 'news') return item.mainChannel?.type !== 'notice'
-        return true
-      })
       const availableSubcategories = options.channelSlug ? await this.getArticleSubcategories(options.channelSlug) : []
       return {
         page,
         pageSize,
-        total: scopedItems.length,
+        total: Number(result.meta?.filter_count || items.length),
         availableSubcategories,
-        items: scopedItems
+        items
       }
     } catch (error) {
       this.warnFailure('articles', error)

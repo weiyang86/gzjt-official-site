@@ -16,6 +16,8 @@
   const authorInput = document.getElementById('author');
   const publishAtInput = document.getElementById('publish-at');
   const contentInput = document.getElementById('content');
+  const toolbarContainer = document.getElementById('wang-toolbar');
+  const editorContainer = document.getElementById('wang-editor');
   const coverFileInput = document.getElementById('cover-file');
   const uploadCoverButton = document.getElementById('upload-cover');
   const coverIdInput = document.getElementById('cover-id');
@@ -24,6 +26,7 @@
   const clearCoverButton = document.getElementById('clear-cover');
   const draftButtons = [document.getElementById('save-draft'), document.getElementById('save-draft-bottom')];
   const publishButtons = [document.getElementById('publish-article'), document.getElementById('publish-article-bottom')];
+  let richEditor = null;
 
   const showMessage = (message, type) => {
     messageBox.textContent = message;
@@ -68,6 +71,88 @@
     return '';
   };
 
+  const validateEditorImageFile = (file) => {
+    if (!file) return '请选择要上传的图片。';
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) return '正文图片仅支持 JPG、PNG、WEBP。';
+    if (file.size > 10 * 1024 * 1024) return '正文图片不能超过 10MB。';
+    return '';
+  };
+
+  const getEditorContent = () => {
+    if (richEditor && typeof richEditor.getHtml === 'function') {
+      const html = richEditor.getHtml();
+      contentInput.value = html;
+      return html;
+    }
+    return contentInput.value;
+  };
+
+  const setEditorContent = (value) => {
+    const html = value || '';
+    contentInput.value = html;
+    if (richEditor && typeof richEditor.setHtml === 'function') {
+      richEditor.setHtml(html || '<p><br></p>');
+    }
+  };
+
+  const initRichEditor = async () => {
+    if (!window.wangEditor || !toolbarContainer || !editorContainer) {
+      contentInput.hidden = false;
+      showMessage('富文本编辑器加载失败，已切换为基础文本模式。', 'error');
+      return;
+    }
+    const E = window.wangEditor;
+    if (typeof E.i18nChangeLanguage === 'function') {
+      E.i18nChangeLanguage('zh-CN');
+    }
+    richEditor = E.createEditor({
+      selector: '#wang-editor',
+      html: contentInput.value || '<p><br></p>',
+      config: {
+        placeholder: '请输入正文内容',
+        MENU_CONF: {
+          uploadImage: {
+            async customUpload(file, insertFn) {
+              const error = validateEditorImageFile(file);
+              if (error) {
+                showMessage(error, 'error');
+                return;
+              }
+              try {
+                showMessage('正文图片上传中…', 'info');
+                const formData = new FormData();
+                formData.append('file', file);
+                const result = await window.AdminApi.uploadFile(formData);
+                const uploaded = result && result.data ? result.data : null;
+                if (!uploaded || !uploaded.id) {
+                  throw new Error('上传成功但未返回文件信息。');
+                }
+                const imageUrl = uploaded.asset_url || uploaded.preview_url;
+                if (!imageUrl) {
+                  throw new Error('上传成功但未返回图片地址。');
+                }
+                insertFn(imageUrl, uploaded.filename || file.name, imageUrl);
+                showMessage('正文图片上传成功。', 'success');
+              } catch (err) {
+                showMessage(err.message || '正文图片上传失败，请稍后重试。', 'error');
+              }
+            }
+          }
+        },
+        onChange(editor) {
+          contentInput.value = editor.getHtml();
+        }
+      },
+      mode: 'default'
+    });
+    E.createToolbar({
+      editor: richEditor,
+      selector: '#wang-toolbar',
+      mode: 'default'
+    });
+  };
+
   const getPayload = (statusOverride) => ({
     title: titleInput.value.trim(),
     subtitle: subtitleInput.value.trim(),
@@ -77,7 +162,7 @@
     source: sourceInput.value.trim(),
     author: authorInput.value.trim(),
     publish_at: fromLocalDateTime(publishAtInput.value),
-    content: contentInput.value,
+    content: getEditorContent(),
     cover: coverIdInput.value || null
   });
 
@@ -140,7 +225,7 @@
     sourceInput.value = article.source || '';
     authorInput.value = article.author || '';
     publishAtInput.value = toLocalDateTime(article.publish_at);
-    contentInput.value = article.content || '';
+    setEditorContent(article.content || '');
     const coverId = typeof article.cover === 'object' && article.cover ? article.cover.id : article.cover;
     setCoverPreview(coverId || '', coverId ? `/admin-api/assets/${encodeURIComponent(coverId)}` : '');
   };
@@ -199,6 +284,7 @@
   });
 
   Promise.resolve()
+    .then(initRichEditor)
     .then(loadCurrentUser)
     .then(loadChannels)
     .then(loadArticle)

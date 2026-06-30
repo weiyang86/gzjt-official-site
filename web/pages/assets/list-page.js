@@ -50,7 +50,7 @@
 
   const crumb = document.querySelector('[data-breadcrumb]')
   if (crumb) {
-    const parts = [{ title: '首页', path: '/A版官网首页.html' }].concat(trail.map(item => ({ title: item.title, path: item.path })))
+    const parts = [{ title: '首页', path: '/index.html' }].concat(trail.map(item => ({ title: item.title, path: item.path })))
     crumb.innerHTML = parts.map((part, index) => {
       const isLast = index === parts.length - 1
       if (isLast) return `<span>${part.title}</span>`

@@ -139,6 +139,7 @@
       descCell.textContent = category.description || '—';
       appendAction(actions, '编辑', 'edit', category.id);
       appendAction(actions, category.status === 'enabled' ? '停用' : '启用', category.status === 'enabled' ? 'disable' : 'enable', category.id);
+      appendAction(actions, '删除', 'delete', category.id);
       actionCell.appendChild(actions);
       row.append(nameCell, slugCell, statusCell, sortCell, usageCell, descCell, actionCell);
       body.appendChild(row);
@@ -190,6 +191,20 @@
         if (result.data) fillForm(result.data);
         return;
       }
+      if (action === 'delete') {
+        const usage = await window.AdminApi.categoryUsage(id);
+        const count = usage.data ? Number(usage.data.article_count || 0) : 0;
+        if (count > 0) {
+          showMessage(`该分类已有 ${count} 篇新闻，不能删除。建议改为“停用”。`, 'error');
+          return;
+        }
+        if (!window.confirm('确认删除该分类？此操作不可恢复。')) return;
+        await window.AdminApi.deleteCategory(id);
+        if (idInput.value && idInput.value === id) resetForm();
+        showMessage('分类已删除。', 'success');
+        await loadCategories();
+        return;
+      }
       const enable = action === 'enable';
       const usage = await window.AdminApi.categoryUsage(id);
       const count = usage.data ? Number(usage.data.article_count || 0) : 0;
@@ -201,7 +216,17 @@
       showMessage(`分类已${enable ? '启用' : '停用'}。`, 'success');
       await loadCategories();
     } catch (err) {
-      showMessage(err.message || '分类操作失败。', 'error');
+      const msg = err && err.message ? String(err.message) : '';
+      if (msg.includes('Admin API endpoint not found')) {
+        showMessage('后台接口未启用或服务未使用 web/server.js 启动，请确保使用 node web/server.js 启动本地 3010。', 'error');
+        return;
+      }
+      if (msg.startsWith('Cannot delete category that has ')) {
+        const count = msg.match(/\d+/)?.[0] || '0';
+        showMessage(`该分类已有 ${count} 篇新闻，不能删除。建议改为“停用”。`, 'error');
+        return;
+      }
+      showMessage(msg || '分类操作失败。', 'error');
     }
   });
 
@@ -215,6 +240,12 @@
     .then(loadCurrentUser)
     .then(loadCategories)
     .catch((error) => {
-      if (error.status !== 401) showMessage(error.message || '页面初始化失败。', 'error');
+      if (error.status === 401) return;
+      const msg = error && error.message ? String(error.message) : '页面初始化失败。';
+      if (msg.includes('Admin API endpoint not found')) {
+        showMessage('后台接口未启用或服务未使用 web/server.js 启动，请确保使用 node web/server.js 启动本地 3010。', 'error');
+        return;
+      }
+      showMessage(msg, 'error');
     });
 })();
