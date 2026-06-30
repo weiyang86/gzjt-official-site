@@ -76,7 +76,7 @@ const allowedAttachmentTypes = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 const allowedAttachmentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
-const maxUploadBytes = 10 * 1024 * 1024;
+const maxUploadBytes = 50 * 1024 * 1024;
 
 const getCoverId = (cover: ArticleEditorRow['cover']) => {
   if (!cover) return '';
@@ -132,7 +132,7 @@ const ensureWangEditor = () => {
 const validateImageFile = (file?: File | null, label = '图片') => {
   if (!file) return `请选择${label}。`;
   if (!allowedImageTypes.includes(file.type)) return `${label}仅支持 JPG、PNG、WEBP。`;
-  if (file.size > maxUploadBytes) return `${label}不能超过 10MB。`;
+  if (file.size > maxUploadBytes) return `${label}不能超过 50MB。`;
   return '';
 };
 
@@ -171,7 +171,7 @@ const validateAttachmentFile = (file?: File | null) => {
   if (!allowedAttachmentTypes.includes(file.type) && !allowedAttachmentExtensions.includes(extension)) {
     return '附件仅支持 PDF、Word、Excel 文件。';
   }
-  if (file.size > maxUploadBytes) return '附件不能超过 10MB。';
+  if (file.size > maxUploadBytes) return '附件不能超过 50MB。';
   return '';
 };
 
@@ -622,7 +622,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           </label>
 
           <div className="cover-field span-2">
-            <label htmlFor="cover-file">封面图（JPG / PNG / WEBP，10MB以内）</label>
+            <label htmlFor="cover-file">封面图（JPG / PNG / WEBP，50MB以内）</label>
             <div className="cover-upload-row">
               <input id="cover-file" ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" />
               <button className="secondary-button" type="button" disabled={isUploading} onClick={uploadCover}>{isUploading ? '正在上传...' : '上传封面'}</button>
@@ -640,7 +640,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           </div>
 
           <div className="cover-field span-2">
-            <label htmlFor="attachment-file">附件上传（PDF / Word / Excel，10MB以内）</label>
+            <label htmlFor="attachment-file">附件上传（PDF / Word / Excel，50MB以内）</label>
             <div className="cover-upload-row">
               <input
                 id="attachment-file"

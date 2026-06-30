@@ -67,7 +67,7 @@
     if (!file) return '请选择封面图片。';
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) return '封面图仅支持 JPG、PNG、WEBP。';
-    if (file.size > 10 * 1024 * 1024) return '封面图不能超过 10MB。';
+    if (file.size > 50 * 1024 * 1024) return '封面图不能超过 50MB。';
     return '';
   };
 
@@ -75,7 +75,7 @@
     if (!file) return '请选择要上传的图片。';
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) return '正文图片仅支持 JPG、PNG、WEBP。';
-    if (file.size > 10 * 1024 * 1024) return '正文图片不能超过 10MB。';
+    if (file.size > 50 * 1024 * 1024) return '正文图片不能超过 50MB。';
     return '';
   };
 

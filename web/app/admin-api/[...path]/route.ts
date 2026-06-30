@@ -37,7 +37,7 @@ const allowedDocumentTypes = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
 const allowedDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx']);
-const maxUploadBytes = 10 * 1024 * 1024;
+const maxUploadBytes = 50 * 1024 * 1024;
 const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status';
 
 const globalForAdminSessions = globalThis as typeof globalThis & {
@@ -805,7 +805,7 @@ const handleLocalFileUpload = async (request: NextRequest) => {
   }
   if (file.size > maxUploadBytes) {
     return NextResponse.json(
-      { error: { code: 'UPLOAD_TOO_LARGE', message: 'File upload is too large. Maximum size is 10MB.' } },
+      { error: { code: 'UPLOAD_TOO_LARGE', message: 'File upload is too large. Maximum size is 50MB.' } },
       { status: 413 },
     );
   }

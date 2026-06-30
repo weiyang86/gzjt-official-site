@@ -16,7 +16,7 @@ const itemStatusOptions = [
 ];
 
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
-const maxImageBytes = 10 * 1024 * 1024;
+const maxImageBytes = 50 * 1024 * 1024;
 
 const emptyPageContent = (moduleCode = ''): PageContent => ({
   module_code: moduleCode,
@@ -92,7 +92,7 @@ const moduleConfig = (module: PageModule) => {
 const validateImage = (file?: File | null) => {
   if (!file) return '请选择图片文件。';
   if (!allowedImageTypes.includes(file.type)) return '仅支持 JPG、PNG、WEBP 图片。';
-  if (file.size > maxImageBytes) return '图片大小不能超过 10MB。';
+  if (file.size > maxImageBytes) return '图片大小不能超过 50MB。';
   return '';
 };
 
@@ -205,7 +205,7 @@ function PageContentForm({ module, options = {} }: {
         {showCover ? (
           <div className="cover-field span-2">
             <label>{config.coverLabel}</label>
-            <p className="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 10MB；上传通过 /admin-api/files 代理到 Directus Files。</p>
+            <p className="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 50MB；上传通过 /admin-api/files 代理到 Directus Files。</p>
             <div className="cover-upload-row">
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadCover} disabled={isUploading} />
               <input type="hidden" value={form.cover || ''} readOnly />

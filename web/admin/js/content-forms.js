@@ -1,7 +1,7 @@
 (function () {
   const statusOptions = '<option value="draft">草稿</option><option value="published">已发布</option><option value="archived">已归档</option>';
   const itemStatusOptions = '<option value="enabled">启用</option><option value="disabled">停用</option>';
-  const maxImageBytes = 10 * 1024 * 1024;
+  const maxImageBytes = 50 * 1024 * 1024;
   const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
   const setMessage = (box, message, type) => {
@@ -89,7 +89,7 @@
 
   const assertValidImage = (file) => {
     if (!allowedImageTypes.has(file.type)) throw new Error('仅支持 JPG、PNG、WEBP 图片。');
-    if (file.size > maxImageBytes) throw new Error('图片大小不能超过 10MB。');
+    if (file.size > maxImageBytes) throw new Error('图片大小不能超过 50MB。');
   };
 
   const uploadCover = async (fileInput, coverInput, preview, messageBox) => {
@@ -126,7 +126,7 @@
         <div class="editor-grid">
           ${field(config.titleLabel, `<input id="content-title" type="text" value="${escapeHtml(data.title)}" required>`)}
           ${showSubtitle ? field(config.subtitleLabel, `<input id="content-subtitle" type="text" value="${escapeHtml(data.subtitle)}">`) : '<input id="content-subtitle" type="hidden" value="">'}
-          ${showCover ? `<div class="cover-field span-2"><label for="content-cover-file">${escapeHtml(config.coverLabel)}</label><p class="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 10MB；上传通过 /admin-api/files 代理到 Directus Files。</p><div class="cover-upload-row"><input id="content-cover-file" type="file" accept="image/jpeg,image/png,image/webp"><button id="content-upload-cover" class="secondary-button" type="button">上传图片</button><input id="content-cover" type="hidden" value="${escapeHtml(data.cover)}"></div><img id="content-cover-preview" class="cover-preview" ${data.cover ? `src="/admin-api/assets/${encodeURIComponent(data.cover)}"` : 'hidden'} alt="图片预览"></div>` : ''}
+          ${showCover ? `<div class="cover-field span-2"><label for="content-cover-file">${escapeHtml(config.coverLabel)}</label><p class="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 50MB；上传通过 /admin-api/files 代理到 Directus Files。</p><div class="cover-upload-row"><input id="content-cover-file" type="file" accept="image/jpeg,image/png,image/webp"><button id="content-upload-cover" class="secondary-button" type="button">上传图片</button><input id="content-cover" type="hidden" value="${escapeHtml(data.cover)}"></div><img id="content-cover-preview" class="cover-preview" ${data.cover ? `src="/admin-api/assets/${encodeURIComponent(data.cover)}"` : 'hidden'} alt="图片预览"></div>` : ''}
           ${showSummary ? `<label class="span-2">${escapeHtml(config.summaryLabel)}<textarea id="content-summary" rows="3">${escapeHtml(data.summary)}</textarea></label>` : '<textarea id="content-summary" hidden></textarea>'}
           <label class="span-2">${escapeHtml(config.contentLabel)}<textarea id="content-body" class="content-editor" rows="${config.bodyRows}">${escapeHtml(data.content)}</textarea></label>
           <label>发布状态<select id="content-status">${statusOptions}</select></label>
