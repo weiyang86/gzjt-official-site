@@ -1,0 +1,2399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>甘孜州建设投资集团有限公司</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========== CSS Variables ========== */
+        :root {
+            --tibetan-red: #A3171A;
+            --tibetan-red-dark: #7B1114;
+            --tibetan-red-light: #C42025;
+            --snow-white: #F8FAFC;
+            --snow-gray: #E8EDF2;
+            --plateau-blue: #235D8C;
+            --plateau-blue-light: #2E7AB8;
+            --gold: #D4A857;
+            --gold-light: #E8C97A;
+            --gold-dark: #B8923E;
+            --dark-text: #1A1A2E;
+            --body-text: #3D4856;
+            --light-text: #6B7A8F;
+            --bg-warm: #FAFBFC;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+            --shadow-gold: 0 4px 20px rgba(212,168,87,0.25);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* ========== Reset & Base ========== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--body-text);
+            background: var(--snow-white);
+            line-height: 1.7;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        ::selection { background: var(--tibetan-red); color: white; }
+        img { max-width: 100%; display: block; }
+        a { text-decoration: none; color: inherit; transition: var(--transition); }
+        ul, ol { list-style: none; }
+
+        /* ========== Typography ========== */
+        .font-serif { font-family: 'Noto Serif SC', serif; }
+        .text-gold { color: var(--gold); }
+        .text-red { color: var(--tibetan-red); }
+        .text-blue { color: var(--plateau-blue); }
+
+        /* ========== Container ========== */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        @media (max-width: 1024px) {
+            .container { padding: 0 24px; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 0 16px; }
+        }
+
+        /* ========== Section Common ========== */
+        section { position: relative; overflow: hidden; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        .section-label {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--tibetan-red);
+            margin-bottom: 16px;
+            position: relative;
+            padding: 0 24px;
+        }
+        .section-label::before,
+        .section-label::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold));
+        }
+        .section-label::before { left: -10px; background: linear-gradient(90deg, transparent, var(--gold)); }
+        .section-label::after { right: -10px; background: linear-gradient(90deg, var(--gold), transparent); }
+        .section-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(32px, 4vw, 44px);
+            font-weight: 700;
+            color: var(--dark-text);
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--light-text);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        /* ========== Tibetan Decorative Border ========== */
+        .tibetan-border {
+            position: relative;
+        }
+        .tibetan-border::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid transparent;
+            border-image: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 50%, var(--gold) 100%) 1;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* ========== Navigation ========== */
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 9999;
+            padding: 20px 0;
+            transition: all 0.4s ease;
+            background: transparent;
+        }
+        .navbar.scrolled {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 30px rgba(0,0,0,.08);
+            padding: 12px 0;
+        }
+        .navbar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        @media (max-width: 1024px) {
+            .navbar-inner { padding: 0 24px; }
+        }
+        @media (max-width: 768px) {
+            .navbar-inner { padding: 0 16px; }
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-logo.header-logo{
+            position: fixed;
+            top: 32px;
+            left: 48px;
+            z-index: 10000;
+            padding: 18px 24px;
+            border-radius: 20px;
+            width: auto;
+            max-width: 720px;
+            background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+            border: 1px solid rgba(255,255,255,.08);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        .nav-logo.header-logo::after{
+            content:'';
+            position:absolute;
+            left:50%;
+            top:50%;
+            width:120%;
+            height:120%;
+            transform:translate(-50%,-50%);
+            background:radial-gradient(rgba(255,255,255,.06), transparent 70%);
+            pointer-events:none;
+            z-index:0;
+        }
+        .nav-logo.header-logo > *{position:relative;z-index:1}
+        .nav-logo.has-image .nav-logo-icon { display: none; }
+        .nav-logo .logo-wrapper{
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .nav-logo .logo-wrapper::after{
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 120%;
+            height: 120%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(rgba(255,255,255,.08), transparent 70%);
+            pointer-events: none;
+        }
+        .nav-logo .logo-image{
+            height: 54px;
+            width: auto;
+            max-width: 280px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,.15));
+        }
+        @media (max-width: 1024px){
+            .nav-logo .logo-image{height:60px}
+        }
+        @media (max-width: 768px){
+            .nav-logo .logo-image{height:48px}
+        }
+        .nav-logo.logo-text-hidden .nav-logo-text,
+        .nav-logo.logo-text-hidden .nav-logo-sub{display:none}
+        .nav-logo-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, var(--tibetan-red), var(--tibetan-red-dark));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 900;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .nav-logo-text {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #FFFFFF;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .navbar.scrolled .nav-logo-text { color: var(--dark-text); }
+        .nav-logo-sub {
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255,255,255,.75);
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .navbar.scrolled .nav-logo-sub { color: var(--light-text); }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 36px;
+        }
+        #navLinks{display:none !important}
+        #navToggle{display:none !important}
+        #sideNav{display:none !important}
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.85);
+            position: relative;
+            padding: 4px 0;
+            letter-spacing: 1px;
+            transition: var(--transition);
+        }
+        .navbar.scrolled .nav-link { color: var(--body-text); }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px; left: 0;
+            width: 0; height: 2px;
+            background: var(--gold);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after,
+        .nav-link.active::after { width: 100%; }
+        .nav-link:hover { color: var(--gold); }
+        .navbar.scrolled .nav-link:hover { color: var(--tibetan-red); }
+
+        /* Mobile Nav */
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 1001;
+        }
+        .nav-toggle span {
+            width: 24px; height: 2px;
+            background: white;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        .navbar.scrolled .nav-toggle span { background: var(--dark-text); }
+        .nav-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .nav-toggle.active span:nth-child(2) { opacity: 0; }
+        .nav-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+        @media (max-width: 900px) {
+            .nav-toggle { display: flex; }
+            .nav-links {
+                position: fixed;
+                top: 0; right: -100%;
+                width: 280px; height: 100vh;
+                background: rgba(26, 26, 46, 0.98);
+                flex-direction: column;
+                justify-content: center;
+                gap: 28px;
+                padding: 40px;
+                transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                box-shadow: -10px 0 40px rgba(0,0,0,0.3);
+            }
+            .nav-links.open { right: 0; }
+            .nav-links .nav-link {
+                color: rgba(255,255,255,0.85);
+                font-size: 16px;
+            }
+            .nav-links .nav-link:hover { color: var(--gold); }
+        }
+
+        /* ========== HERO SECTION ========== */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: linear-gradient(
+                165deg,
+                #1a2a4a 0%,
+                #2d4a6e 15%,
+                #3d5c7a 30%,
+                #4a6b8a 45%,
+                #6b8aa8 60%,
+                #8faabb 75%,
+                #b8c9d6 88%,
+                #d4e0e8 95%,
+                #e8f0f5 100%
+            );
+        }
+
+        /* Snow Mountain Layers via CSS Gradients */
+        .hero-mountains {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 70%;
+            pointer-events: none;
+        }
+        .mountain-layer {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%;
+        }
+        .mtn-1 {
+            height: 100%;
+            background:
+                linear-gradient(170deg, transparent 40%, rgba(200,215,230,0.3) 42%, rgba(180,200,220,0.5) 55%, rgba(160,185,210,0.6) 70%, rgba(140,170,200,0.4) 85%, transparent 100%);
+            clip-path: polygon(0% 100%, 0% 65%, 8% 50%, 15% 35%, 22% 20%, 28% 8%, 33% 0%, 38% 12%, 45% 28%, 52% 42%, 58% 52%, 65% 60%, 72% 66%, 80% 72%, 88% 78%, 95% 84%, 100% 90%, 100% 100%);
+        }
+        .mtn-2 {
+            height: 85%;
+            background: linear-gradient(168deg, transparent 35%, rgba(160,180,200,0.4) 40%, rgba(130,155,185,0.5) 55%, rgba(110,140,175,0.45) 70%, rgba(90,125,165,0.3) 85%, transparent 100%);
+            clip-path: polygon(0% 100%, 0% 75%, 5% 62%, 12% 50%, 20% 38%, 28% 25%, 35% 14%, 42% 5%, 48% 0%, 54% 8%, 62% 22%, 70% 35%, 78% 48%, 86% 60%, 92% 70%, 100% 82%, 100% 100%);
+        }
+        .mtn-3 {
+            height: 70%;
+            background: linear-gradient(172deg, transparent 45%, rgba(120,150,190,0.35) 52%, rgba(100,135,180,0.4) 65%, rgba(85,120,170,0.3) 78%, transparent 100%);
+            clip-path: polygon(0% 100%, 0% 82%, 10% 70%, 18% 58%, 28% 46%, 38% 34%, 48% 24%, 56% 18%, 64% 22%, 74% 32%, 84% 45%, 92% 58%, 100% 72%, 100% 100%);
+        }
+        /* Snow cap highlight on peak */
+        .snow-cap {
+            position: absolute;
+            top: 8%;
+            left: 30%;
+            width: 12%;
+            height: 15%;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.7) 0%, rgba(240,248,255,0.4) 40%, transparent 70%);
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
+        /* Floating particles */
+        .hero-particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            width: 3px; height: 3px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+            animation: floatParticle linear infinite;
+        }
+        @keyframes floatParticle {
+            0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh) translateX(20px); opacity: 0; }
+        }
+
+        /* Gradient overlay */
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(180deg,
+                    rgba(10, 20, 40, 0.5) 0%,
+                    rgba(10, 20, 40, 0.2) 40%,
+                    transparent 60%,
+                    rgba(248, 250, 252, 0.1) 100%
+                );
+            pointer-events: none;
+        }
+
+        /* Hero content */
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 0 20px;
+            max-width: 900px;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 168, 87, 0.15);
+            border: 1px solid rgba(212, 168, 87, 0.4);
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 13px;
+            color: var(--gold-light);
+            letter-spacing: 2px;
+            margin-bottom: 32px;
+            animation: fadeInDown 0.8s ease both;
+        }
+        .hero-badge-dot {
+            width: 6px; height: 6px;
+            background: var(--gold);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.5); }
+        }
+        .hero-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(40px, 6vw, 72px);
+            font-weight: 900;
+            color: white;
+            line-height: 1.2;
+            letter-spacing: 4px;
+            margin-bottom: 16px;
+            text-shadow: 0 4px 30px rgba(0,0,0,0.3);
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+        .hero-title-line {
+            display: block;
+        }
+        .hero-title-line:last-child {
+            color: var(--gold-light);
+        }
+        .hero-subtitle {
+            font-size: clamp(16px, 2vw, 20px);
+            color: rgba(255,255,255,0.8);
+            font-weight: 300;
+            letter-spacing: 6px;
+            margin-bottom: 48px;
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            animation: fadeInUp 1s ease 0.6s both;
+        }
+        .hero-actions .btn-primary{
+            height:64px;
+            min-width:260px;
+            padding:0 48px;
+            border-radius:999px;
+            background:linear-gradient(135deg,#B31217,#A71D2A);
+            font-size:22px;
+            font-weight:600;
+            letter-spacing:0;
+            box-shadow:0 10px 30px rgba(179,18,23,0.35);
+            transition:all .3s ease;
+            line-height:1;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .hero-actions .btn-primary:hover{
+            transform:translateY(-3px);
+            box-shadow:0 16px 40px rgba(179,18,23,0.45);
+        }
+        .hero-actions .btn-primary .btn-arrow{font-size:22px;line-height:1;margin-left:0;display:inline-flex;align-items:center}
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--tibetan-red), var(--tibetan-red-dark));
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 4px 20px rgba(163, 23, 26, 0.35);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(163, 23, 26, 0.5);
+        }
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 40px;
+            background: transparent;
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.7);
+            transform: translateY(-2px);
+        }
+
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            animation: fadeInUp 1s ease 1s both;
+        }
+        .scroll-indicator span {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 3px;
+        }
+        .scroll-line {
+            width: 1px; height: 40px;
+            background: linear-gradient(to bottom, var(--gold), transparent);
+            animation: scrollPulse 2s infinite;
+        }
+        @keyframes scrollPulse {
+            0%, 100% { opacity: 0.3; transform: scaleY(1); }
+            50% { opacity: 1; transform: scaleY(1.2); }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ========== CORE DATA SECTION ========== */
+        .data-section {
+            padding: 100px 0;
+            background: var(--snow-white);
+            position: relative;
+        }
+        .data-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, #e8f0f5, transparent);
+            pointer-events: none;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 24px;
+        }
+        @media (max-width: 1200px) {
+            .data-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .data-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .data-section { padding: 60px 0; }
+        }
+        .data-card {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(212, 168, 87, 0.15);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .data-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--tibetan-red), var(--gold), var(--plateau-blue));
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+        .data-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+        .data-card:hover::before { transform: scaleX(1); }
+        .data-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, rgba(163, 23, 26, 0.08), rgba(212, 168, 87, 0.12));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .data-number {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(32px, 3vw, 42px);
+            font-weight: 900;
+            color: var(--tibetan-red);
+            line-height: 1.2;
+            margin-bottom: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+        .data-number .unit {
+            font-size: 0.45em;
+            font-weight: 600;
+            color: var(--gold-dark);
+            margin-left: 2px;
+        }
+        .data-label {
+            font-size: 14px;
+            color: var(--light-text);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        /* Gold divider */
+        .gold-divider {
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            margin: 0 auto;
+        }
+
+        /* ========== BUSINESS SECTIONS ========== */
+        .business-section {
+            padding: 100px 0;
+            background: linear-gradient(180deg, var(--bg-warm) 0%, var(--snow-white) 100%);
+            position: relative;
+        }
+        .business-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        @media (max-width: 1024px) {
+            .business-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .business-grid { grid-template-columns: 1fr; }
+            .business-section { padding: 60px 0; }
+        }
+        .business-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 40px 32px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid rgba(0,0,0,0.04);
+            box-shadow: var(--shadow-sm);
+        }
+        .business-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--tibetan-red), var(--gold));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.5s ease;
+        }
+        .business-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+        }
+        .business-card:hover::before { transform: scaleX(1); }
+        /* Tibetan corner decoration */
+        .business-card::after {
+            content: '';
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 40px; height: 40px;
+            border-top: 2px solid var(--gold);
+            border-right: 2px solid var(--gold);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .business-card:hover::after { opacity: 0.5; }
+        .business-icon-wrap {
+            width: 72px; height: 72px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 32px;
+            position: relative;
+        }
+        .business-icon-wrap svg {
+            width: 36px; height: 36px;
+        }
+        .biz-1 .business-icon-wrap { background: linear-gradient(135deg, #FEF3E8, #FDE8CF); color: #C47A20; }
+        .biz-2 .business-icon-wrap { background: linear-gradient(135deg, #EBF4F8, #D6E9F2); color: #2E7AB8; }
+        .biz-3 .business-icon-wrap { background: linear-gradient(135deg, #F0EBF5, #E0D6EC); color: #7B52A3; }
+        .biz-4 .business-icon-wrap { background: linear-gradient(135deg, #E8F5EE, #D2EED9); color: #2D8B57; }
+        .biz-5 .business-icon-wrap { background: linear-gradient(135deg, #FFF5F0, #FFE8DC); color: #D4642E; }
+        .biz-6 .business-icon-wrap { background: linear-gradient(135deg, #FDF8EF, #F8EDD6); color: #B8923E; }
+
+        .business-name {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+        .business-desc {
+            font-size: 14px;
+            color: var(--light-text);
+            line-height: 1.8;
+        }
+        .business-more {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--tibetan-red);
+            letter-spacing: 1px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease;
+        }
+        .business-card:hover .business-more {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .business-more svg {
+            width: 14px; height: 14px;
+            transition: transform 0.3s ease;
+        }
+        .business-more:hover svg { transform: translateX(4px); }
+
+        /* ========== PROJECT MAP SECTION ========== */
+        .projects-section {
+            padding: 100px 0;
+            background: var(--dark-text);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .projects-section .section-label { color: var(--gold); }
+        .projects-section .section-label::before,
+        .projects-section .section-label::after {
+            background: linear-gradient(90deg, transparent, rgba(212,168,87,0.5));
+        }
+        .projects-section .section-title { color: white; }
+        .projects-section .section-subtitle { color: rgba(255,255,255,0.6); }
+
+        .map-container {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+            aspect-ratio: 16/10;
+        }
+        .ganzi-map-stage {
+            position: absolute;
+            inset: 0;
+            --fit-left: 0px;
+            --fit-top: 0px;
+            --fit-width: 100%;
+            --fit-height: 100%;
+        }
+        .ganzi-map-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .map-points-layer {
+            position: absolute;
+            left: var(--fit-left);
+            top: var(--fit-top);
+            width: var(--fit-width);
+            height: var(--fit-height);
+            pointer-events: none;
+        }
+        .map-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            left: 0;
+            top: 0;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            cursor: pointer;
+            --delay: 0s;
+        }
+        .map-point .dot,
+        .map-point .pulse {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .map-point .dot {
+            width: 8px;
+            height: 8px;
+            background: #ff3b3b;
+            box-shadow: 0 0 10px rgba(255, 59, 59, 0.55);
+            opacity: 1;
+        }
+        .map-point .pulse {
+            width: 8px;
+            height: 8px;
+            border: 1.5px solid rgba(255, 59, 59, 0.78);
+            opacity: 0.8;
+            animation: mapPointPulse 2s infinite ease-out;
+            animation-delay: var(--delay);
+            will-change: width, height, opacity;
+        }
+        @keyframes mapPointPulse {
+            0% { width: 8px; height: 8px; opacity: 0.8; }
+            100% { width: 32px; height: 32px; opacity: 0; }
+        }
+        .project-tooltip {
+            position: absolute;
+            background: rgba(255,255,255,0.98);
+            color: var(--dark-text);
+            padding: 114px 20px 16px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            min-width: 200px;
+            border-left: 3px solid var(--tibetan-red);
+            overflow: hidden;
+            --tooltip-img: none;
+        }
+        .project-tooltip::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 96px;
+            background-image: var(--tooltip-img);
+            background-size: cover;
+            background-position: center;
+            filter: saturate(1.05) contrast(1.05);
+        }
+        .project-tooltip::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 96px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.02) 55%, rgba(255,255,255,0.92) 100%);
+            pointer-events: none;
+        }
+        .project-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .place-tooltip {
+            position: absolute;
+            background: rgba(10,20,40,0.95);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            padding: 8px 10px;
+            font-size: 14px;
+            color: #ffffff;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 101;
+            transform: translate(-50%, calc(-100% - 12px));
+            left: 0;
+            top: 0;
+            white-space: nowrap;
+        }
+        .place-tooltip.visible { opacity: 1; }
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--dark-text);
+            margin-bottom: 6px;
+        }
+        .tooltip-info {
+            color: var(--light-text);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .tooltip-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(163, 23, 26, 0.08);
+            color: var(--tibetan-red);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Project list sidebar for mobile */
+        .project-list-mobile {
+            display: none;
+            margin-top: 40px;
+        }
+        @media (max-width: 768px) {
+            .map-container { aspect-ratio: 4/3; }
+            .project-list-mobile { display: block; }
+        }
+        .project-mini-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        .project-mini-card:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--gold);
+        }
+        .pmc-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .pmc-desc { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+        /* ========== TIMELINE SECTION ========== */
+        .timeline-section {
+            padding: 100px 0;
+            background: var(--snow-white);
+            position: relative;
+        }
+        .timeline-wrapper {
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0; bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--gold), var(--tibetan-red), var(--plateau-blue));
+            transform: translateX(-50%);
+        }
+        @media (max-width: 768px) {
+            .timeline-line { left: 24px; }
+        }
+        .timeline-item {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 60px;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .timeline-item.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .timeline-item:nth-child(odd) { flex-direction: row-reverse; }
+        @media (max-width: 768px) {
+            .timeline-item,
+            .timeline-item:nth-child(odd) { flex-direction: row; padding-left: 56px; }
+        }
+        .timeline-node {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px; height: 18px;
+            background: white;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            z-index: 2;
+            box-shadow: 0 0 0 4px rgba(212, 168, 87, 0.15);
+            transition: all 0.3s ease;
+        }
+        .timeline-item:hover .timeline-node {
+            background: var(--tibetan-red);
+            border-color: var(--tibetan-red);
+            box-shadow: 0 0 0 8px rgba(163, 23, 26, 0.15);
+        }
+        @media (max-width: 768px) {
+            .timeline-node { left: 24px; }
+        }
+        .timeline-content {
+            width: calc(50% - 40px);
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 28px 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(0,0,0,0.04);
+            transition: all 0.4s ease;
+        }
+        .timeline-content:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+        @media (max-width: 768px) {
+            .timeline-content { width: 100%; }
+        }
+        .timeline-year {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--tibetan-red);
+            margin-bottom: 8px;
+        }
+        .timeline-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 8px;
+        }
+        .timeline-desc {
+            font-size: 14px;
+            color: var(--light-text);
+            line-height: 1.7;
+        }
+
+        /* ========== NEWS SECTION ========== */
+        .news-section {
+            padding: 100px 0;
+            background: var(--bg-warm);
+        }
+        @media (max-width: 768px) {
+            .news-section { padding: 60px 0; }
+        }
+        .news-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 900px) {
+            .news-layout { grid-template-columns: 1fr; }
+        }
+        .news-featured {
+            position: relative;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--plateau-blue), var(--plateau-blue-light));
+            min-height: 420px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 40px;
+            color: white;
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+        .news-featured:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+        }
+        .news-featured-bg {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(135deg, rgba(35,93,140,0.78) 0%, rgba(46,122,184,0.45) 100%),
+                var(--news-featured-img, none);
+            background-size: cover;
+            background-position: center;
+        }
+        .news-featured-pattern {
+            position: absolute;
+            inset: 0;
+            opacity: 0.08;
+            background-image:
+                repeating-linear-gradient(45deg, transparent, transparent 20px, white 20px, white 21px),
+                repeating-linear-gradient(-45deg, transparent, transparent 20px, white 20px, white 21px);
+        }
+        .news-featured-content {
+            position: relative;
+            z-index: 2;
+        }
+        .news-tag {
+            display: inline-block;
+            padding: 4px 14px;
+            background: rgba(212, 168, 87, 0.9);
+            color: var(--dark-text);
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 4px;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+        .news-featured-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+        .news-featured-excerpt {
+            font-size: 14px;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+        .news-date {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .news-item {
+            display: flex;
+            gap: 20px;
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 24px;
+            transition: all 0.4s ease;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.04);
+            box-shadow: var(--shadow-sm);
+            --news-img: none;
+        }
+        .news-item::before {
+            content: "";
+            width: 96px;
+            height: 72px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            background-image: var(--news-img);
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.14);
+        }
+        .news-item:hover {
+            transform: translateX(6px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(163, 23, 26, 0.15);
+        }
+        .news-item-date {
+            flex-shrink: 0;
+            text-align: center;
+            padding-right: 16px;
+            border-right: 1px solid var(--snow-gray);
+        }
+        .nid-day {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--tibetan-red);
+            line-height: 1;
+        }
+        .nid-month {
+            font-size: 12px;
+            color: var(--light-text);
+            margin-top: 4px;
+        }
+        .news-item-body { flex: 1; }
+        .news-item-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 6px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .news-item-meta {
+            font-size: 12px;
+            color: var(--light-text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .news-cat {
+            padding: 2px 8px;
+            background: rgba(35, 93, 140, 0.08);
+            color: var(--plateau-blue);
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ========== PARTY BUILDING SECTION ========== */
+        .party-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #8B0000 0%, var(--tibetan-red) 30%, var(--tibetan-red-dark) 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        @media (max-width: 768px) {
+            .party-section { padding: 60px 0; }
+        }
+        .party-section::before {
+            content: '';
+            position: absolute;
+            top: -50%; right: -20%;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(212,168,87,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .party-section::after {
+            content: '';
+            position: absolute;
+            bottom: -30%; left: -10%;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .party-section .section-label { color: var(--gold-light); }
+        .party-section .section-label::before,
+        .party-section .section-label::after {
+            background: linear-gradient(90deg, transparent, rgba(212,168,87,0.6));
+        }
+        .party-section .section-title { color: white; }
+        .party-section .section-subtitle { color: rgba(255,255,255,0.7); }
+
+        .party-content {
+            position: relative;
+            z-index: 2;
+        }
+        .party-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+            margin-top: 20px;
+        }
+        @media (max-width: 900px) {
+            .party-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .party-grid { grid-template-columns: 1fr; }
+        }
+        .party-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--radius-md);
+            padding: 36px 28px;
+            text-align: center;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        .party-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .party-card:hover {
+            background: rgba(255,255,255,0.14);
+            transform: translateY(-6px);
+            border-color: rgba(212, 168, 87, 0.4);
+        }
+        .party-card:hover::before { opacity: 1; }
+        .party-icon {
+            width: 60px; height: 60px;
+            margin: 0 auto 20px;
+            background: rgba(212, 168, 87, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+        }
+        .party-card-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .party-card-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.65);
+            line-height: 1.7;
+        }
+        .party-slogan {
+            text-align: center;
+            margin-top: 56px;
+            position: relative;
+            z-index: 2;
+        }
+        .slogan-text {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(24px, 3vw, 36px);
+            font-weight: 700;
+            color: var(--gold-light);
+            letter-spacing: 6px;
+        }
+        .slogan-sub {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 12px;
+            letter-spacing: 4px;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            background: #0D1117;
+            color: rgba(255,255,255,0.6);
+            padding: 60px 0 0;
+            position: relative;
+        }
+        .footer-wave {
+            position: absolute;
+            top: -1px; left: 0; right: 0;
+            height: 60px;
+            overflow: hidden;
+        }
+        .footer-wave svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .footer-main {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            gap: 48px;
+            padding-bottom: 48px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        @media (max-width: 900px) {
+            .footer-main { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+        @media (max-width: 600px) {
+            .footer-main { grid-template-columns: 1fr; }
+        }
+        .footer-brand .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .footer-logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--tibetan-red), var(--gold));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 900;
+            font-size: 16px;
+        }
+        .footer-logo-text {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+        .footer-brand p {
+            font-size: 13px;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.45);
+            max-width: 320px;
+        }
+        .footer-col h4 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 12px;
+        }
+        .footer-col h4::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 24px; height: 2px;
+            background: var(--tibetan-red);
+        }
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        .footer-links a {
+            font-size: 13px;
+            color: rgba(255,255,255,0.45);
+            transition: all 0.3s ease;
+        }
+        .footer-links a:hover {
+            color: var(--gold);
+            padding-left: 6px;
+        }
+        .footer-contact li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.45);
+        }
+        .footer-contact svg {
+            width: 16px; height: 16px;
+            flex-shrink: 0;
+            margin-top: 3px;
+            color: var(--gold);
+        }
+        .footer-bottom {
+            padding: 24px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+        }
+        .footer-bottom a { color: rgba(255,255,255,0.4); }
+        .footer-bottom a:hover { color: var(--gold); }
+
+        .side-nav {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 999px;
+            background: rgba(248, 250, 252, 0.78);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 14px 40px rgba(0,0,0,0.12);
+        }
+        .side-nav-item {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            color: rgba(35, 93, 140, 0.92);
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: var(--transition);
+        }
+        .side-nav-item svg { width: 20px; height: 20px; }
+        .side-nav-item:hover {
+            transform: translateX(-2px);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(212,168,87,0.45);
+            color: var(--tibetan-red);
+        }
+        .side-nav-item.active {
+            background: linear-gradient(135deg, var(--tibetan-red), var(--tibetan-red-dark));
+            border-color: rgba(163,23,26,0.35);
+            color: white;
+            box-shadow: 0 14px 30px rgba(163,23,26,0.35);
+        }
+        .side-nav-tip {
+            position: absolute;
+            right: calc(100% + 12px);
+            top: 50%;
+            transform: translateY(-50%) translateX(6px);
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: rgba(26, 26, 46, 0.92);
+            color: rgba(255,255,255,0.92);
+            font-size: 12px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 14px 32px rgba(0,0,0,0.18);
+        }
+        .side-nav-item:hover .side-nav-tip {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+        @media (max-width: 768px) {
+            .side-nav { display: none; }
+        }
+
+        /* ========== Back to Top ========== */
+        .back-to-top {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, var(--tibetan-red), var(--tibetan-red-dark));
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 16px rgba(163, 23, 26, 0.35);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+            z-index: 999;
+        }
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .back-to-top:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(163, 23, 26, 0.5);
+        }
+    </style>
+    <link rel="stylesheet" href="pages/assets/global-ui.css">
+</head>
+<body>
+
+<!-- ==================== NAVIGATION ==================== -->
+<a href="#hero" class="nav-logo header-logo has-image" aria-label="甘孜州建设投资集团">
+    <span class="logo-wrapper">
+        <img class="logo-image" src="/img/logo.png" alt="甘孜州建设投资集团" onerror="this.onerror=null;this.src='/img/logo.png'">
+    </span>
+    <div aria-hidden="true">
+        <div class="nav-logo-text">甘孜州建设投资集团</div>
+        <div class="nav-logo-sub">GANZI CONSTRUCTION INVESTMENT GROUP</div>
+    </div>
+</a>
+<nav class="navbar" id="navbar" aria-hidden="true" style="display:none"></nav>
+
+<nav class="side-nav" id="sideNav" aria-label="页面快捷导航">
+    <a class="side-nav-item" href="#hero" aria-label="首页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+        <span class="side-nav-tip">首页</span>
+    </a>
+    <a class="side-nav-item" href="#data" aria-label="集团概况">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M20 19V5"/><path d="M7 16v-5"/><path d="M12 16V8"/><path d="M17 16v-3"/></svg>
+        <span class="side-nav-tip">集团概况</span>
+    </a>
+    <a class="side-nav-item" href="#business" aria-label="业务板块">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+        <span class="side-nav-tip">业务板块</span>
+    </a>
+    <a class="side-nav-item" href="#projects" aria-label="项目展示">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <span class="side-nav-tip">项目展示</span>
+    </a>
+    <a class="side-nav-item" href="#timeline" aria-label="企业历程">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+        <span class="side-nav-tip">企业历程</span>
+    </a>
+    <a class="side-nav-item" href="#news" aria-label="新闻中心">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
+        <span class="side-nav-tip">新闻中心</span>
+    </a>
+    <a class="side-nav-item" href="#party" aria-label="党建文化">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h9l-2 3 2 3H6"/><path d="M15 10h5v6h-5"/></svg>
+        <span class="side-nav-tip">党建文化</span>
+    </a>
+</nav>
+
+<!-- ==================== HERO SECTION ==================== -->
+<section class="hero" id="hero" data-home-banners>
+    <!-- Snow mountain layers -->
+    <div class="hero-mountains">
+        <div class="mountain-layer mtn-1"></div>
+        <div class="mountain-layer mtn-2"></div>
+        <div class="mountain-layer mtn-3"></div>
+        <div class="snow-cap"></div>
+    </div>
+
+    <!-- Floating particles -->
+    <div class="hero-particles" id="heroParticles"></div>
+
+    <!-- Overlay gradient -->
+    <div class="hero-overlay"></div>
+
+    <!-- Content -->
+    <div class="hero-content">
+        <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            GANZI PREFECTURE · SINCE 2010
+        </div>
+        <h1 class="hero-title font-serif" data-banner-title>
+            <span class="hero-title-line">铺筑人民幸福之路</span>
+            <span class="hero-title-line">建造甘孜发展之基</span>
+        </h1>
+        <p class="hero-subtitle" data-banner-subtitle>甘孜州建设投资集团有限公司</p>
+        <div class="hero-actions">
+            <a href="pages/about/index.html" class="btn-primary" data-banner-link>点击进入 <span class="btn-arrow" aria-hidden="true">→</span></a>
+        </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator">
+        <span>SCROLL</span>
+        <div class="scroll-line"></div>
+    </div>
+</section>
+
+<template data-home-single-screen>
+
+<!-- ==================== CORE DATA SECTION ==================== -->
+<section class="data-section" id="data">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">GROUP STRENGTH</div>
+            <h2 class="section-title font-serif">集团实力</h2>
+            <p class="section-subtitle">深耕雪域十五载，以实力铸就信任，用匠心建设家园</p>
+        </div>
+        <div class="data-grid">
+            <div class="data-card reveal">
+                <div class="data-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div class="data-number"><span class="counter" data-target="2010">0</span></div>
+                <div class="data-label">成立年份</div>
+            </div>
+            <div class="data-card reveal">
+                <div class="data-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </div>
+                <div class="data-number"><span class="counter" data-target="10" data-suffix="亿元">0</span><span class="unit">亿元</span></div>
+                <div class="data-label">注册资本</div>
+            </div>
+            <div class="data-card reveal">
+                <div class="data-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h2M14 11h4M14 15h2"/></svg>
+                </div>
+                <div class="data-number"><span class="counter" data-target="85.56" data-decimal="true">0</span><span class="unit">亿元</span></div>
+                <div class="data-label">总资产规模</div>
+            </div>
+            <div class="data-card reveal">
+                <div class="data-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div class="data-number"><span class="counter" data-target="13">0</span><span class="unit">家</span></div>
+                <div class="data-label">下属企业</div>
+            </div>
+            <div class="data-card reveal">
+                <div class="data-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <div class="data-number"><span class="counter" data-target="25">0</span><span class="unit">个</span></div>
+                <div class="data-label">覆盖县市</div>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:48px;" class="reveal">
+            <div class="gold-divider"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== BUSINESS SECTIONS ==================== -->
+<section class="business-section" id="business">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">BUSINESS SECTORS</div>
+            <h2 class="section-title font-serif">六大业务板块</h2>
+            <p class="section-subtitle">立足甘孜、服务全州，构建多元化产业格局</p>
+        </div>
+        <div class="business-grid">
+            <!-- 交通工程 -->
+            <div class="business-card biz-1 reveal tibetan-border">
+                <div class="business-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19L20 5M4 5l16 14"/><path d="M12 3v18M3 12h18" opacity="0.3"/><path d="M18 11V6l-4-2-4 2v5H4v2h6v5l4 2 4-2v-5h6v-2z"/></svg>
+                </div>
+                <h3 class="business-name">交通工程</h3>
+                <p class="business-desc">承建国道省道改建、川藏公路升级、农村公路通达等重大交通基础设施项目，打通雪域天路。</p>
+                <div class="business-more">了解更多 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+            <!-- 房建工程 -->
+            <div class="business-card biz-2 reveal tibetan-border">
+                <div class="business-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M9 8h1M14 8h1M9 12h1M14 12h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>
+                </div>
+                <h3 class="business-name">房建工程</h3>
+                <p class="business-desc">打造高品质安居工程、公共服务建筑与商业综合体，提升城镇人居品质与城市形象。</p>
+                <div class="business-more">了解更多 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+            <!-- 市政工程 -->
+            <div class="business-card biz-3 reveal tibetan-border">
+                <div class="business-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <h3 class="business-name">市政工程</h3>
+                <p class="business-desc">推进城市道路管网、污水处理、市政绿化等基础设施建设，完善城市功能配套体系。</p>
+                <div class="business-more">了解更多 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+            <!-- 乡村振兴 -->
+            <div class="business-card biz-4 reveal tibetan-border">
+                <div class="business-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                </div>
+                <h3 class="business-name">乡村振兴</h3>
+                <p class="business-desc">聚焦农牧区基础设施改善、特色产业发展与生态宜居乡村建设，助力共同富裕目标实现。</p>
+                <div class="business-more">了解更多 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+            <!-- 文旅开发 -->
+            <div class="business-card biz-5 reveal tibetan-border">
+                <div class="business-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a10 10 0 1010 10H12V2z"/><path d="M12 12L2.05 6.95"/><path d="M12 12l7.07 7.07"/><path d="M12 12v10" opacity="0.4"/></svg>
+                </div>
+                <h3 class="business-name">文旅开发</h3>
+                <p class="business-desc">依托稻城亚丁、海螺沟等世界级资源，打造精品文旅项目，推动全域旅游高质量发展。</p>
+                <div class="business-more">了解更多 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+            <!-- 产业投资 -->
+            <div class="business-card biz-6 reveal tibetan-border">
+                <div class="business-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                </div>
+                <h3 class="business-name">产业投资</h3>
+                <p class="business-desc">布局清洁能源、生态农业、数字经济等战略性新兴产业，培育区域经济发展新动能。</p>
+                <div class="business-more">了解更多 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== PROJECT MAP SECTION ==================== -->
+<section class="projects-section" id="projects">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">PROJECT DISTRIBUTION</div>
+            <h2 class="section-title font-serif">项目展示</h2>
+            <p class="section-subtitle">足迹遍布甘孜大地，建设成果惠及全州人民</p>
+        </div>
+        <div class="map-container reveal">
+            <div class="ganzi-map-stage">
+                <img class="ganzi-map-img" src="img/map.png" alt="甘孜州项目分布地图">
+                <div class="map-points-layer">
+                    <div class="map-point" data-place="甘孜县" style="left:49.5%; top:44.2%; --delay:0s;"><span class="dot"></span><span class="pulse"></span></div>
+                    <div class="map-point" data-place="理塘县" style="left:45.4%; top:55.0%; --delay:0.3s;"><span class="dot"></span><span class="pulse"></span></div>
+                    <div class="map-point" data-place="雅江县" style="left:49.3%; top:66.5%; --delay:0.8s;"><span class="dot"></span><span class="pulse"></span></div>
+                    <div class="map-point" data-place="康定市" style="left:55.4%; top:55.4%; --delay:1.2s;"><span class="dot"></span><span class="pulse"></span></div>
+                    <div class="map-point" data-place="泸定县" style="left:62.5%; top:60.6%; --delay:1.7s;"><span class="dot"></span><span class="pulse"></span></div>
+                    <div class="map-point" data-place="九龙县" style="left:60.1%; top:70.6%; --delay:0.5s;"><span class="dot"></span><span class="pulse"></span></div>
+                    <div class="map-point" data-place="稻城县" style="left:54.8%; top:71.5%; --delay:1.4s;"><span class="dot"></span><span class="pulse"></span></div>
+                </div>
+            </div>
+            <!-- Tooltip element -->
+            <div class="project-tooltip" id="projectTooltip">
+                <div class="tooltip-title"></div>
+                <div class="tooltip-info"></div>
+                <div class="tooltip-tag"></div>
+            </div>
+            <div class="place-tooltip" id="placeTooltip"></div>
+        </div>
+
+        <!-- Mobile project list -->
+        <div class="project-list-mobile">
+            <div class="project-mini-card"><div class="pmc-title">川藏铁路康定枢纽站</div><div class="pmc-desc">交通工程 · 总投资约45亿元</div></div>
+            <div class="project-mini-card"><div class="pmc-title">稻城亚丁机场改扩建</div><div class="pmc-desc">交通工程 · 4C级民用机场</div></div>
+            <div class="project-mini-card"><div class="pmc-title">泸定大渡河特大桥</div><div class="pmc-desc">交通工程 · 主跨1100米悬索桥</div></div>
+            <div class="project-mini-card"><div class="pmc-title">理塘光伏发电基地</div><div class="pmc-desc">产业投资 · 装机容量500MW</div></div>
+            <div class="project-mini-card"><div class="pmc-title">道孚藏族民居改造工程</div><div class="pmc-desc">房建工程 · 惠及2000余户</div></div>
+            <div class="project-mini-card"><div class="pmc-title">丹巴古碉藏寨文旅综合体</div><div class="pmc-desc">文旅开发 · 国家4A级景区</div></div>
+            <div class="project-mini-card"><div class="pmc-title">巴塘水电站建设项目</div><div class="pmc-desc">产业投资 · 装机容量76万千瓦</div></div>
+            <div class="project-mini-card"><div class="pmc-title">乡城高原特色产业园</div><div class="pmc-desc">乡村振兴 · 占地300公顷</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== TIMELINE SECTION ==================== -->
+<section class="timeline-section" id="timeline">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">DEVELOPMENT HISTORY</div>
+            <h2 class="section-title font-serif">企业历程</h2>
+            <p class="section-subtitle">砥砺前行十五载，每一步都铭刻着奋斗的足迹</p>
+        </div>
+        <div class="timeline-wrapper">
+            <div class="timeline-line"></div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"></div>
+                <div class="timeline-content">
+                    <div class="timeline-year">2010</div>
+                    <h3 class="timeline-title">集团正式成立</h3>
+                    <p class="timeline-desc">甘孜州建设投资集团有限公司在康定市正式挂牌成立，注册资本10亿元，开启雪域建设新篇章。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"></div>
+                <div class="timeline-content">
+                    <div class="timeline-year">2013</div>
+                    <h3 class="timeline-title">首条高速公路通车</h3>
+                    <p class="timeline-desc">承建的雅康高速甘孜段关键标段顺利贯通，标志着集团在大型交通工程建设领域取得历史性突破。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"></div>
+                <div class="timeline-content">
+                    <div class="timeline-year">2016</div>
+                    <h3 class="timeline-title">资产突破五十亿</h3>
+                    <p class="timeline-desc">集团总资产规模首次突破50亿元大关，下属企业增至8家，业务版图从单一施工向多元投资转型。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"></div>
+                <div class="timeline-content">
+                    <div class="timeline-year">2019</div>
+                    <h3 class="timeline-title">文旅板块启航</h3>
+                    <p class="timeline-desc">成立文旅投资子公司，启动丹巴古碉藏寨、稻城亚丁配套设施等重点项目，布局全域旅游产业。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"></div>
+                <div class="timeline-content">
+                    <div class="timeline-year">2022</div>
+                    <h3 class="timeline-title">跻身百亿行列</h3>
+                    <p class="timeline-desc">集团总资产跨越百亿门槛，达到85.56亿元规模，成为甘孜州最具影响力的国有资本运营平台之一。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-node"></div>
+                <div class="timeline-content">
+                    <div class="timeline-year">2025</div>
+                    <h3 class="timeline-title">迈向新征程</h3>
+                    <p class="timeline-desc">下属企业达13家，业务覆盖全州25个县市。持续深化国企改革，以高质量建设助推甘孜现代化发展。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== NEWS SECTION ==================== -->
+<section class="news-section" id="news">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">NEWS CENTER</div>
+            <h2 class="section-title font-serif">新闻中心</h2>
+            <p class="section-subtitle">关注集团动态，了解最新资讯与发展成果</p>
+        </div>
+        <div class="news-layout" data-home-news-layout>
+            <!-- Featured news -->
+            <div class="news-featured reveal" data-home-news-featured>
+                <div class="news-featured-bg" style="--news-featured-img: url('img/雅砻江大桥.jpg');"></div>
+                <div class="news-featured-pattern"></div>
+                <div class="news-featured-content">
+                    <span class="news-tag">头条要闻</span>
+                    <h3 class="news-featured-title">雅砻江大桥关键节点顺利贯通，区域通行能力持续提升</h3>
+                    <p class="news-featured-excerpt">集团统筹推进重点交通工程建设，强化安全、质量与工期协同管理，持续提升区域路网韧性与民生出行保障能力（示意）。</p>
+                    <span class="news-date">2025年6月8日</span>
+                </div>
+            </div>
+            <!-- News list -->
+            <div class="news-list" data-home-news-list>
+                <div class="news-item reveal" style="--news-img: url('img/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg');">
+                    <div class="news-item-date">
+                        <div class="nid-day">05</div>
+                        <div class="nid-month">Jun</div>
+                    </div>
+                    <div class="news-item-body">
+                        <h4 class="news-item-title">国道318线康定市过境段434互通工程施工组织优化，关键节点推进（示意）</h4>
+                        <div class="news-item-meta">
+                            <span class="news-cat">项目建设</span>
+                            <span>阅读 1.2k</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成前1.jpeg');">
+                    <div class="news-item-date">
+                        <div class="nid-day">02</div>
+                        <div class="nid-month">Jun</div>
+                    </div>
+                    <div class="news-item-body">
+                        <h4 class="news-item-title">雀儿山隧道工程关键工序安全管控到位，施工组织稳步推进（示意）</h4>
+                        <div class="news-item-meta">
+                            <span class="news-cat">交通工程</span>
+                            <span>阅读 2.8k</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成前2.jpeg');">
+                    <div class="news-item-date">
+                        <div class="nid-day">28</div>
+                        <div class="nid-month">May</div>
+                    </div>
+                    <div class="news-item-body">
+                        <h4 class="news-item-title">雀儿山隧道建成前阶段性成果汇总，现场标准化持续提升（示意）</h4>
+                        <div class="news-item-meta">
+                            <span class="news-cat">交通工程</span>
+                            <span>阅读 1.9k</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成后.jpeg');">
+                    <div class="news-item-date">
+                        <div class="nid-day">20</div>
+                        <div class="nid-month">May</div>
+                    </div>
+                    <div class="news-item-body">
+                        <h4 class="news-item-title">雀儿山隧道建成后运行态势良好，通行条件显著改善（示意）</h4>
+                        <div class="news-item-meta">
+                            <span class="news-cat">交通工程</span>
+                            <span>阅读 1.5k</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== PARTY BUILDING SECTION ==================== -->
+<section class="party-section" id="party">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">PARTY BUILDING</div>
+            <h2 class="section-title font-serif">党建文化</h2>
+            <p class="section-subtitle">坚持党建引领，凝聚奋进力量，推动企业高质量发展</p>
+        </div>
+        <div class="party-content">
+            <div class="party-grid">
+                <div class="party-card reveal">
+                    <div class="party-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <h4 class="party-card-title">思想建设</h4>
+                    <p class="party-card-desc">深入学习贯彻习近平新时代中国特色社会主义思想，筑牢信仰之基</p>
+                </div>
+                <div class="party-card reveal">
+                    <div class="party-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    </div>
+                    <h4 class="party-card-title">组织建设</h4>
+                    <p class="party-card-desc">健全基层党组织体系，发挥战斗堡垒作用和党员先锋模范作用</p>
+                </div>
+                <div class="party-card reveal">
+                    <div class="party-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <h4 class="party-card-title">廉政建设</h4>
+                    <p class="party-card-desc">持之以恒正风肃纪，营造风清气正的良好政治生态和企业环境</p>
+                </div>
+            </div>
+            <div class="party-slogan reveal">
+                <p class="slogan-text font-serif">党建引领 · 融合发展</p>
+                <p class="slogan-sub">BUILDING THE FUTURE WITH PARTY GUIDANCE</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer" id="contact">
+    <div class="footer-wave">
+        <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+            <path d="M0,30 C360,60 720,0 1080,30 C1260,45 1380,30 1440,30 L1440,60 L0,60 Z" fill="#0D1117"/>
+        </svg>
+    </div>
+    <div class="container">
+        <div class="footer-main">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon">建投</div>
+                    <span class="footer-logo-text">甘孜州建设投资集团</span>
+                </div>
+                <p>深耕雪域高原十五载，以匠心致初心，用品质铸品牌。致力于成为西部地区具有核心竞争力的综合性建设投资集团。</p>
+            </div>
+            <div class="footer-col">
+                <h4>快速链接</h4>
+                <ul class="footer-links">
+                    <li><a href="pages/about/index.html">集团概况</a></li>
+                    <li><a href="pages/business/index.html">业务板块</a></li>
+                    <li><a href="pages/projects/index.html">项目展示</a></li>
+                    <li><a href="pages/about/index.html#history">企业历程</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>信息公示</h4>
+                <ul class="footer-links">
+                    <li><a href="#">招标公告</a></li>
+                    <li><a href="#">中标公示</a></li>
+                    <li><a href="pages/detail/article-detail.html?id=job">人才招聘</a></li>
+                    <li><a href="pages/contact/index.html">联系我们</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>联系方式</h4>
+                <ul class="footer-contact">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        四川省康定市榆林街道榆磨路60号
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                        0836-2876659
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <a href="https://www.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州人民政府</a><br>
+                        <a href="http://jtj.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州交通运输局</a><br>
+                        <a href="http://jsj.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州住房和城乡建设局</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>甘孜州建设投资集团有限公司 2022 版权所有</span>
+            <span><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">蜀ICP备2022013144号-1</a> &nbsp;|&nbsp; <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51332102000065" target="_blank" rel="noopener noreferrer">川公网安备 51332102000065号</a></span>
+        </div>
+    </div>
+</footer>
+
+<!-- Back to top button -->
+<button class="back-to-top" id="backToTop" aria-label="返回顶部">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+</template>
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script>
+(function() {
+    const tpl = document.querySelector('template[data-home-single-screen]');
+    if (!tpl || tpl.dataset.rendered === '1') return;
+    tpl.dataset.rendered = '1';
+    tpl.parentNode.insertBefore(tpl.content.cloneNode(true), tpl);
+})();
+</script>
+<script>
+(function() {
+    'use strict';
+
+    // ====== Generate floating particles in hero ======
+    function createParticles() {
+        const container = document.getElementById('heroParticles');
+        if (!container) return;
+        const count = 30;
+        for (let i = 0; i < count; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+            particle.style.animationDelay = (Math.random() * 15) + 's';
+            particle.style.width = (Math.random() * 3 + 1) + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.opacity = Math.random() * 0.6 + 0.2;
+            container.appendChild(particle);
+        }
+    }
+    createParticles();
+
+    // ====== Navbar scroll effect ======
+    const navbar = document.getElementById('navbar');
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    let lastScrollY = 0;
+
+    function handleNavScroll() {
+        const scrollY = window.scrollY;
+        if (scrollY > 80) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+        lastScrollY = scrollY;
+    }
+
+    window.addEventListener('scroll', handleNavScroll, { passive: true });
+    handleNavScroll(); // init
+
+    // Mobile nav toggle
+    if (navToggle && navLinks) {
+        navToggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            navLinks.classList.toggle('open');
+        });
+
+        // Close mobile nav on link click
+        navLinks.querySelectorAll('.nav-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                navToggle.classList.remove('active');
+                navLinks.classList.remove('open');
+            });
+        });
+    }
+
+    // Active nav link on scroll (only internal anchors)
+    const sections = document.querySelectorAll('section[id]');
+    const navLinkElements = document.querySelectorAll('.nav-link');
+    const internalNavLinks = Array.from(navLinkElements).filter(function(link) {
+        const href = link.getAttribute('href') || '';
+        return href.startsWith('#');
+    });
+
+    function updateActiveNav() {
+        if (internalNavLinks.length <= 1) return;
+        const scrollPos = window.scrollY + 150;
+        sections.forEach(function(section) {
+            const top = section.offsetTop;
+            const height = section.offsetHeight;
+            const id = section.getAttribute('id');
+            if (scrollPos >= top && scrollPos < top + height) {
+                internalNavLinks.forEach(function(link) {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + id) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }
+    window.addEventListener('scroll', updateActiveNav, { passive: true });
+
+    const sideNav = document.getElementById('sideNav');
+    if (sideNav) {
+        const sideLinks = Array.from(sideNav.querySelectorAll('.side-nav-item'));
+        const sideTargets = sideLinks.map(function(a) {
+            const href = a.getAttribute('href');
+            return href && href.startsWith('#') ? href.slice(1) : null;
+        }).filter(Boolean);
+
+        function updateSideNav() {
+            const scrollPos = window.scrollY + 150;
+            sideTargets.forEach(function(id) {
+                const section = document.getElementById(id);
+                if (!section) return;
+                const top = section.offsetTop;
+                const height = section.offsetHeight;
+                if (scrollPos >= top && scrollPos < top + height) {
+                    sideLinks.forEach(function(link) {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === '#' + id) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateSideNav, { passive: true });
+        updateSideNav();
+    }
+
+    // ====== IntersectionObserver for reveal animations ======
+    const revealElements = document.querySelectorAll('.reveal');
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px 0px -60px 0px',
+        threshold: 0.1
+    };
+
+    const revealObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry, index) {
+            if (entry.isIntersecting) {
+                // Stagger delay based on index within parent
+                const siblings = entry.target.parentElement.querySelectorAll('.reveal');
+                let siblingIndex = 0;
+                for (let i = 0; i < siblings.length; i++) {
+                    if (siblings[i] === entry.target) { siblingIndex = i; break; }
+                }
+                setTimeout(function() {
+                    entry.target.classList.add('active');
+                }, siblingIndex * 100);
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    revealElements.forEach(function(el) {
+        revealObserver.observe(el);
+    });
+
+    // Timeline items observer
+    const timelineItems = document.querySelectorAll('.timeline-item');
+    const timelineObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+                timelineObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.2, rootMargin: '0px 0px -50px 0px' });
+
+    timelineItems.forEach(function(item) {
+        timelineObserver.observe(item);
+    });
+
+    // ====== Number counter animation ======
+    const counters = document.querySelectorAll('.counter');
+    let countersAnimated = false;
+
+    function animateCounters() {
+        if (countersAnimated) return;
+        countersAnimated = true;
+
+        counters.forEach(function(counter) {
+            const target = parseFloat(counter.dataset.target);
+            const isDecimal = counter.dataset.decimal === 'true';
+            const duration = 2000;
+            const startTime = performance.now();
+
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease out cubic
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = target * eased;
+
+                if (isDecimal) {
+                    counter.textContent = current.toFixed(2);
+                } else {
+                    counter.textContent = Math.floor(current);
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    if (isDecimal) {
+                        counter.textContent = target.toFixed(2);
+                    } else {
+                        counter.textContent = target;
+                    }
+                }
+            }
+            requestAnimationFrame(updateCounter);
+        });
+    }
+
+    // Trigger counter when data section is visible
+    const dataSection = document.getElementById('data');
+    if (dataSection) {
+        const counterObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    animateCounters();
+                    counterObserver.unobserve(entry);
+                }
+            });
+        }, { threshold: 0.3 });
+        counterObserver.observe(dataSection);
+    }
+
+    // ====== Map points fit (object-fit: contain) ======
+    const mapContainer = document.querySelector('.map-container');
+    const mapStage = document.querySelector('.ganzi-map-stage');
+    const mapImg = mapStage ? mapStage.querySelector('.ganzi-map-img') : null;
+    const pointsLayer = mapStage ? mapStage.querySelector('.map-points-layer') : null;
+
+    function updatePointsLayerFit() {
+        if (!mapStage || !mapImg || !pointsLayer) return;
+        const cw = mapStage.clientWidth;
+        const ch = mapStage.clientHeight;
+        const iw = mapImg.naturalWidth;
+        const ih = mapImg.naturalHeight;
+        if (!cw || !ch || !iw || !ih) return;
+
+        const scale = Math.min(cw / iw, ch / ih);
+        const rw = iw * scale;
+        const rh = ih * scale;
+        const ox = (cw - rw) / 2;
+        const oy = (ch - rh) / 2;
+
+        mapStage.style.setProperty('--fit-left', ox + 'px');
+        mapStage.style.setProperty('--fit-top', oy + 'px');
+        mapStage.style.setProperty('--fit-width', rw + 'px');
+        mapStage.style.setProperty('--fit-height', rh + 'px');
+    }
+
+    if (mapImg && pointsLayer) {
+        if (mapImg.complete) updatePointsLayerFit();
+        mapImg.addEventListener('load', updatePointsLayerFit);
+        window.addEventListener('resize', updatePointsLayerFit, { passive: true });
+    }
+
+    // ====== Map tooltip interaction ======
+    const hotspots = document.querySelectorAll('.map-point');
+    const placeTooltip = document.getElementById('placeTooltip');
+
+    hotspots.forEach(function(hotspot) {
+        hotspot.addEventListener('mouseenter', function() {
+            const placeName = this.dataset.place;
+            if (!placeTooltip || !placeName || !mapContainer) return;
+
+            const containerRect = mapContainer.getBoundingClientRect();
+            const hotRect = this.getBoundingClientRect();
+            const cx = hotRect.left + hotRect.width / 2;
+            const cy = hotRect.top + hotRect.height / 2;
+
+            placeTooltip.textContent = placeName;
+            placeTooltip.style.left = (cx - containerRect.left) + 'px';
+            placeTooltip.style.top = (cy - containerRect.top) + 'px';
+            placeTooltip.classList.add('visible');
+        });
+
+        hotspot.addEventListener('mouseleave', function() {
+            if (placeTooltip) placeTooltip.classList.remove('visible');
+        });
+    });
+
+    // ====== Back to top button ======
+    const backToTopBtn = document.getElementById('backToTop');
+
+    if (backToTopBtn) {
+        function toggleBackToTop() {
+            if (window.scrollY > 600) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        }
+
+        window.addEventListener('scroll', toggleBackToTop, { passive: true });
+        backToTopBtn.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+})();
+</script>
+
+<script src="pages/assets/global-ui.js"></script>
+<script src="pages/assets/home-directus.js"></script>
+
+</body>
+</html>

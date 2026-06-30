@@ -408,7 +408,7 @@ const getPublicArticles = async (parsedUrl) => {
 
     const params = {
         fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,main_channel.id,main_channel.name,main_channel.slug',
-        sort: '-is_top,sort,-publish_at,-id',
+        sort: '-publish_at,-id',
         page,
         limit: pageSize,
         meta: 'filter_count',
