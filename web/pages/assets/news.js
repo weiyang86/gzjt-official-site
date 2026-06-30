@@ -3,7 +3,6 @@
   if (!root) return
   const CMS_API_BASE = (window.CMS_API_BASE || localStorage.getItem('CMS_API_BASE') || 'http://localhost:4000').replace(/\/$/, '')
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const defaultSubcategories = ['省委、省政府', '州委、州政府']
   const fallbackChannelMap = {
     政务简讯: 'gov-briefs',
     集团要闻: 'group-news',
@@ -287,9 +286,7 @@
     tabsWrap.querySelectorAll('[data-channel-tab]').forEach(button => {
       button.addEventListener('click', async () => {
         state.activeChannel = button.getAttribute('data-channel-tab') || 'all'
-        state.activeSubcategory = state.activeChannel === 'gov-briefs'
-          ? (state.availableSubcategories[0] || defaultSubcategories[0] || '')
-          : ''
+        state.activeSubcategory = ''
         state.page = 1
         if (state.mode === 'api') await refreshApiData()
         update()
@@ -299,27 +296,10 @@
 
   const renderSubTabs = () => {
     if (subTabsWrap) {
-      const items = state.activeChannel === 'gov-briefs'
-        ? (state.availableSubcategories.length ? state.availableSubcategories : defaultSubcategories)
-        : []
-      subTabsWrap.hidden = items.length === 0
-      subTabsWrap.style.display = items.length ? '' : 'none'
-      if (!items.length) {
-        subTabsWrap.innerHTML = ''
-        return
-      }
-      if (!items.includes(state.activeSubcategory)) state.activeSubcategory = items[0] || ''
-      subTabsWrap.innerHTML = items.map(item => `
-        <button class="tab${state.activeSubcategory === item ? ' is-active' : ''}" type="button" data-news-subtab="${escapeHtml(item)}">${escapeHtml(item)}</button>
-      `).join('')
-      subTabsWrap.querySelectorAll('[data-news-subtab]').forEach(button => {
-        button.addEventListener('click', async () => {
-          state.activeSubcategory = button.getAttribute('data-news-subtab') || ''
-          state.page = 1
-          if (state.mode === 'api') await refreshApiData()
-          update()
-        })
-      })
+      state.activeSubcategory = ''
+      subTabsWrap.hidden = true
+      subTabsWrap.style.display = 'none'
+      subTabsWrap.innerHTML = ''
     }
   }
 
@@ -380,7 +360,7 @@
   })
 
   const refreshApiData = async () => {
-    const params = new URLSearchParams({ page: '1', pageSize: '100' })
+    const params = new URLSearchParams({ page: '1', pageSize: '100', scope: 'news' })
     if (state.activeChannel !== 'all') params.set('channelSlug', state.activeChannel)
     if (state.activeSubcategory) params.set('newsSubcategory', state.activeSubcategory)
     if (state.keyword.trim()) params.set('keyword', state.keyword.trim())
@@ -388,7 +368,7 @@
     if (!result || !Array.isArray(result.items)) return false
     state.mode = 'api'
     state.items = result.items.map(normalizeApiArticle)
-    state.availableSubcategories = Array.isArray(result.availableSubcategories) ? result.availableSubcategories : []
+    state.availableSubcategories = []
     return true
   }
 

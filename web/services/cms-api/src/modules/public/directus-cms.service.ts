@@ -47,10 +47,9 @@ export class DirectusCmsService {
       'filter[status][_eq]': 'enabled',
       'filter[visible][_eq]': 'true',
       sort: 'sort,id',
-      fields: 'id,name,slug,type,path,sort,status,visible'
+      fields: 'id,name,slug,type,path,sort,status,visible,is_news_category'
     }
-    if (type) params['filter[type][_eq]'] = type
-    return this.safeList<any>('channels', params, item => ({
+    const channels = await this.safeList<any>('channels', params, item => ({
       id: String(item.id),
       name: item.name || '',
       slug: item.slug || '',
@@ -58,13 +57,18 @@ export class DirectusCmsService {
       path: item.path || '',
       sort: item.sort ?? 0,
       status: item.status || '',
-      visible: item.visible !== false
+      visible: item.visible !== false,
+      isNewsCategory: item.type === 'news' || item.is_news_category === true
     }))
+    if (type === 'news') return channels.filter(item => item.isNewsCategory)
+    if (type === 'notice') return channels.filter(item => item.type === 'notice')
+    return channels
   }
 
   async listArticles(options: {
     page?: number
     pageSize?: number
+    scope?: string
     channelSlug?: string
     newsSubcategory?: string
     keyword?: string
@@ -95,13 +99,18 @@ export class DirectusCmsService {
     try {
       const result = await this.fetchDirectus<{ data?: any[]; meta?: { filter_count?: number } }>('/items/articles', params)
       const items = Array.isArray(result.data) ? result.data.map(item => this.mapArticleSummary(item, channelMap)) : []
+      const scopedItems = items.filter(item => {
+        if (options.scope === 'notice') return item.mainChannel?.type === 'notice'
+        if (options.scope === 'news') return item.mainChannel?.type !== 'notice'
+        return true
+      })
       const availableSubcategories = options.channelSlug ? await this.getArticleSubcategories(options.channelSlug) : []
       return {
         page,
         pageSize,
-        total: result.meta?.filter_count ?? items.length,
+        total: scopedItems.length,
         availableSubcategories,
-        items
+        items: scopedItems
       }
     } catch (error) {
       this.warnFailure('articles', error)
@@ -354,16 +363,17 @@ export class DirectusCmsService {
       'filter[visible][_eq]': 'true',
       limit: '-1',
       sort: 'sort,id',
-      fields: 'id,name,slug,type,path,sort,status,visible'
+      fields: 'id,name,slug,type,path,sort,status,visible,is_news_category'
     }, item => ({
       id: String(item.id),
       name: item.name || '',
       slug: item.slug || '',
-      type: item.type || '',
+      type: item.type === 'news' || item.is_news_category === true ? 'news' : (item.type || ''),
       path: item.path || '',
       sort: item.sort ?? 0,
       status: item.status || '',
-      visible: item.visible !== false
+      visible: item.visible !== false,
+      isNewsCategory: item.type === 'news' || item.is_news_category === true
     }))
     const map = new Map<string, any>()
     channels.forEach(channel => map.set(String(channel.id), channel))
