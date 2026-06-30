@@ -56,6 +56,12 @@ DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
 - `banners`
 - `articles`
 - `site_settings`
+- `home_sections`
+- `quick_links`
+- `friend_links`
+- `page_modules`
+- `page_contents`
+- `page_content_items`
 
 脚本会创建字段、尝试创建文件和多对一关系，并插入测试数据：
 
@@ -65,6 +71,7 @@ DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
 - 业务板块：项目建设、经营管理、交旅融合。
 - 单页：集团简介、联系我们。
 - 文章：`group-news`、`business-news`、`party-mass`、`announcements` 每个栏目至少 2 条 `published` 文章。
+- 页面内容管理：围绕集团概况、新闻中心、业务板块、下属公司、党建群团、项目建设、社会责任、信息公开、联系我们初始化 `page_modules`；按 `content_type` 和 `admin_enabled` 标记第一阶段表单能力；同时初始化 `page_contents` 主体内容和 `page_content_items` 示例重复项。
 
 脚本具有幂等性：集合、字段、关系或测试数据已存在时，会跳过或更新，不应因重复运行直接失败。
 
@@ -240,3 +247,71 @@ curl 'http://localhost:8055/items/articles?fields=id,title,status,source_file&li
 curl 'http://localhost:8055/items/quick_links?fields=id,title,url,source_file&limit=5'
 curl 'http://localhost:8055/items/home_sections?fields=id,title,slug,channel_slug,status&limit=10'
 ```
+
+## 9. ADMIN-06 新闻分类字段与初始化
+
+ADMIN-06 继续复用 `channels` 集合作为新闻分类来源，不新建 `news_categories` 表。重新执行 bootstrap 脚本时，会幂等补齐以下 `channels` 字段：
+
+- `name`：分类名称。
+- `slug`：分类标识，后台和前台查询使用。
+- `parent`：自关联父级分类，当前简单后台暂不开放层级编辑。
+- `type`：`list` / `page` / `link` / `module`。
+- `path`：前台路径或预留路径。
+- `sort`：排序值。
+- `visible`：是否在前台/后台选择中显示。
+- `status`：`enabled` / `disabled`。
+- `is_news_category`：是否作为新闻分类。
+- `description`：分类说明。
+
+本地补齐字段命令：
+
+```bash
+set -a
+source .env.directus
+set +a
+DIRECTUS_URL=http://localhost:8055 node scripts/directus/bootstrap-directus.mjs
+```
+
+简单后台分类管理接口只操作 `channels` 中 `is_news_category=true` 的记录。停用分类会设置 `status=disabled`、`visible=false`，不会删除分类，也不会修改已关联文章；已发布新闻仍保留原 `main_channel` 关系。
+
+## 10. ADMIN-08R 页面内容管理模型
+
+ADMIN-08R 将页面模块占位升级为“后台菜单 + 页面主体内容 + 重复项”的三层模型。该模型只影响 Directus 内容结构和初始化数据，不替换前台页面，不修改 `web/pages/`，也不改变前台 CSS、布局、动画或现有路由。
+
+### 新增 / 调整集合
+
+- `page_modules`：后台菜单和模块定义，包含一级目录、二级页面、前端路径、`content_type`、`admin_enabled`、占位提示、排序和状态。
+- `page_contents`：页面主体内容，包含 `module_code`、标题、副标题、封面、摘要、富文本、`extra_json`、发布状态。
+- `page_content_items`：重复项内容，包含 `module_code`、`item_type`、标题、副标题、日期标签、图片、正文、链接、排序、状态和 `extra_json`。
+
+### content_type 取值
+
+`single_page` / `timeline` / `image_text` / `org_chart` / `leader_list` / `article_list` / `company_list` / `sector_list` / `contact_info` / `static_placeholder`。
+
+### 第一阶段开放编辑
+
+`admin_enabled=true` 的模块包括：企业简介、发展历程时间轴、组织架构图、集团新闻、行业要闻、媒体聚焦、项目建设、经营管理、公司列表、公司简介、公司动态、党建动态、项目动态、安全环保、科技创新、社会责任、人才招聘、公示公告、电话、邮箱、地址。
+
+### 仍显示“正在开发中”
+
+`admin_enabled=false` 的模块包括：集团主要领导、交旅融合、特许服务、新兴产业、群团工作、工会工作、青年工作、乡村振兴、志愿服务、集中招采采购平台。后台应继续显示 `placeholder_text=正在开发中`。
+
+### 初始化 page_contents / page_content_items
+
+脚本会初始化：
+
+- `group-intro` 企业简介主体内容。
+- `org-chart` 组织架构图主体内容，`cover` 可关联 Directus Files 图片。
+- `social-responsibility` 社会责任主体内容。
+- `phone`、`email`、`address` 联系方式主体内容；联系方式也会在 `extra_json` 中说明优先与 `site_settings.phone/email/address` 保持一致。
+- `group-history` 时间轴示例重复项，用于验证 `page_content_items`。
+
+### 验证命令
+
+```bash
+curl 'http://localhost:8055/items/page_modules?fields=id,parent_title,module_title,module_code,content_type,admin_enabled,placeholder_text,status,sort&sort=parent_code,sort&limit=50'
+curl 'http://localhost:8055/items/page_contents?fields=id,module_code,title,status&limit=20'
+curl 'http://localhost:8055/items/page_content_items?fields=id,module_code,item_type,title,status,sort&limit=20'
+```
+
+如果接口返回 403，请先使用 Directus 管理员账号登录 Studio 检查集合数据；这些集合当前主要服务后台管理，不要求开放 Public 读取权限。
