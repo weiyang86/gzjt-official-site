@@ -1,7 +1,7 @@
 (() => {
   const root = document.querySelector('[data-detail]')
   if (!root) return
-  const CMS_API_BASE = (window.CMS_API_BASE || localStorage.getItem('CMS_API_BASE') || 'http://localhost:4000').replace(/\/$/, '')
+  const CMS_API_BASE = (window.CMS_API_BASE || localStorage.getItem('CMS_API_BASE') || '').replace(/\/$/, '')
 
   const qs = new URLSearchParams(window.location.search)
   const path = location.pathname.replace(/\\/g, '/')
@@ -15,14 +15,19 @@
     return rootPrefix + p.replace(/^\/+/, '')
   }
   const fetchJson = async (pathname) => {
-    try {
-      const res = await fetch(`${CMS_API_BASE}${pathname}`)
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-      return await res.json()
-    } catch (err) {
-      console.warn(`[detail] ${pathname} failed, keeping static fallback.`, err)
-      return null
+    const targets = []
+    if (pathname.startsWith('/')) targets.push(pathname)
+    if (CMS_API_BASE) targets.push(`${CMS_API_BASE}${pathname}`)
+    for (const target of [...new Set(targets)]) {
+      try {
+        const res = await fetch(target)
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+        return await res.json()
+      } catch (err) {
+        console.warn(`[detail] ${target} failed, keeping static fallback.`, err)
+      }
     }
+    return null
   }
   const escapeHtml = (value) => String(value || '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))
   const longDate = (value) => {

@@ -6,7 +6,10 @@
 
 ## 技术边界
 
-- 前端为静态 HTML/CSS/JS，不使用 React、Vue、Next.js。
+- 前端允许使用 Next.js + TypeScript 重构。
+- Next.js 项目必须仍然位于 `web/` 内，不得新建 `site/` 替代。
+- 迁移期间必须保留旧静态页面作为参考和回滚来源。
+- 迁移目标是保持现有官网视觉、结构、URL 兼容，不做 UI 重设计。
 - CMS 后台采用 Directus Headless CMS。
 - 数据库使用 PostgreSQL。
 - 本地开发使用 Mac + Docker + Trae。

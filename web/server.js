@@ -304,6 +304,7 @@ const isNoticeChannel = (item) => Boolean(item) && (
 const isNewsChannel = (item) => Boolean(item) && (
     item.type === 'news'
     || item.is_news_category === true
+    || item.isNewsCategory === true
 );
 
 const getPublicScope = (parsedUrl) => {
@@ -454,6 +455,51 @@ const getPublicNewsTotal = async () => {
         'filter[main_channel][_in]': newsChannelIds.join(',')
     }));
     return Number(articles?.meta?.filter_count || 0);
+};
+
+const mapPublicArticleDetail = (item, channelMap = new Map()) => {
+    const base = mapPublicArticleSummary(item, channelMap);
+    const content = item.content
+        || item.content_html
+        || item.body
+        || item.body_html
+        || item.html
+        || item.rich_text
+        || item.text
+        || '';
+    const rawAttachments = Array.isArray(item.attachments) ? item.attachments : [];
+    const attachments = rawAttachments
+        .map((att, index) => {
+            if (!att || typeof att !== 'object') return null;
+            const title = att.title || att.name || `附件${index + 1}`;
+            const url = att.url
+                || (att.file && typeof att.file === 'string' ? directusAssetUrl(att.file) : '')
+                || (att.file && typeof att.file === 'object' && att.file.id ? directusAssetUrl(att.file.id) : '')
+                || (att.directus_files_id ? directusAssetUrl(att.directus_files_id) : '')
+                || (att.file_id ? directusAssetUrl(att.file_id) : '')
+                || '';
+            if (!url) return null;
+            return { title, url };
+        })
+        .filter(Boolean);
+    return { ...base, content, attachments };
+};
+
+const getPublicArticleById = async (id) => {
+    const rawId = String(id || '').trim();
+    if (!rawId) {
+        throw Object.assign(new Error('Missing article id'), { statusCode: 400, code: 'PUBLIC_ARTICLE_ID_MISSING' });
+    }
+    const allChannels = await getPublicChannels();
+    const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
+    const article = await directusPublicRequest(buildDirectusPath(`/items/articles/${encodeURIComponent(rawId)}`, {
+        fields: '*.*'
+    }));
+    const item = article?.data || null;
+    if (!item || item.status !== 'published') {
+        throw Object.assign(new Error('Article not found'), { statusCode: 404, code: 'PUBLIC_ARTICLE_NOT_FOUND' });
+    }
+    return mapPublicArticleDetail(item, channelMap);
 };
 
 const getPageModuleRoute = (normalizedPath) => {
@@ -1311,6 +1357,15 @@ http.createServer((req, res) => {
             .then(() => getPublicChannels(getPublicScope(parsedUrl)))
             .then((channels) => sendJson(res, 200, channels))
             .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_CHANNELS_FAILED', message: err?.message || 'Failed to load public channels' } }));
+        return;
+    }
+
+    const publicArticleMatch = normalizedPath.match(/^\/api\/public\/cms\/articles\/([^/]+)$/);
+    if (publicArticleMatch && req.method === 'GET') {
+        Promise.resolve()
+            .then(() => getPublicArticleById(decodeURIComponent(publicArticleMatch[1])))
+            .then((payload) => sendJson(res, 200, payload))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_ARTICLE_FAILED', message: err?.message || 'Failed to load public article' } }));
         return;
     }
 

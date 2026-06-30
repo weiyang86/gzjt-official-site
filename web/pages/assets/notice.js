@@ -214,7 +214,7 @@
       return
     }
     listEl.innerHTML = slice.map(item => `
-      <a class="notice-item reveal" data-anim="fadeUp" href="../detail/notice-detail.html?id=${encodeURIComponent(item.id)}">
+      <a class="notice-item reveal" data-anim="fadeUp" href="${rootPrefix}pages/detail/notice-detail.html?id=${encodeURIComponent(item.id)}">
         <div class="notice-date">
           <strong>${escapeHtml(item.day)}</strong>
           <span>${escapeHtml(item.month)}</span>
