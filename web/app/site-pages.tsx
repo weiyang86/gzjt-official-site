@@ -66,7 +66,7 @@ const pageMeta: Record<string, { title: string; kicker: string; active: ActiveKe
     title: '联系我们',
     kicker: 'CONTACT',
     active: 'contact',
-    subtitle: '欢迎通过在线服务、业务咨询、合作对接等方式与我们取得联系。',
+    subtitle: '欢迎通过业务咨询、合作对接等方式与我们取得联系。',
     cta: '联系信息',
   },
 };
@@ -141,9 +141,18 @@ const companyDisplayIntro = (company: Company) => {
   return '承担集团相关业务职责，服务重点项目建设、运营管理与区域协同发展。';
 };
 
+const sanitizePageContent = (page: PageContent | null, slug: string) => {
+  if (!page) return fallbackPageBySlug(slug);
+  if (isPlaceholderText(page.content)) {
+    const fallback = fallbackPageBySlug(slug);
+    return fallback ? { ...page, content: fallback.content } : { ...page, content: '' };
+  }
+  return page;
+};
+
 async function loadPage(slug: string): Promise<PageContent | null> {
   try {
-    return await getPublicPageBySlug(slug) || fallbackPageBySlug(slug);
+    return sanitizePageContent(await getPublicPageBySlug(slug), slug);
   } catch {
     return fallbackPageBySlug(slug);
   }
@@ -211,7 +220,7 @@ function Hero({ title, kicker, subtitle, cover, ctaHref = '#content', ctaLabel =
   );
 }
 
-function Shell({ active, children, actionHref = '/contact-us', actionLabel = '在线服务' }: {
+function Shell({ active, children, actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云' }: {
   active: ActiveKey;
   children: ReactNode;
   actionHref?: string;

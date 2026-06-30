@@ -27,7 +27,7 @@ async function getChannelsForNav(scope: 'news' | 'notice', channels?: Channel[])
   }
 }
 
-export async function Header({ active = 'news', actionHref = '/contact-us', actionLabel = '在线服务', noticeChannels, newsChannels }: {
+export async function Header({ active = 'news', actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云', noticeChannels, newsChannels }: {
   active?: NavKey;
   actionHref?: string;
   actionLabel?: string;
@@ -90,7 +90,14 @@ export async function Header({ active = 'news', actionHref = '/contact-us', acti
               })}
             </nav>
             <div className="header-actions">
-              <a className="btn btn--primary" href={actionHref}>{actionLabel}</a>
+              <a
+                className="btn btn--primary"
+                href={actionHref}
+                target={actionHref.startsWith('http') ? '_blank' : undefined}
+                rel={actionHref.startsWith('http') ? 'noopener noreferrer' : undefined}
+              >
+                {actionLabel}
+              </a>
               <button className="menu-toggle" type="button" aria-label="打开菜单" data-menu-toggle aria-expanded="false"><i /></button>
             </div>
           </div>
