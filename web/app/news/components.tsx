@@ -1,6 +1,25 @@
 import Script from 'next/script';
 
-export function Header() {
+export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
+
+const navItems: Array<{ key: NavKey; href: string; label: string }> = [
+  { key: 'home', href: '/', label: '首页' },
+  { key: 'about', href: '/about', label: '集团概况' },
+  { key: 'disclosure', href: '/disclosure', label: '公示公告' },
+  { key: 'news', href: '/news', label: '新闻中心' },
+  { key: 'businessDynamics', href: '/business-dynamics', label: '业务动态' },
+  { key: 'businessDev', href: '/business-dev', label: '业务发展' },
+  { key: 'partyMasses', href: '/party-masses', label: '党建群团' },
+  { key: 'cleanGov', href: '/clean-gov', label: '廉洁建投' },
+  { key: 'responsibility', href: '/social-responsibility', label: '社会责任' },
+  { key: 'contact', href: '/contact-us', label: '联系我们' },
+];
+
+export function Header({ active = 'news', actionHref = '/contact-us', actionLabel = '在线服务' }: {
+  active?: NavKey;
+  actionHref?: string;
+  actionLabel?: string;
+}) {
   return (
     <>
       <div className="page-transition" />
@@ -15,18 +34,14 @@ export function Header() {
               </span>
             </a>
             <nav className="nav" aria-label="一级导航">
-              <a href="/" data-no-transition>首页</a>
-              <a href="/pages/about/index.html">集团概况</a>
-              <a href="/disclosure">公示公告</a>
-              <a href="/news" aria-current="page">新闻中心</a>
-              <a href="/pages/business/index.html">业务板块</a>
-              <a href="/pages/projects/index.html">项目展示</a>
-              <a href="/pages/party/index.html">党建工作</a>
-              <a href="/pages/responsibility/index.html">社会责任</a>
-              <a href="/pages/contact/index.html">联系我们</a>
+              {navItems.map((item) => (
+                <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined} key={item.key}>
+                  {item.label}
+                </a>
+              ))}
             </nav>
             <div className="header-actions">
-              <a className="btn btn--primary" href="/pages/contact/index.html">在线服务</a>
+              <a className="btn btn--primary" href={actionHref}>{actionLabel}</a>
               <button className="menu-toggle" type="button" aria-label="打开菜单" data-menu-toggle aria-expanded="false"><i /></button>
             </div>
           </div>
@@ -36,7 +51,7 @@ export function Header() {
   );
 }
 
-export function Drawer() {
+export function Drawer({ active = 'news' }: { active?: NavKey }) {
   return (
     <div className="drawer" data-drawer aria-hidden="true">
       <div className="drawer-backdrop" data-drawer-close />
@@ -46,15 +61,11 @@ export function Drawer() {
           <button className="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
-          <a href="/" data-no-transition>首页</a>
-          <a href="/pages/about/index.html">集团概况</a>
-          <a href="/disclosure">公示公告</a>
-          <a href="/news" aria-current="page">新闻中心</a>
-          <a href="/pages/business/index.html">业务板块</a>
-          <a href="/pages/projects/index.html">项目展示</a>
-          <a href="/pages/party/index.html">党建工作</a>
-          <a href="/pages/responsibility/index.html">社会责任</a>
-          <a href="/pages/contact/index.html">联系我们</a>
+          {navItems.map((item) => (
+            <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined} key={item.key}>
+              {item.label}
+            </a>
+          ))}
         </div>
       </div>
     </div>

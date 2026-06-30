@@ -62,16 +62,25 @@ export interface PublicArticleListPayload {
 export interface Company {
   id: string;
   name: string;
+  shortName?: string;
   slug: string;
+  logo?: string;
+  cover?: string;
+  intro?: string;
+  address?: string;
+  mainBusiness?: string;
+  registeredCapital?: string;
   description?: string;
+  status?: string;
 }
 
 export interface PageContent {
   id: string;
   title: string;
   slug: string;
-  status: ArticleStatus;
+  cover?: string;
   content?: string;
+  status: ArticleStatus;
 }
 
 export interface Banner {
@@ -85,8 +94,11 @@ export interface Banner {
 
 export interface BusinessSector {
   id: string;
-  title: string;
+  title?: string;
+  name?: string;
   slug: string;
+  cover?: string;
+  intro?: string;
   description?: string;
   status?: ArticleStatus;
 }
