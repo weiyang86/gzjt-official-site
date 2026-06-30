@@ -56,6 +56,16 @@
     return payload;
   };
 
+  const withQuery = (url, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      query.set(key, String(value));
+    });
+    const search = query.toString();
+    return search ? `${url}?${search}` : url;
+  };
+
   window.AdminApi = {
     adminFetch,
     redirectToLogin,
@@ -65,21 +75,22 @@
     }),
     logout: () => adminFetch('/admin-api/logout', { method: 'POST' }),
     me: () => adminFetch('/admin-api/me'),
-    channels: () => adminFetch('/admin-api/channels'),
-    articles: (params = {}) => adminFetch(`/admin-api/articles?${new URLSearchParams(params).toString()}`),
-    article: (id) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`),
-    createArticle: (payload) => adminFetch('/admin-api/articles', { method: 'POST', body: JSON.stringify(payload) }),
-    updateArticle: (id, payload) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
-    setArticleStatus: (id, action) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, { method: 'PATCH' }),
+    channels: (params = {}) => adminFetch(withQuery('/admin-api/channels', params)),
+    articles: (params = {}) => adminFetch(withQuery('/admin-api/articles', params)),
+    article: (id, params = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params)),
+    createArticle: (payload, params = {}) => adminFetch(withQuery('/admin-api/articles', params), { method: 'POST', body: JSON.stringify(payload) }),
+    updateArticle: (id, payload, params = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params), { method: 'PATCH', body: JSON.stringify(payload) }),
+    setArticleStatus: (id, action, params = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, params), { method: 'PATCH' }),
     uploadFile: (formData) => adminFetch('/admin-api/files', { method: 'POST', body: formData }),
-    categories: (params = {}) => adminFetch(`/admin-api/categories?${new URLSearchParams(params).toString()}`),
-    category: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`),
-    createCategory: (payload) => adminFetch('/admin-api/categories', { method: 'POST', body: JSON.stringify(payload) }),
-    updateCategory: (id, payload) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
-    setCategoryEnabled: (id, enabled) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, { method: 'PATCH' }),
-    categoryUsage: (id) => adminFetch(`/admin-api/categories/${encodeURIComponent(id)}/usage`),
-    pageModules: (params = {}) => adminFetch(`/admin-api/page-modules?${new URLSearchParams(params).toString()}`),
-    pageModulesGrouped: (params = {}) => adminFetch(`/admin-api/page-modules/grouped?${new URLSearchParams(params).toString()}`),
+    categories: (params = {}) => adminFetch(withQuery('/admin-api/categories', params)),
+    category: (id, params = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}`, params)),
+    createCategory: (payload, params = {}) => adminFetch(withQuery('/admin-api/categories', params), { method: 'POST', body: JSON.stringify(payload) }),
+    updateCategory: (id, payload, params = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}`, params), { method: 'PATCH', body: JSON.stringify(payload) }),
+    deleteCategory: (id, params = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}`, params), { method: 'DELETE' }),
+    setCategoryEnabled: (id, enabled, params = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), { method: 'PATCH' }),
+    categoryUsage: (id, params = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}/usage`, params)),
+    pageModules: (params = {}) => adminFetch(withQuery('/admin-api/page-modules', params)),
+    pageModulesGrouped: (params = {}) => adminFetch(withQuery('/admin-api/page-modules/grouped', params)),
     updatePageModule: (id, payload) => adminFetch(`/admin-api/page-modules/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
   };
 })();

@@ -27,7 +27,7 @@
 
   const crumb = document.querySelector('[data-breadcrumb]')
   if (crumb) {
-    const parts = [{ title: '首页', path: '/A版官网首页.html' }]
+    const parts = [{ title: '首页', path: '/index.html' }]
     trail.forEach(n => parts.push({ title: n.title, path: n.path }))
     crumb.innerHTML = parts.map((p, idx) => {
       const isLast = idx === parts.length - 1

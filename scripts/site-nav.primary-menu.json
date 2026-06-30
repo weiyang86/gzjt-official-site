@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-06-29T00:00:00+08:00",
+  "note": "Primary navigation seed prepared for later server migration.",
+  "source": {
+    "type": "manual-curation",
+    "from": "current delivered top navigation"
+  },
+  "menus": [
+    {
+      "title": "首页",
+      "slug": "home",
+      "path": "/A版官网首页.html",
+      "sort": 1,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "集团概况",
+      "slug": "group",
+      "path": "/pages/about/index.html",
+      "sort": 2,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "公示公告",
+      "slug": "disclosure",
+      "path": "/disclosure",
+      "sort": 3,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "新闻中心",
+      "slug": "news-center",
+      "path": "/pages/news/index.html",
+      "sort": 4,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "业务板块",
+      "slug": "business",
+      "path": "/pages/business/index.html",
+      "sort": 5,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "项目展示",
+      "slug": "projects",
+      "path": "/pages/projects/index.html",
+      "sort": 6,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "党建工作",
+      "slug": "party",
+      "path": "/pages/party/index.html",
+      "sort": 7,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "社会责任",
+      "slug": "social-responsibility",
+      "path": "/pages/responsibility/index.html",
+      "sort": 8,
+      "visible": true,
+      "status": "enabled"
+    },
+    {
+      "title": "联系我们",
+      "slug": "contact-us",
+      "path": "/pages/contact/index.html",
+      "sort": 9,
+      "visible": true,
+      "status": "enabled"
+    }
+  ]
+}

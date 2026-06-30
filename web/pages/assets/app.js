@@ -1,5 +1,51 @@
 (() => {
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  // #region debug-point A:init
+  ;(() => {
+    const u = 'http://127.0.0.1:7777/event'
+    const s = 'disclosure-news-dropdown'
+    const send = (hypothesisId, msg, data, location) => {
+      try {
+        fetch(u, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: s, runId: 'pre', hypothesisId, location, msg, data, ts: Date.now() })
+        }).catch(() => {})
+      } catch (e) {}
+    }
+    send('A', '[DEBUG] app.js loaded', { href: window.location.href, pathname: window.location.pathname }, 'app.js:init')
+    window.__TRAE_DBG_SEND__ = send
+  })()
+  // #endregion
+  const fetchJson = async (pathname) => {
+    try {
+      const res = await fetch(pathname)
+      const contentType = res.headers.get('content-type') || ''
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      if (!/application\/json/i.test(contentType)) throw new Error(`Unexpected content-type: ${contentType}`)
+      return await res.json()
+    } catch (error) {
+      console.warn(`[app] ${pathname} failed.`, error)
+      return null
+    }
+  }
+  const buildDisclosureHref = (slug) => slug ? `/disclosure?channel=${encodeURIComponent(slug)}` : '/disclosure'
+  const buildNewsHref = (slug) => slug ? `/pages/news/index.html?channel=${encodeURIComponent(slug)}` : '/pages/news/index.html'
+  const isDisclosureLink = (href) => {
+    const value = String(href || '').trim()
+    return value === '/disclosure' || value.endsWith('/disclosure')
+  }
+  const isNewsLink = (href) => {
+    const value = String(href || '').trim()
+    return value.endsWith('/pages/news/index.html') || value === '../news/index.html' || value === '/pages/news/index.html'
+  }
+  const fallbackNewsChannels = [
+    { slug: 'gov-briefs', name: '政务简讯' },
+    { slug: 'group-news', name: '集团要闻' },
+    { slug: 'industry-news', name: '行业聚焦' },
+    { slug: 'media-focus', name: '媒体聚焦' },
+    { slug: 'announcements', name: '通知公告' }
+  ]
 
   const yearEl = document.getElementById('y')
   if (yearEl) yearEl.textContent = String(new Date().getFullYear())
@@ -29,10 +75,155 @@
   }
   if (toggleBtn) toggleBtn.addEventListener('click', () => (drawer && drawer.classList.contains('is-open')) ? closeDrawer() : openDrawer())
   closeEls.forEach(el => el.addEventListener('click', closeDrawer))
+  if (drawer) {
+    drawer.addEventListener('click', (event) => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+      if (target.closest('.drawer-links a')) closeDrawer()
+    })
+  }
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return
     if (drawer && drawer.classList.contains('is-open')) closeDrawer()
   })
+
+  const enhanceTopNavDropdown = ({ matcher, items, hrefBuilder }) => {
+    if (!items.length) return
+    const nav = document.querySelector('.nav')
+    const topLinks = nav ? Array.from(nav.querySelectorAll(':scope > a, :scope > .nav-item > a')) : []
+    const targetLink = topLinks.find(link => matcher(link.getAttribute('href')))
+    // #region debug-point B:nav-scan
+    try {
+      window.__TRAE_DBG_SEND__?.(
+        'B',
+        '[DEBUG] nav scan',
+        {
+          pathname: window.location.pathname,
+          want: String(matcher.name || 'matcher'),
+          topHrefs: topLinks.map(a => a.getAttribute('href')),
+          targetHref: targetLink ? targetLink.getAttribute('href') : null,
+          itemsCount: items.length
+        },
+        'app.js:enhanceTopNavDropdown'
+      )
+    } catch (e) {}
+    // #endregion
+    if (nav && targetLink) {
+      const existingWrapper = targetLink.parentElement && targetLink.parentElement.classList.contains('nav-item')
+        ? targetLink.parentElement
+        : null
+      const wrapper = existingWrapper || (() => {
+        const el = document.createElement('div')
+        el.className = 'nav-item'
+        targetLink.parentNode.insertBefore(el, targetLink)
+        el.appendChild(targetLink)
+        return el
+      })()
+
+      if (!wrapper.classList.contains('nav-item--dropdown')) wrapper.classList.add('nav-item--dropdown')
+
+      const existingDropdown = wrapper.querySelector(':scope > .nav-dropdown')
+      const dropdown = existingDropdown || (() => {
+        const el = document.createElement('div')
+        el.className = 'nav-dropdown'
+        el.setAttribute('role', 'menu')
+        wrapper.appendChild(el)
+        return el
+      })()
+
+      dropdown.innerHTML = items.map(item => `<a href="${hrefBuilder(item.slug)}" role="menuitem">${item.name}</a>`).join('')
+
+      if (!wrapper.dataset.boundDropdown) {
+        wrapper.dataset.boundDropdown = '1'
+        const syncOpen = (open) => {
+          wrapper.classList.toggle('is-open', open)
+          targetLink.setAttribute('aria-expanded', open ? 'true' : 'false')
+        }
+        let closeTimer = 0
+        const openNow = () => {
+          window.clearTimeout(closeTimer)
+          syncOpen(true)
+        }
+        const closeSoon = () => {
+          window.clearTimeout(closeTimer)
+          closeTimer = window.setTimeout(() => syncOpen(false), 140)
+        }
+        targetLink.setAttribute('aria-haspopup', 'true')
+        targetLink.setAttribute('aria-expanded', 'false')
+        wrapper.addEventListener('mouseenter', openNow)
+        wrapper.addEventListener('mouseleave', closeSoon)
+        wrapper.addEventListener('focusin', openNow)
+        wrapper.addEventListener('focusout', (event) => {
+          const next = event.relatedTarget
+          if (next instanceof Node && wrapper.contains(next)) return
+          closeSoon()
+        })
+      }
+
+      // #region debug-point C:nav-injected
+      try {
+        const cs = window.getComputedStyle(dropdown)
+        window.__TRAE_DBG_SEND__?.(
+          'C',
+          '[DEBUG] dropdown injected',
+          {
+            pathname: window.location.pathname,
+            targetHref: targetLink.getAttribute('href'),
+            wrapperClass: wrapper.className,
+            dropdownLinks: dropdown.querySelectorAll('a').length,
+            cssDisplay: cs.display,
+            cssVisibility: cs.visibility,
+            cssOpacity: cs.opacity,
+            cssPointerEvents: cs.pointerEvents,
+            cssZIndex: cs.zIndex
+          },
+          'app.js:enhanceTopNavDropdown'
+        )
+      } catch (e) {}
+      // #endregion
+    }
+
+    const drawerLinks = document.querySelector('.drawer-links')
+    const drawerTargetLink = drawerLinks ? Array.from(drawerLinks.querySelectorAll(':scope > a')).find(link => matcher(link.getAttribute('href'))) : null
+    if (drawerLinks && drawerTargetLink && !drawerTargetLink.nextElementSibling?.classList.contains('drawer-submenu')) {
+      const submenu = document.createElement('div')
+      submenu.className = 'drawer-submenu'
+      submenu.innerHTML = items.map(item => `<a href="${hrefBuilder(item.slug)}">${item.name}</a>`).join('')
+      drawerTargetLink.insertAdjacentElement('afterend', submenu)
+    }
+  }
+  const enhanceDisclosureNav = async () => {
+    const channels = await fetchJson('/api/public/cms/channels?type=notice')
+    const items = Array.isArray(channels)
+      ? channels.filter(item => item && item.slug && item.name)
+      : []
+    enhanceTopNavDropdown({ matcher: isDisclosureLink, items, hrefBuilder: buildDisclosureHref })
+  }
+  const enhanceNewsNav = async () => {
+    const channels = await fetchJson('/api/public/cms/channels?type=news')
+    const items = (Array.isArray(channels) && channels.length
+      ? channels.filter(item => item && item.slug && item.name)
+      : fallbackNewsChannels)
+    // #region debug-point E:news-items
+    try {
+      window.__TRAE_DBG_SEND__?.(
+        'E',
+        '[DEBUG] news channels loaded',
+        {
+          pathname: window.location.pathname,
+          apiCount: Array.isArray(channels) ? channels.length : null,
+          useFallback: !(Array.isArray(channels) && channels.length),
+          itemsCount: items.length,
+          sample: items.slice(0, 3)
+        },
+        'app.js:enhanceNewsNav'
+      )
+    } catch (e) {}
+    // #endregion
+    enhanceTopNavDropdown({ matcher: isNewsLink, items, hrefBuilder: buildNewsHref })
+  }
+  enhanceDisclosureNav()
+  enhanceNewsNav()
 
   const revealEls = Array.from(document.querySelectorAll('.reveal'))
   if (revealEls.length && !prefersReduced && 'IntersectionObserver' in window) {
