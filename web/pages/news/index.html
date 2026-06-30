@@ -16,7 +16,7 @@
   <header class="site-header" aria-label="顶部导航">
     <div class="container">
       <div class="header-inner">
-        <a class="brand" href="../../A版官网首页.html" data-no-transition>
+        <a class="brand" href="../../index.html" data-no-transition>
           <span class="brand-mark" aria-hidden="true"></span>
           <span class="brand-text">
             <b>甘孜州建设投资集团</b>
@@ -24,8 +24,9 @@
           </span>
         </a>
         <nav class="nav" aria-label="一级导航">
-          <a href="../../A版官网首页.html" data-no-transition>首页</a>
+          <a href="../../index.html" data-no-transition>首页</a>
           <a href="../about/index.html">集团概况</a>
+          <a href="/disclosure">公示公告</a>
           <a href="../news/index.html" aria-current="page">新闻中心</a>
           <a href="../business/index.html">业务板块</a>
           <a href="../projects/index.html">项目展示</a>
@@ -49,9 +50,10 @@
         <button class="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
       </div>
       <div class="drawer-links" aria-label="移动端导航链接">
-        <a href="../../A版官网首页.html" data-no-transition>首页</a>
+        <a href="../../index.html" data-no-transition>首页</a>
         <a href="../about/index.html">集团概况</a>
-        <a href="../news/index.html" aria-current="page">新闻中心</a>
+        <a href="/disclosure">公示公告</a>
+          <a href="../news/index.html" aria-current="page">新闻中心</a>
         <a href="../business/index.html">业务板块</a>
         <a href="../projects/index.html">项目展示</a>
         <a href="../party/index.html">党建工作</a>
@@ -64,9 +66,9 @@
   <div class="breadcrumb" aria-label="面包屑导航">
     <div class="content">
       <div class="crumb-inner">
-        <a href="../../A版官网首页.html" data-no-transition>首页</a>
+        <a href="../../index.html" data-no-transition>首页</a>
         <span class="crumb-sep">›</span>
-        <span>新闻中心</span>
+        <span data-news-crumb-current>新闻中心</span>
       </div>
     </div>
   </div>
@@ -88,7 +90,7 @@
         <div>
           <div class="kicker reveal" data-anim="fadeUp"><i aria-hidden="true"></i><span>NEWS CENTER</span></div>
           <h1 class="hero-title reveal" data-anim="blurReveal" data-news-hero-title>新闻中心</h1>
-          <p class="hero-sub reveal" data-anim="fadeUp" data-news-hero-subtitle>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类 Tab、搜索与分页。</p>
+          <p class="hero-sub reveal" data-anim="fadeUp" data-news-hero-subtitle>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类浏览、搜索与分页。</p>
           <div class="hero-cta reveal" data-anim="fadeUp">
             <a class="btn btn--primary" href="#content" data-no-transition data-news-hero-link>浏览资讯</a>
             <a class="btn" href="../contact/index.html">订阅与服务</a>
@@ -119,8 +121,8 @@
         <div class="section-head reveal" data-anim="fadeUp">
           <div>
             <div class="kicker"><i aria-hidden="true"></i><span>UPDATES</span></div>
-            <div class="h2">资讯聚合</div>
-            <p class="lead">按分类浏览或输入关键词搜索，列表支持分页展示。</p>
+            <div class="h2" data-news-section-title>资讯聚合</div>
+            <p class="lead" data-news-section-lead>按分类浏览或输入关键词搜索，列表支持分页展示。</p>
           </div>
         </div>
 
@@ -133,10 +135,7 @@
             <button class="tab" type="button" data-news-tab="媒体聚焦">媒体聚焦</button>
             <button class="tab" type="button" data-news-tab="通知公告">通知公告</button>
           </div>
-          <div class="tabs" role="tablist" aria-label="政务简讯分类" data-news-subtabs hidden style="display:none">
-            <button class="tab is-active" type="button" data-news-subtab="省委、省政府">省委、省政府</button>
-            <button class="tab" type="button" data-news-subtab="州委、州政府">州委、州政府</button>
-          </div>
+          <div class="tabs" role="tablist" aria-label="政务简讯分类" data-news-subtabs hidden style="display:none"></div>
           <div class="search" aria-label="搜索">
             <input class="input" id="newsSearch" placeholder="搜索标题 / 摘要 / 来源" />
             <a class="btn" href="../detail/news-detail.html" data-no-transition>详情模板</a>
@@ -145,8 +144,8 @@
 
         <div class="corp-stats reveal" data-anim="fadeUp" style="margin-top: 32px;">
           <div class="stat-item">
-            <div class="stat-num" data-countup data-target="1520">0</div>
-            <div class="stat-label">新闻总数</div>
+            <div class="stat-num" data-target="0">0</div>
+            <div class="stat-label" data-news-stat-label>新闻总数</div>
           </div>
           <div class="stat-item">
             <div class="stat-num" data-countup data-target="128">0</div>
@@ -157,28 +156,12 @@
             <div class="stat-label">业务板块</div>
           </div>
           <div class="stat-item">
-            <div class="stat-num" data-countup data-target="2008">0</div>
+            <div class="stat-num" data-countup data-target="2010">0</div>
             <div class="stat-label">成立年份</div>
           </div>
         </div>
 
-        <div class="news-grid" style="margin-top:18px">
-          <div class="news-main reveal" data-anim="blurReveal" id="newsFeatured">
-            <div class="news-card">
-              <div class="news-cover">
-                <img class="lazy" data-lazy="../../img/雅砻江大桥.jpg" alt="">
-              </div>
-              <div class="news-body">
-                <div class="pill">头条</div>
-                <h3 style="margin-top:12px" data-title>—</h3>
-                <div class="meta" data-meta>—</div>
-                <div class="rich" style="margin-top:12px" data-excerpt>—</div>
-                <div style="margin-top:16px">
-                  <a class="btn btn--primary" href="../detail/news-detail.html" data-no-transition data-news-featured-link>阅读详情</a>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="news-grid news-grid--list-only" style="margin-top:18px">
           <aside class="news-side reveal" data-anim="fadeLeft" aria-label="新闻列表">
             <div class="news-list" id="newsList"></div>
           </aside>
@@ -203,7 +186,7 @@
             <dt>联系电话</dt>
             <dd>0836-0000000</dd>
             <dt>ICP备案</dt>
-            <dd><a href="../../A版官网首页.html" data-no-transition>蜀ICP备00000000号</a></dd>
+            <dd><a href="../../index.html" data-no-transition>蜀ICP备00000000号</a></dd>
           </dl>
         </div>
       </div>
@@ -225,8 +208,8 @@
   <div class="toast" data-toast="提交成功"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script src="../assets/app.js"></script>
   <script src="../assets/news-data.js"></script>
+  <script src="../assets/app.js"></script>
   <script src="../assets/news.js"></script>
   <script src="../assets/global-ui.js"></script>
 </body>

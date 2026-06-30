@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>公示公告｜甘孜州建设投资集团有限公司</title>
+  <link rel="stylesheet" href="/pages/assets/theme.css" />
+  <link rel="stylesheet" href="/pages/assets/pages.css" />
+  <link rel="stylesheet" href="/pages/assets/global-ui.css" />
+  <style>
+    .notice-page {
+      background:
+        linear-gradient(180deg, rgba(8, 19, 43, 0.05), rgba(8, 19, 43, 0)),
+        #f5f7fb;
+    }
+    .notice-hero {
+      position: relative;
+      overflow: hidden;
+      padding: 72px 0 42px;
+      color: #f7f4ee;
+      background:
+        linear-gradient(135deg, rgba(7, 22, 52, 0.92), rgba(11, 32, 71, 0.82)),
+        url("../../img/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg") center/cover;
+    }
+    .notice-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(196, 166, 106, 0.12), transparent 38%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 120px);
+      pointer-events: none;
+    }
+    .notice-hero-inner,
+    .notice-section-inner {
+      width: min(1180px, calc(100vw - 48px));
+      margin: 0 auto;
+    }
+    .notice-hero-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 420px);
+      gap: 28px;
+      align-items: end;
+    }
+    .notice-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px;
+      border: 1px solid rgba(196, 166, 106, 0.45);
+      border-radius: 999px;
+      color: #d9c8a1;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+    }
+    .notice-kicker::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #d9c8a1;
+    }
+    .notice-hero h1 {
+      margin: 20px 0 16px;
+      font-size: clamp(38px, 6vw, 68px);
+      line-height: 1.06;
+      letter-spacing: 0.06em;
+    }
+    .notice-hero p {
+      max-width: 760px;
+      margin: 0;
+      color: rgba(247, 244, 238, 0.82);
+      line-height: 1.9;
+    }
+    .notice-meta-card {
+      padding: 24px 24px 22px;
+      border: 1px solid rgba(196, 166, 106, 0.24);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 18px 60px rgba(4, 12, 28, 0.26);
+      backdrop-filter: blur(16px);
+    }
+    .notice-meta-card h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+    }
+    .notice-meta-list {
+      display: grid;
+      gap: 14px;
+      margin: 0;
+    }
+    .notice-meta-list div {
+      display: grid;
+      gap: 4px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .notice-meta-list div:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .notice-meta-list dt {
+      color: rgba(217, 200, 161, 0.9);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+    }
+    .notice-meta-list dd {
+      margin: 0;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .notice-section {
+      padding: 36px 0 78px;
+    }
+    .notice-panel {
+      padding: 22px;
+      border: 1px solid rgba(11, 32, 71, 0.08);
+      border-radius: 26px;
+      background: #fff;
+      box-shadow: 0 16px 44px rgba(13, 24, 51, 0.07);
+    }
+    .notice-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+    .notice-panel-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+    }
+    .notice-current-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(11, 32, 71, 0.06), rgba(185, 140, 51, 0.10));
+      color: #0d2a55;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .notice-current-tag::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #c62828;
+      box-shadow: 0 0 0 4px rgba(198, 40, 40, 0.12);
+    }
+    .notice-section .tabs {
+      flex-wrap: wrap;
+    }
+    .notice-search {
+      display: grid;
+      gap: 8px;
+    }
+    .notice-search label {
+      color: #4f5b78;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+    }
+    .notice-search .input {
+      height: 50px;
+      border: 1px solid rgba(11, 32, 71, 0.12);
+      border-radius: 16px;
+      background: #f8fafc;
+    }
+    .notice-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .notice-item {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 18px;
+      padding: 16px 18px;
+      border: 1px solid rgba(11, 32, 71, 0.08);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff, #fbfcfe);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .notice-item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(185, 140, 51, 0.28);
+      box-shadow: 0 12px 30px rgba(13, 24, 51, 0.08);
+    }
+    .notice-date {
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 4px;
+      padding: 14px 10px;
+      border-radius: 16px;
+      color: #0d1f40;
+      background: linear-gradient(180deg, rgba(13, 47, 90, 0.08), rgba(185, 140, 51, 0.08));
+    }
+    .notice-date strong {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .notice-date span {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      color: #7a6140;
+    }
+    .notice-item b {
+      display: block;
+      color: #0d1f40;
+      font-size: 19px;
+      line-height: 1.55;
+      margin-bottom: 4px;
+    }
+    .notice-item p {
+      margin: 0 0 10px;
+      color: #46506a;
+      line-height: 1.75;
+      font-size: 14px;
+    }
+    .notice-item .notice-tail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      color: #6a7387;
+      font-size: 13px;
+    }
+    .notice-empty {
+      padding: 26px 22px;
+      border-radius: 18px;
+      background: #f8fafc;
+      color: #5d667b;
+    }
+    @media (max-width: 980px) {
+      .notice-hero-grid,
+      .notice-toolbar,
+      .notice-panel-top {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .notice-hero {
+        padding-top: 56px;
+      }
+      .notice-hero-inner,
+      .notice-section-inner {
+        width: min(1180px, calc(100vw - 28px));
+      }
+      .notice-item {
+        grid-template-columns: 1fr;
+      }
+      .notice-date {
+        grid-auto-flow: column;
+        justify-content: start;
+      }
+    }
+  </style>
+</head>
+<body class="notice-page">
+  <div class="page-transition"></div>
+
+  <header class="site-header" aria-label="顶部导航">
+    <div class="container">
+      <div class="header-inner">
+        <a class="brand" href="../../index.html" data-no-transition>
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-text">
+            <b>甘孜州建设投资集团</b>
+            <span>GANZI CONSTRUCTION INVESTMENT GROUP</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="一级导航">
+          <a href="../../index.html" data-no-transition>首页</a>
+          <a href="../about/index.html">集团概况</a>
+          <a href="/disclosure" aria-current="page">公示公告</a>
+          <a href="../news/index.html">新闻中心</a>
+          <a href="../business/index.html">业务板块</a>
+          <a href="../projects/index.html">项目展示</a>
+          <a href="../party/index.html">党建工作</a>
+          <a href="../responsibility/index.html">社会责任</a>
+          <a href="../contact/index.html">联系我们</a>
+        </nav>
+        <div class="header-actions">
+          <a class="btn btn--primary" href="../contact/index.html">在线服务</a>
+          <button class="menu-toggle" type="button" aria-label="打开菜单" data-menu-toggle aria-expanded="false"><i></i></button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer" data-drawer aria-hidden="true">
+    <div class="drawer-backdrop" data-drawer-close></div>
+    <div class="drawer-panel" role="dialog" aria-label="移动端菜单">
+      <div class="drawer-top">
+        <b style="letter-spacing:.6px">导航</b>
+        <button class="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
+      </div>
+      <div class="drawer-links" aria-label="移动端导航链接">
+        <a href="../../index.html" data-no-transition>首页</a>
+        <a href="../about/index.html">集团概况</a>
+        <a href="/disclosure" aria-current="page">公示公告</a>
+          <a href="../news/index.html">新闻中心</a>
+        <a href="../business/index.html">业务板块</a>
+        <a href="../projects/index.html">项目展示</a>
+        <a href="../party/index.html">党建工作</a>
+        <a href="../responsibility/index.html">社会责任</a>
+        <a href="../contact/index.html">联系我们</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="breadcrumb" aria-label="面包屑导航">
+    <div class="content">
+      <div class="crumb-inner">
+        <a href="../../index.html" data-no-transition>首页</a>
+        <span class="crumb-sep">›</span>
+        <span data-notice-breadcrumb-current>公示公告</span>
+      </div>
+    </div>
+  </div>
+
+  <main class="page" aria-label="主要内容" data-notice-page>
+    <section class="notice-hero">
+      <div class="notice-hero-inner notice-hero-grid">
+        <div>
+          <div class="notice-kicker">PUBLIC DISCLOSURE</div>
+          <h1>公示公告</h1>
+          <p data-notice-hero-subtitle>集中发布招采结果、制度公示、履约信息与对外说明，内容以正式、公示、可检索为原则，保障对外公开信息的规范呈现。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="notice-section" id="content" data-notice-top>
+      <div class="notice-section-inner">
+        <div class="notice-panel">
+          <div class="section-head reveal" data-anim="fadeUp">
+            <div class="notice-panel-top">
+              <div>
+              <div class="kicker"><i aria-hidden="true"></i><span>DISCLOSURE HUB</span></div>
+              <div class="h2" data-notice-section-title>全部公示公告</div>
+              <p class="lead" data-notice-section-lead>按公示分类查看内容，支持关键词检索与分页浏览。</p>
+              </div>
+              <div class="notice-current-tag" data-notice-current-tag>当前分类：全部</div>
+            </div>
+          </div>
+
+          <div class="notice-toolbar reveal" data-anim="fadeUp">
+            <div class="tabs" role="tablist" aria-label="公示公告分类" data-notice-tabs>
+              <button class="tab is-active" type="button">全部</button>
+            </div>
+            <div class="notice-search">
+              <label for="noticeSearch">关键词检索</label>
+              <input class="input" id="noticeSearch" placeholder="搜索标题 / 摘要 / 来源" />
+            </div>
+          </div>
+
+          <section class="notice-list" id="noticeList" aria-label="公示公告列表"></section>
+          <div class="pagination reveal" data-anim="fadeUp" id="noticePager" style="margin-top:26px"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" aria-label="页脚信息">
+    <div class="content">
+      <div class="footer-inner">
+        <div>
+          <h3>甘孜州建设投资集团有限公司</h3>
+          <p>正式发布对外公示与公告信息，强化信息公开的规范性、准确性和可检索性。</p>
+        </div>
+        <div>
+          <dl>
+            <dt>集团地址</dt>
+            <dd>四川省甘孜藏族自治州康定市</dd>
+            <dt>联系电话</dt>
+            <dd>0836-0000000</dd>
+            <dt>ICP备案</dt>
+            <dd><a href="../../index.html" data-no-transition>蜀ICP备00000000号</a></dd>
+          </dl>
+        </div>
+      </div>
+      <div class="footbar">
+        <span>© <span id="y"></span> 甘孜州建设投资集团有限公司</span>
+        <span><a href="../contact/index.html">在线服务</a> · <a href="../projects/index.html">项目展示</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast="提交成功"></div>
+
+  <script src="/pages/assets/app.js"></script>
+  <script src="/pages/assets/news-data.js"></script>
+  <script src="/pages/assets/notice.js"></script>
+  <script src="/pages/assets/global-ui.js"></script>
+</body>
+</html>

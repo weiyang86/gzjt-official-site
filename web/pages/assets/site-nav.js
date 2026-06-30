@@ -32,6 +32,11 @@
 
   window.SITE_NAV = [
     {
+      title: "首页",
+      path: "/index.html",
+      children: []
+    },
+    {
       title: '集团概况',
       path: '/group',
       children: [
@@ -89,6 +94,24 @@
         },
         { title: '领导班子', path: '/group/leadership', children: [] },
         { title: '企业文化', path: '/group/culture', children: [] }
+      ]
+    },
+    {
+      title: '公示公告',
+      path: '/disclosure',
+      children: [
+        {
+          title: '人才招聘（人力资源）',
+          path: '/disclosure/recruitment',
+          children: [
+            { title: '社会招聘', path: '/disclosure/recruitment/social', children: [] },
+            { title: '校园招聘', path: '/disclosure/recruitment/campus', children: [] },
+            { title: '内部招聘', path: '/disclosure/recruitment/internal', children: [] }
+          ]
+        },
+        { title: '人事管理', path: '/disclosure/hr', children: [] },
+        { title: '公告列表', path: '/disclosure/notice', children: [] },
+        { title: '招标采购', path: '/disclosure/procurement', children: [] }
       ]
     },
     {
@@ -174,24 +197,6 @@
         { title: '抢险救灾', path: '/social-responsibility/rescue', children: [] },
         { title: '志愿服务', path: '/social-responsibility/volunteer', children: [] },
         { title: '社会公益', path: '/social-responsibility/public-welfare', children: [] }
-      ]
-    },
-    {
-      title: '信息公开',
-      path: '/disclosure',
-      children: [
-        {
-          title: '人才招聘（人力资源）',
-          path: '/disclosure/recruitment',
-          children: [
-            { title: '社会招聘', path: '/disclosure/recruitment/social', children: [] },
-            { title: '校园招聘', path: '/disclosure/recruitment/campus', children: [] },
-            { title: '内部招聘', path: '/disclosure/recruitment/internal', children: [] }
-          ]
-        },
-        { title: '人事管理', path: '/disclosure/hr', children: [] },
-        { title: '公示公告', path: '/disclosure/notice', children: [] },
-        { title: '招标采购', path: '/disclosure/procurement', children: [] }
       ]
     },
     {

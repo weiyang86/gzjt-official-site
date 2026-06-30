@@ -362,6 +362,9 @@
   gap:28px;
   align-items:start;
 }
+[data-news-page] .news-grid--list-only{
+  grid-template-columns:minmax(0,1fr);
+}
 @media (max-width: 1200px){
   [data-news-page] .news-grid{grid-template-columns:1fr}
 }
@@ -443,11 +446,11 @@
 
 [data-news-page] .news-list{display:grid;gap:20px}
 [data-news-page] .news-item{
-  height:170px;
+  min-height:148px;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   gap:20px;
-  padding:24px;
+  padding:22px 24px;
   border-radius:24px;
   background:#fff;
   box-shadow:0 8px 24px rgba(0,0,0,.05);
@@ -460,12 +463,13 @@
 [data-news-page] .news-date-tag{
   width:80px;
   flex:0 0 auto;
-  align-self:center;
+  align-self:flex-start;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
   position:relative;
+  padding-top:4px;
 }
 [data-news-page] .news-date-tag::after{
   content:"";
@@ -481,9 +485,9 @@
 [data-news-page] .news-date-tag .nd-month{margin-top:10px;font-size:16px;color:#888;letter-spacing:2px}
 
 [data-news-page] .thumb{
-  width:120px;
-  height:84px;
-  border-radius:14px;
+  width:112px;
+  height:78px;
+  border-radius:12px;
   overflow:hidden;
   flex:0 0 auto;
 }
@@ -500,9 +504,9 @@
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
-  font-size:24px;
-  font-weight:600;
-  line-height:1.25;
+  font-size:22px;
+  font-weight:650;
+  line-height:1.3;
   color:rgba(11,18,32,.90);
 }
 [data-news-page] .news-desc{
@@ -526,6 +530,33 @@
   font-size:12px;
 }
 [data-news-page] .news-views{color:#999;font-size:12px}
+@media (max-width: 768px){
+  [data-news-page] .news-item{
+    gap:16px;
+    padding:18px;
+  }
+  [data-news-page] .news-date-tag{
+    width:64px;
+  }
+  [data-news-page] .news-date-tag::after{
+    right:-8px;
+    height:64px;
+  }
+  [data-news-page] .news-date-tag .nd-day{
+    font-size:42px;
+  }
+  [data-news-page] .news-date-tag .nd-month{
+    margin-top:8px;
+    font-size:13px;
+    letter-spacing:1px;
+  }
+  [data-news-page] .thumb{
+    display:none;
+  }
+  [data-news-page] .news-title{
+    font-size:18px;
+  }
+}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .search{
   display:flex;

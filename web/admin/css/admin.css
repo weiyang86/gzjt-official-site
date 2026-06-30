@@ -519,6 +519,29 @@ code {
   line-height: 1.7;
 }
 
+.wang-toolbar,
+.wang-editor {
+  border: 1px solid var(--admin-border);
+  background: #fff;
+}
+
+.wang-toolbar {
+  border-radius: 12px 12px 0 0;
+  overflow: visible;
+  position: relative;
+  z-index: 3;
+}
+
+.wang-editor {
+  min-height: 320px;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+}
+
+.wang-editor .w-e-text-container {
+  min-height: 320px !important;
+}
+
 .required { color: var(--admin-primary); }
 
 .form-actions {
@@ -540,6 +563,7 @@ code {
   .editor-grid { grid-template-columns: 1fr; }
   .section-title-row { align-items: flex-start; flex-direction: column; }
   .pagination-bar { justify-content: flex-start; }
+  .split-grid { grid-template-columns: 1fr; }
 }
 
 .cover-field {
@@ -603,6 +627,19 @@ code {
 
 .compact-filter {
   grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto;
+}
+
+.split-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.split-grid-right {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
 }
 
 .page-module-filter {

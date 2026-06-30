@@ -39,6 +39,7 @@ export class PublicCmsController {
   getArticles(
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '10',
+    @Query('scope') scope = 'news',
     @Query('channelSlug') channelSlug = '',
     @Query('newsSubcategory') newsSubcategory = '',
     @Query('keyword') keyword = '',
@@ -47,6 +48,7 @@ export class PublicCmsController {
     return this.cms.listArticles({
       page: Number(page) || 1,
       pageSize: Number(pageSize) || 10,
+      scope,
       channelSlug,
       newsSubcategory,
       keyword,
