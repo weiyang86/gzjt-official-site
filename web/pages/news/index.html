@@ -68,7 +68,7 @@
       <div class="crumb-inner">
         <a href="../../index.html" data-no-transition>首页</a>
         <span class="crumb-sep">›</span>
-        <span>新闻中心</span>
+        <span data-news-crumb-current>新闻中心</span>
       </div>
     </div>
   </div>
@@ -90,7 +90,7 @@
         <div>
           <div class="kicker reveal" data-anim="fadeUp"><i aria-hidden="true"></i><span>NEWS CENTER</span></div>
           <h1 class="hero-title reveal" data-anim="blurReveal" data-news-hero-title>新闻中心</h1>
-          <p class="hero-sub reveal" data-anim="fadeUp" data-news-hero-subtitle>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类 Tab、搜索与分页。</p>
+          <p class="hero-sub reveal" data-anim="fadeUp" data-news-hero-subtitle>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类浏览、搜索与分页。</p>
           <div class="hero-cta reveal" data-anim="fadeUp">
             <a class="btn btn--primary" href="#content" data-no-transition data-news-hero-link>浏览资讯</a>
             <a class="btn" href="../contact/index.html">订阅与服务</a>
@@ -121,8 +121,8 @@
         <div class="section-head reveal" data-anim="fadeUp">
           <div>
             <div class="kicker"><i aria-hidden="true"></i><span>UPDATES</span></div>
-            <div class="h2">资讯聚合</div>
-            <p class="lead">按分类浏览或输入关键词搜索，列表支持分页展示。</p>
+            <div class="h2" data-news-section-title>资讯聚合</div>
+            <p class="lead" data-news-section-lead>按分类浏览或输入关键词搜索，列表支持分页展示。</p>
           </div>
         </div>
 
@@ -135,10 +135,7 @@
             <button class="tab" type="button" data-news-tab="媒体聚焦">媒体聚焦</button>
             <button class="tab" type="button" data-news-tab="通知公告">通知公告</button>
           </div>
-          <div class="tabs" role="tablist" aria-label="政务简讯分类" data-news-subtabs hidden style="display:none">
-            <button class="tab is-active" type="button" data-news-subtab="省委、省政府">省委、省政府</button>
-            <button class="tab" type="button" data-news-subtab="州委、州政府">州委、州政府</button>
-          </div>
+          <div class="tabs" role="tablist" aria-label="政务简讯分类" data-news-subtabs hidden style="display:none"></div>
           <div class="search" aria-label="搜索">
             <input class="input" id="newsSearch" placeholder="搜索标题 / 摘要 / 来源" />
             <a class="btn" href="../detail/news-detail.html" data-no-transition>详情模板</a>
@@ -148,7 +145,7 @@
         <div class="corp-stats reveal" data-anim="fadeUp" style="margin-top: 32px;">
           <div class="stat-item">
             <div class="stat-num" data-target="0">0</div>
-            <div class="stat-label">新闻总数</div>
+            <div class="stat-label" data-news-stat-label>新闻总数</div>
           </div>
           <div class="stat-item">
             <div class="stat-num" data-countup data-target="128">0</div>
@@ -164,23 +161,7 @@
           </div>
         </div>
 
-        <div class="news-grid" style="margin-top:18px">
-          <div class="news-main reveal" data-anim="blurReveal" id="newsFeatured">
-            <div class="news-card">
-              <div class="news-cover">
-                <img class="lazy" data-lazy="../../img/雅砻江大桥.jpg" alt="">
-              </div>
-              <div class="news-body">
-                <div class="pill">头条</div>
-                <h3 style="margin-top:12px" data-title>—</h3>
-                <div class="meta" data-meta>—</div>
-                <div class="rich" style="margin-top:12px" data-excerpt>—</div>
-                <div style="margin-top:16px">
-                  <a class="btn btn--primary" href="../detail/news-detail.html" data-no-transition data-news-featured-link>阅读详情</a>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="news-grid news-grid--list-only" style="margin-top:18px">
           <aside class="news-side reveal" data-anim="fadeLeft" aria-label="新闻列表">
             <div class="news-list" id="newsList"></div>
           </aside>

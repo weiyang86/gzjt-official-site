@@ -163,7 +163,8 @@ body.has-site-header{
   scrollbar-width:none;
 }
 .nav::-webkit-scrollbar{height:0}
-.nav a{
+.nav > a,
+.nav > .nav-item > a{
   position:relative;
   display:flex;
   align-items:center;
@@ -180,7 +181,8 @@ body.has-site-header{
   outline:none;
   white-space:nowrap;
 }
-.nav a::after{
+.nav > a::after,
+.nav > .nav-item > a::after{
   content:"";
   position:absolute;
   left:10px;
@@ -194,13 +196,124 @@ body.has-site-header{
   transition:transform .28s ease;
   opacity:.9;
 }
-.nav a:hover{color:#c62828}
-.nav a:hover::after{transform:scaleX(1)}
-.nav a[aria-current="page"]{
+.nav > a:hover,
+.nav > .nav-item > a:hover,
+.nav > .nav-item.is-open > a{color:#c62828}
+.nav > a:hover::after,
+.nav > .nav-item > a:hover::after,
+.nav > .nav-item.is-open > a::after{transform:scaleX(1)}
+.nav > a[aria-current="page"],
+.nav > .nav-item > a[aria-current="page"]{
   background:linear-gradient(135deg,rgba(198,0,24,.16),rgba(13,47,90,.08));
   color:#c62828;
 }
-.nav a[aria-current="page"]::after{transform:scaleX(1)}
+.nav > a[aria-current="page"]::after,
+.nav > .nav-item > a[aria-current="page"]::after{transform:scaleX(1)}
+.nav-item{
+  position:relative;
+  flex:0 0 auto;
+}
+.nav-item--dropdown > a{
+  padding-right:36px;
+}
+.nav-item--dropdown > a::before{
+  content:"";
+  position:absolute;
+  right:3px;
+  top:50%;
+  width:6px;
+  height:6px;
+  border-right:1.5px solid currentColor;
+  border-bottom:1.5px solid currentColor;
+  transform:translateY(-60%) rotate(45deg);
+  transition:transform .26s ease;
+  opacity:.72;
+}
+.nav-item--dropdown::after{
+  content:"";
+  position:absolute;
+  left:-10px;
+  right:-10px;
+  top:100%;
+  height:22px;
+}
+.nav-item--dropdown:hover > a::before,
+.nav-item--dropdown:focus-within > a::before,
+.nav-item--dropdown.is-open > a::before{
+  transform:translateY(-30%) rotate(225deg);
+}
+.nav-dropdown{
+  position:absolute;
+  top:calc(100% + 18px);
+  left:50%;
+  min-width:220px;
+  padding:12px;
+  border-radius:22px;
+  border:1px solid rgba(13,47,90,.10);
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,253,.94));
+  box-shadow:0 24px 56px rgba(13,24,51,.14);
+  backdrop-filter:blur(18px);
+  transform:translate(-50%, 8px);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .22s ease, transform .22s ease, visibility .22s ease;
+  z-index:2600;
+}
+.nav-dropdown::before{
+  content:"";
+  position:absolute;
+  top:-9px;
+  left:50%;
+  width:16px;
+  height:16px;
+  background:rgba(255,255,255,.95);
+  border-top:1px solid rgba(13,47,90,.08);
+  border-left:1px solid rgba(13,47,90,.08);
+  transform:translateX(-50%) rotate(45deg);
+}
+.nav-item--dropdown:hover .nav-dropdown,
+.nav-item--dropdown:focus-within .nav-dropdown,
+.nav-item--dropdown.is-open .nav-dropdown{
+  opacity:1;
+  visibility:visible;
+  transform:translate(-50%, 0);
+  pointer-events:auto;
+}
+.nav-dropdown a{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  border-radius:14px;
+  color:rgba(11,18,32,.84);
+  font-size:14px;
+  font-weight:650;
+  line-height:1.35;
+  white-space:normal;
+  transition:background .22s ease, color .22s ease, transform .22s ease;
+}
+.nav-dropdown a::after{
+  content:"";
+  width:7px;
+  height:7px;
+  border-top:1.5px solid rgba(13,47,90,.34);
+  border-right:1.5px solid rgba(13,47,90,.34);
+  transform:rotate(45deg);
+  flex:0 0 auto;
+}
+.nav-dropdown a:hover,
+.nav-dropdown a:focus-visible{
+  background:linear-gradient(135deg,rgba(198,0,24,.10),rgba(13,47,90,.06));
+  color:#c62828;
+  transform:translateX(2px);
+}
+.nav-dropdown a:hover::after,
+.nav-dropdown a:focus-visible::after{
+  border-color:rgba(198,0,24,.82);
+}
 .header-actions{
   display:flex;
   align-items:center;
@@ -317,6 +430,18 @@ body.has-site-header{
 }
 .drawer-links a:hover{transform:translateY(-1px);border-color:rgba(198,0,24,.20);color:#c62828}
 .drawer-links a[aria-current="page"]{background:rgba(180,30,50,.08);border-color:rgba(198,0,24,.18);color:#c62828}
+.drawer-submenu{
+  display:grid;
+  gap:8px;
+  padding:0 0 8px 12px;
+}
+.drawer-submenu a{
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(245,247,251,.88);
+  font-size:14px;
+  font-weight:600;
+}
 .page{
   min-height:100%;
 }

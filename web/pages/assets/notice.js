@@ -2,16 +2,20 @@
   const root = document.querySelector('[data-notice-page]')
   if (!root) return
 
-  const CMS_API_BASE = (window.CMS_API_BASE || localStorage.getItem('CMS_API_BASE') || 'http://localhost:4000').replace(/\/$/, '')
+  const CMS_API_BASE = (window.CMS_API_BASE || localStorage.getItem('CMS_API_BASE') || '').replace(/\/$/, '')
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const rootPrefix = location.pathname.replace(/\\/g, '/').includes('/pages/') ? '../../' : ''
+  const currentUrl = new URL(window.location.href)
 
   const tabsWrap = root.querySelector('[data-notice-tabs]')
   const searchInput = document.getElementById('noticeSearch')
   const listEl = document.getElementById('noticeList')
   const pagerEl = document.getElementById('noticePager')
-  const featuredEl = document.getElementById('noticeFeatured')
   const heroSubtitleEl = root.querySelector('[data-notice-hero-subtitle]')
+  const sectionTitleEl = root.querySelector('[data-notice-section-title]')
+  const sectionLeadEl = root.querySelector('[data-notice-section-lead]')
+  const currentTagEl = root.querySelector('[data-notice-current-tag]')
+  const breadcrumbCurrentEl = document.querySelector('[data-notice-breadcrumb-current]')
 
   const fallbackItems = (window.NEWS_LIST || [])
     .filter(item => /公告|公示/.test(String(item.category || '')))
@@ -20,10 +24,10 @@
   const state = {
     channels: [],
     items: fallbackItems,
-    activeChannel: 'all',
+    activeChannel: currentUrl.searchParams.get('channel') || 'all',
     keyword: '',
     page: 1,
-    pageSize: 6,
+    pageSize: 10,
     mode: Array.isArray(fallbackItems) && fallbackItems.length ? 'fallback' : 'empty'
   }
 
@@ -62,14 +66,21 @@
   }
 
   async function fetchJson(pathname) {
-    try {
-      const res = await fetch(`${CMS_API_BASE}${pathname}`)
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-      return await res.json()
-    } catch (error) {
-      console.warn(`[notice] ${pathname} failed, keeping fallback.`, error)
-      return null
+    const targets = []
+    if (pathname.startsWith('/')) targets.push(pathname)
+    if (CMS_API_BASE) targets.push(`${CMS_API_BASE}${pathname}`)
+    for (const target of [...new Set(targets)]) {
+      try {
+        const res = await fetch(target)
+        const contentType = res.headers.get('content-type') || ''
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+        if (!/application\/json/i.test(contentType)) throw new Error(`Unexpected content-type: ${contentType}`)
+        return await res.json()
+      } catch (error) {
+        console.warn(`[notice] ${target} failed, trying next source if available.`, error)
+      }
     }
+    return null
   }
 
   function ensureReveal(scope) {
@@ -128,6 +139,25 @@
     }
   }
 
+  function getChannelBySlug(slug) {
+    return state.channels.find(item => item && item.slug === slug) || null
+  }
+
+  function getCurrentChannelLabel() {
+    if (state.activeChannel === 'all') return '全部公示公告'
+    return getChannelBySlug(state.activeChannel)?.name || '公示公告'
+  }
+
+  function syncChannelQuery() {
+    const url = new URL(window.location.href)
+    if (state.activeChannel === 'all') {
+      url.searchParams.delete('channel')
+    } else {
+      url.searchParams.set('channel', state.activeChannel)
+    }
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+  }
+
   function normalizeApiArticle(item) {
     const publishDate = item.publishAt || item.publishDate || ''
     return {
@@ -168,35 +198,11 @@
       button.addEventListener('click', async () => {
         state.activeChannel = button.getAttribute('data-notice-tab') || 'all'
         state.page = 1
+        syncChannelQuery()
         if (state.mode === 'api') await refreshApiData()
         update()
       })
     })
-  }
-
-  function setFeatured(item) {
-    if (!featuredEl) return
-    const titleEl = featuredEl.querySelector('[data-title]')
-    const metaEl = featuredEl.querySelector('[data-meta]')
-    const excerptEl = featuredEl.querySelector('[data-excerpt]')
-    const imageEl = featuredEl.querySelector('img')
-    const button = featuredEl.querySelector('[data-notice-featured-link]')
-    if (!item) {
-      if (titleEl) titleEl.textContent = '暂无符合条件的公示公告'
-      if (metaEl) metaEl.textContent = '请切换分类或调整关键词后重试。'
-      if (excerptEl) excerptEl.textContent = '当前分类下暂未获取到已发布内容。'
-      if (imageEl) imageEl.setAttribute('src', '../../img/雅砻江大桥.jpg')
-      if (button) button.setAttribute('href', '../detail/notice-detail.html')
-      return
-    }
-    if (titleEl) titleEl.textContent = item.title
-    if (metaEl) metaEl.textContent = `${item.category} · ${item.dateText}${item.source ? ` · ${item.source}` : ''}`
-    if (excerptEl) excerptEl.textContent = item.excerpt || '点击查看公告全文。'
-    if (imageEl) {
-      imageEl.src = item.img || '../../img/雅砻江大桥.jpg'
-      imageEl.classList.add('is-loaded')
-    }
-    if (button) button.href = `../detail/notice-detail.html?id=${encodeURIComponent(item.id)}`
   }
 
   function renderList(items, showEmpty = true) {
@@ -214,11 +220,11 @@
           <span>${escapeHtml(item.month)}</span>
         </div>
         <div>
-          <b>${escapeHtml(limitText(item.title, 52))}</b>
-          <p>${escapeHtml(limitText(item.summary || item.excerpt || '点击查看公示公告详情。', 110))}</p>
+          <b>${escapeHtml(limitText(item.title, 60))}</b>
+          <p>${escapeHtml(limitText(item.summary || item.excerpt || '点击查看公示公告详情。', 88))}</p>
           <div class="notice-tail">
-            <span>分类：${escapeHtml(item.category || '公示公告')}</span>
             <span>发布时间：${escapeHtml(item.dateText || '—')}</span>
+            ${state.activeChannel === 'all' ? `<span>分类：${escapeHtml(item.category || '公示公告')}</span>` : ''}
             ${item.source ? `<span>来源：${escapeHtml(item.source)}</span>` : ''}
           </div>
         </div>
@@ -230,6 +236,10 @@
 
   function renderPager(total) {
     if (!pagerEl) return
+    if (total <= 0) {
+      pagerEl.innerHTML = ''
+      return
+    }
     const pages = Math.max(1, Math.ceil(total / state.pageSize))
     state.page = Math.min(state.page, pages)
     const button = (page, text = String(page), active = false) => `<button class="page-btn${active ? ' is-active' : ''}" type="button" data-page="${page}">${text}</button>`
@@ -267,6 +277,10 @@
     state.channels = channels
       .filter(item => item && item.slug)
       .sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0))
+    if (state.activeChannel !== 'all' && !getChannelBySlug(state.activeChannel)) {
+      state.activeChannel = 'all'
+      syncChannelQuery()
+    }
   }
 
   async function refreshApiData() {
@@ -279,24 +293,44 @@
     state.items = result.items.map(normalizeApiArticle)
   }
 
+  function updateSectionHeader() {
+    const currentLabel = getCurrentChannelLabel()
+    if (sectionTitleEl) sectionTitleEl.textContent = currentLabel
+    if (breadcrumbCurrentEl) breadcrumbCurrentEl.textContent = currentLabel
+    if (currentTagEl) currentTagEl.textContent = `当前分类：${state.activeChannel === 'all' ? '全部' : currentLabel}`
+    if (sectionLeadEl) {
+      sectionLeadEl.textContent = state.activeChannel === 'all'
+        ? '集中查看全部公示公告内容，支持按分类切换、按关键词检索与分页浏览。'
+        : `当前页面仅展示“${currentLabel}”分类下的已发布公示公告，按发布时间倒序排列。`
+    }
+    if (document.title) {
+      document.title = state.activeChannel === 'all'
+        ? '公示公告｜甘孜州建设投资集团有限公司'
+        : `${currentLabel}｜公示公告｜甘孜州建设投资集团有限公司`
+    }
+  }
+
   function updateHeroSubtitle(items) {
     if (!heroSubtitleEl) return
     if (!items.length) {
-      heroSubtitleEl.textContent = '当前暂无已发布公示公告，后续发布内容会在此页按分类集中展示。'
+      heroSubtitleEl.textContent = state.activeChannel === 'all'
+        ? '当前暂无已发布公示公告，后续发布内容会在此页按分类集中展示。'
+        : `当前分类“${getCurrentChannelLabel()}”暂无已发布公示公告，可切换其他分类继续查看。`
       return
     }
-    const latest = items[0]
-    heroSubtitleEl.textContent = `当前共展示 ${items.length} 条已发布公示公告，最新更新为“${latest.title || '公示公告'}”，支持按分类与关键词检索。`
+    if (state.activeChannel === 'all') {
+      heroSubtitleEl.textContent = `当前共展示 ${items.length} 条已发布公示公告，支持按分类快速定位，并按发布时间倒序浏览。`
+      return
+    }
+    heroSubtitleEl.textContent = `当前展示“${getCurrentChannelLabel()}”分类下 ${items.length} 条已发布内容，已按发布时间由近到远排序。`
   }
 
   function update() {
     renderTabs()
     const items = getFilteredItems()
-    const featured = items[0] || null
-    const rest = items.length > 1 ? items.slice(1) : []
-    setFeatured(featured)
-    renderList(rest, items.length === 0)
-    renderPager(rest.length)
+    updateSectionHeader()
+    renderList(items, items.length === 0)
+    renderPager(items.length)
     updateHeroSubtitle(items)
     ensureReveal(root)
     ensureLazy(root)

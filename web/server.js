@@ -4,11 +4,35 @@ const path = require('path');
 const crypto = require('crypto');
 
 const baseDir = __dirname;
+const loadEnvFile = (absPath) => {
+    if (!fs.existsSync(absPath)) return;
+    const content = fs.readFileSync(absPath, 'utf8');
+    content.split(/\r?\n/).forEach((line) => {
+        const raw = line.trim();
+        if (!raw || raw.startsWith('#')) return;
+        const index = raw.indexOf('=');
+        if (index <= 0) return;
+        const key = raw.slice(0, index).trim();
+        let value = raw.slice(index + 1).trim();
+        if (!key || process.env[key] !== undefined) return;
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+        }
+        process.env[key] = value;
+    });
+};
+
+loadEnvFile(path.join(baseDir, '..', '.env.directus'));
+
 const directusUrl = (process.env.DIRECTUS_URL || 'http://localhost:8055').replace(/\/+$/, '');
 const sessionSecret = process.env.ADMIN_SESSION_SECRET || 'local-dev-admin-session-secret-change-before-production';
 const sessionCookieName = 'gzjt_admin_session';
 const sessionMaxAgeSeconds = 60 * 60 * 8;
 const adminSessions = new Map();
+const serviceDirectusToken = process.env.DIRECTUS_TOKEN || '';
+const serviceDirectusEmail = process.env.DIRECTUS_EMAIL || process.env.ADMIN_EMAIL || '';
+const serviceDirectusPassword = process.env.DIRECTUS_PASSWORD || process.env.ADMIN_PASSWORD || '';
+let publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
 
 if (!process.env.ADMIN_SESSION_SECRET) {
     console.warn('[admin-api] ADMIN_SESSION_SECRET is using a local development default. Set a strong secret in production.');
@@ -193,6 +217,56 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
     ...(body ? { body: JSON.stringify(body) } : {})
 });
 
+const getPublicDirectusHeaders = async () => {
+    if (serviceDirectusToken) return { Authorization: `Bearer ${serviceDirectusToken}` };
+    if (publicDirectusAuthCache.accessToken && publicDirectusAuthCache.expiresAt > Date.now() + 30_000) {
+        return { Authorization: `Bearer ${publicDirectusAuthCache.accessToken}` };
+    }
+    if (!serviceDirectusEmail || !serviceDirectusPassword) {
+        throw Object.assign(new Error('Directus service credentials are not configured'), {
+            statusCode: 500,
+            code: 'DIRECTUS_SERVICE_AUTH_MISSING'
+        });
+    }
+    const loginResult = await directusRequest('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: serviceDirectusEmail, password: serviceDirectusPassword })
+    });
+    const accessToken = loginResult?.data?.access_token || '';
+    const expiresRaw = Number(loginResult?.data?.expires || 300);
+    if (!accessToken) {
+        throw Object.assign(new Error('Directus service login did not return an access token'), {
+            statusCode: 500,
+            code: 'DIRECTUS_SERVICE_AUTH_FAILED'
+        });
+    }
+    const expiresMs = expiresRaw > 86_400 ? expiresRaw : expiresRaw * 1000;
+    publicDirectusAuthCache = {
+        accessToken,
+        expiresAt: Date.now() + Math.max(60_000, expiresMs)
+    };
+    return { Authorization: `Bearer ${accessToken}` };
+};
+
+const directusPublicRequest = async (pathname, allowRetry = true) => {
+    try {
+        const headers = await getPublicDirectusHeaders();
+        return await directusRequest(pathname, { headers });
+    } catch (err) {
+        if (
+            allowRetry
+            && err?.code === 'DIRECTUS_ERROR'
+            && Number(err?.statusCode) === 401
+            && !serviceDirectusToken
+        ) {
+            publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
+            return directusPublicRequest(pathname, false);
+        }
+        throw err;
+    }
+};
+
 const articleStatuses = new Set(['draft', 'published', 'archived']);
 const categoryStatuses = new Set(['enabled', 'disabled']);
 const categoryTypes = new Set(['list', 'page', 'link', 'module']);
@@ -215,8 +289,151 @@ const buildDirectusPath = (pathname, params = {}) => {
     return query ? `${pathname}?${query}` : pathname;
 };
 
+const directusAssetUrl = (value) => {
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (!raw) return '';
+    if (/^(https?:)?\/\//.test(raw) || raw.startsWith('/') || raw.startsWith('data:')) return raw;
+    return `${directusUrl}/assets/${encodeURIComponent(raw)}`;
+};
+
+const isNoticeChannel = (item) => Boolean(item) && (
+    item.type === 'notice'
+    || (typeof item.path === 'string' && item.path.startsWith('/disclosure'))
+);
+
+const isNewsChannel = (item) => Boolean(item) && (
+    item.type === 'news'
+    || item.is_news_category === true
+);
+
+const getPublicScope = (parsedUrl) => {
+    const type = (parsedUrl.searchParams.get('type') || '').trim();
+    const scope = (parsedUrl.searchParams.get('scope') || '').trim();
+    if (type === 'notice' || scope === 'notice') return 'notice';
+    if (type === 'news' || scope === 'news') return 'news';
+    return '';
+};
+
+const getPublicChannels = async (scope = '') => {
+    const channels = await directusPublicRequest(buildDirectusPath('/items/channels', {
+        fields: 'id,name,slug,type,path,sort,status,visible,is_news_category',
+        limit: -1,
+        sort: 'sort,id',
+        'filter[status][_eq]': 'enabled',
+        'filter[visible][_eq]': true
+    }));
+    const items = (Array.isArray(channels?.data) ? channels.data : []).map((item) => ({
+        id: String(item.id),
+        name: item.name || '',
+        slug: item.slug || '',
+        type: item.type || '',
+        path: item.path || '',
+        sort: Number(item.sort) || 0,
+        status: item.status || '',
+        visible: item.visible !== false,
+        isNewsCategory: item.type === 'news' || item.is_news_category === true
+    }));
+    if (scope === 'notice') return items.filter(isNoticeChannel);
+    if (scope === 'news') return items.filter(isNewsChannel);
+    return items;
+};
+
+const mapPublicArticleSummary = (item, channelMap = new Map()) => {
+    const rawChannel = item.main_channel;
+    const rawChannelId = rawChannel && typeof rawChannel === 'object'
+        ? (rawChannel.id ?? '')
+        : (rawChannel ?? '');
+    const channelId = rawChannelId !== undefined && rawChannelId !== null && rawChannelId !== ''
+        ? String(rawChannelId)
+        : '';
+    const fallbackChannel = channelId ? channelMap.get(channelId) : null;
+    return {
+        id: String(item.id),
+        title: item.title || '',
+        subtitle: item.subtitle || '',
+        cover: directusAssetUrl(item.cover || item.cover_url || ''),
+        summary: item.summary || '',
+        source: item.source || '',
+        author: item.author || '',
+        publishAt: item.publish_at || '',
+        publishDate: item.publish_at ? String(item.publish_at).slice(0, 10) : '',
+        status: item.status || '',
+        isTop: item.is_top === true,
+        isHomeRecommend: item.is_home_recommend === true,
+        sort: Number(item.sort) || 0,
+        newsSubcategory: item.news_subcategory || '',
+        mainChannel: channelId
+            ? {
+                id: channelId,
+                name: (rawChannel && typeof rawChannel === 'object' ? rawChannel.name : '') || fallbackChannel?.name || '',
+                slug: (rawChannel && typeof rawChannel === 'object' ? rawChannel.slug : '') || fallbackChannel?.slug || ''
+            }
+            : null
+    };
+};
+
+const getPublicArticles = async (parsedUrl) => {
+    const page = Math.max(1, Number.parseInt(parsedUrl.searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number.parseInt(parsedUrl.searchParams.get('pageSize') || parsedUrl.searchParams.get('limit') || '10', 10) || 10));
+    const scope = getPublicScope(parsedUrl);
+    const channelSlug = (parsedUrl.searchParams.get('channelSlug') || '').trim();
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+
+    const allChannels = await getPublicChannels();
+    const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
+    const noticeChannels = allChannels.filter(isNoticeChannel);
+    const newsChannels = allChannels.filter(isNewsChannel);
+    const noticeChannelIds = noticeChannels.map((item) => item.id).filter(Boolean);
+    const newsChannelIds = newsChannels.map((item) => item.id).filter(Boolean);
+    const selectedChannel = channelSlug && channelSlug !== 'all'
+        ? allChannels.find((item) => item.slug === channelSlug)
+        : null;
+
+    if (channelSlug && channelSlug !== 'all' && !selectedChannel) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'notice' && selectedChannel && !isNoticeChannel(selectedChannel)) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'news' && selectedChannel && !isNewsChannel(selectedChannel)) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'notice' && !selectedChannel && !noticeChannelIds.length) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'news' && !selectedChannel && !newsChannelIds.length) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+
+    const params = {
+        fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,main_channel.id,main_channel.name,main_channel.slug',
+        sort: '-is_top,sort,-publish_at,-id',
+        page,
+        limit: pageSize,
+        meta: 'filter_count',
+        'filter[status][_eq]': 'published'
+    };
+    if (selectedChannel) {
+        params['filter[main_channel][_eq]'] = selectedChannel.id;
+    } else if (scope === 'notice') {
+        params['filter[main_channel][_in]'] = noticeChannelIds.join(',');
+    } else if (scope === 'news') {
+        params['filter[main_channel][_in]'] = newsChannelIds.join(',');
+    }
+    if (keyword) params.search = keyword;
+
+    const articles = await directusPublicRequest(buildDirectusPath('/items/articles', params));
+    const items = Array.isArray(articles?.data) ? articles.data.map((item) => mapPublicArticleSummary(item, channelMap)) : [];
+    return {
+        page,
+        pageSize,
+        total: Number(articles?.meta?.filter_count || items.length),
+        items
+    };
+};
+
 const getPublicNewsTotal = async () => {
-    const channels = await directusRequest(buildDirectusPath('/items/channels', {
+    const channels = await directusPublicRequest(buildDirectusPath('/items/channels', {
         fields: 'id,type,is_news_category,status,visible',
         limit: -1,
         sort: 'sort,id',
@@ -229,7 +446,7 @@ const getPublicNewsTotal = async () => {
         .filter(Boolean);
     if (!newsChannelIds.length) return 0;
 
-    const articles = await directusRequest(buildDirectusPath('/items/articles', {
+    const articles = await directusPublicRequest(buildDirectusPath('/items/articles', {
         fields: 'id',
         limit: 1,
         meta: 'filter_count',
@@ -1085,6 +1302,24 @@ http.createServer((req, res) => {
 
     if (normalizedPath === '/admin-api' || normalizedPath.startsWith('/admin-api/')) {
         handleAdminApi(req, res, normalizedPath);
+        return;
+    }
+
+    if (normalizedPath === '/api/public/cms/channels' && req.method === 'GET') {
+        const parsedUrl = new URL(req.url, 'http://localhost');
+        Promise.resolve()
+            .then(() => getPublicChannels(getPublicScope(parsedUrl)))
+            .then((channels) => sendJson(res, 200, channels))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_CHANNELS_FAILED', message: err?.message || 'Failed to load public channels' } }));
+        return;
+    }
+
+    if (normalizedPath === '/api/public/cms/articles' && req.method === 'GET') {
+        const parsedUrl = new URL(req.url, 'http://localhost');
+        Promise.resolve()
+            .then(() => getPublicArticles(parsedUrl))
+            .then((payload) => sendJson(res, 200, payload))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_ARTICLES_FAILED', message: err?.message || 'Failed to load public articles' } }));
         return;
     }
 
