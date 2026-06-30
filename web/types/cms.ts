@@ -17,18 +17,46 @@ export interface Channel {
   name: string;
   slug: string;
   type?: string;
+  path?: string;
+  sort?: number;
+  status?: string;
+  visible?: boolean;
+  isNewsCategory?: boolean;
 }
 
 export interface Article {
   id: string;
   title: string;
   slug?: string;
+  subtitle?: string;
   status: ArticleStatus;
   summary?: string;
   content?: string;
+  attachments?: ArticleAttachment[];
   cover?: string;
+  source?: string;
+  author?: string;
   publish_at?: string;
+  publishAt?: string;
+  publishDate?: string;
+  isTop?: boolean;
+  isHomeRecommend?: boolean;
+  sort?: number;
+  newsSubcategory?: string;
   main_channel?: Channel;
+  mainChannel?: Channel | null;
+}
+
+export interface ArticleAttachment {
+  title: string;
+  url: string;
+}
+
+export interface PublicArticleListPayload {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: Article[];
 }
 
 export interface Company {
