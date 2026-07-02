@@ -6,6 +6,8 @@ export type AdminRole = {
   id?: string;
   name?: string;
   description?: string;
+  admin_access?: boolean;
+  app_access?: boolean;
 };
 
 export type AdminUser = {
@@ -13,7 +15,17 @@ export type AdminUser = {
   email?: string;
   first_name?: string;
   last_name?: string;
+  status?: string;
   role?: AdminRole | null;
+  menu_permissions?: string[];
+  is_super_admin?: boolean;
+};
+
+export type DashboardStats = {
+  news_articles?: number;
+  news_categories?: number;
+  notice_articles?: number;
+  notice_categories?: number;
 };
 
 export type AdminApiPayload<T> = {
@@ -110,6 +122,25 @@ export const AdminApi = {
   }),
   logout: () => adminFetch('/admin-api/logout', { method: 'POST' }),
   me: () => adminFetch<AdminUser>('/admin-api/me'),
+  dashboardStats: () => adminFetch<DashboardStats>('/admin-api/dashboard/stats'),
+  users: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/users', params)),
+  createUser: (payload: unknown) => adminFetch('/admin-api/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateUser: (id: string, payload: unknown) => adminFetch(`/admin-api/users/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  disableUser: (id: string) => adminFetch(`/admin-api/users/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  }),
+  roles: () => adminFetch<AdminRole[]>('/admin-api/roles'),
+  permissionsOverview: () => adminFetch('/admin-api/permissions'),
+  updateUserPermissions: (userId: string, menuKeys: string[]) => adminFetch(`/admin-api/permissions/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ menu_keys: menuKeys }),
+  }),
   channels: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/channels', params)),
   articles: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/articles', params)),
   article: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params)),

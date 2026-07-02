@@ -71,6 +71,7 @@ const collections = [
   ['page_modules', '页面模块定义'],
   ['page_contents', '页面内容主体'],
   ['page_content_items', '页面内容重复项'],
+  ['admin_menu_permissions', '后台菜单权限'],
 ];
 
 const fields = {
@@ -155,6 +156,12 @@ const fields = {
     selectField('status', ['enabled', 'disabled'], 'enabled'),
     jsonField('extra_json'),
   ],
+  admin_menu_permissions: [
+    uuidM2oField('user'),
+    jsonField('menu_keys'),
+    selectField('status', ['enabled', 'disabled'], 'enabled'),
+    textField('remark'),
+  ],
 };
 
 
@@ -200,6 +207,7 @@ const relations = [
   { collection: 'articles', field: 'related_sector', related_collection: 'business_sectors' },
   { collection: 'page_contents', field: 'cover', related_collection: 'directus_files' },
   { collection: 'page_content_items', field: 'image', related_collection: 'directus_files' },
+  { collection: 'admin_menu_permissions', field: 'user', related_collection: 'directus_users' },
 ];
 
 function stringField(field, required = false) { return { field, type: 'string', meta: { interface: 'input', required }, schema: { is_nullable: !required } }; }
@@ -219,6 +227,7 @@ function fileField(field) { return { field, type: 'uuid', meta: { interface: 'fi
 function filesField(field) { return { field, type: 'json', meta: { interface: 'list', note: 'Store attachment file IDs for local bootstrap; can be converted to Directus Files UI later.' }, schema: { is_nullable: true } }; }
 function jsonField(field) { return { field, type: 'json', meta: { interface: 'input-code', options: { language: 'json' } }, schema: { is_nullable: true } }; }
 function m2oField(field) { return { field, type: 'integer', meta: { interface: 'select-dropdown-m2o', special: ['m2o'] }, schema: { is_nullable: true } }; }
+function uuidM2oField(field) { return { field, type: 'uuid', meta: { interface: 'select-dropdown-m2o', special: ['m2o'] }, schema: { is_nullable: true } }; }
 
 async function ensureCollection(token, collection, note) {
   const collections = await request('/collections', { token });
@@ -227,7 +236,7 @@ async function ensureCollection(token, collection, note) {
     log(`Collection exists: ${collection}`);
     return;
   }
-  const displayTemplateMap = { page_modules: '{{parent_title}} / {{module_title}}', page_contents: '{{module_code}} - {{title}}', page_content_items: '{{module_code}} - {{title}}' };
+  const displayTemplateMap = { page_modules: '{{parent_title}} / {{module_title}}', page_contents: '{{module_code}} - {{title}}', page_content_items: '{{module_code}} - {{title}}', admin_menu_permissions: '{{user.email}}' };
   const displayTemplate = displayTemplateMap[collection] || '{{name}}{{title}}{{site_name}}';
   await request('/collections', {
     token,

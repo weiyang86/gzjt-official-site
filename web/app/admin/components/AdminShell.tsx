@@ -3,32 +3,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { AdminApi, type AdminUser } from '@/lib/admin/admin-api';
+import { adminMenuItems, type AdminMenuKey } from '@/lib/admin/menu-permissions';
 import { getAdminDisplayName } from './admin-user';
-
-type AdminNavKey =
-  | 'dashboard'
-  | 'articles'
-  | 'categories'
-  | 'noticeArticles'
-  | 'noticeCategories'
-  | 'noticeEdit'
-  | 'content'
-  | 'articleEdit';
-
-const navItems: Array<{ key: AdminNavKey; href: string; label: string }> = [
-  { key: 'dashboard', href: '/admin/dashboard', label: '工作台' },
-  { key: 'articles', href: '/admin/articles', label: '新闻管理' },
-  { key: 'categories', href: '/admin/categories', label: '新闻分类' },
-  { key: 'noticeArticles', href: '/admin/notice-articles', label: '公示公告管理' },
-  { key: 'noticeCategories', href: '/admin/notice-categories', label: '公示公告分类' },
-  { key: 'noticeEdit', href: '/admin/notice-edit', label: '新增公示公告' },
-  { key: 'content', href: '/admin/content', label: '页面内容管理' },
-  { key: 'articleEdit', href: '/admin/article-edit', label: '新增新闻' },
-];
 
 export function AdminShell({ children, active = 'dashboard' }: {
   children: ReactNode;
-  active?: AdminNavKey;
+  active?: AdminMenuKey;
 }) {
   const pathname = usePathname();
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -69,6 +49,20 @@ export function AdminShell({ children, active = 'dashboard' }: {
     }
   };
 
+  const allowedMenus = user?.is_super_admin
+    ? null
+    : new Set(user?.menu_permissions?.length ? user.menu_permissions : ['dashboard']);
+  const visibleNavItems = allowedMenus
+    ? adminMenuItems.filter((item) => allowedMenus.has(item.key))
+    : adminMenuItems;
+  const contentNavItems = visibleNavItems.filter((item) => item.group === 'content');
+  const systemNavItems = visibleNavItems.filter((item) => item.group === 'system');
+  const renderNavItems = (items: typeof adminMenuItems) => items.map((item) => (
+    <a className={`admin-nav-link${active === item.key ? ' is-active' : ''}`} href={item.href} key={item.key}>
+      {item.label}
+    </a>
+  ));
+
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar" aria-label="后台菜单">
@@ -80,11 +74,9 @@ export function AdminShell({ children, active = 'dashboard' }: {
           </div>
         </div>
         <nav className="admin-nav">
-          {navItems.map((item) => (
-            <a className={`admin-nav-link${active === item.key ? ' is-active' : ''}`} href={item.href} key={item.key}>
-              {item.label}
-            </a>
-          ))}
+          {renderNavItems(contentNavItems)}
+          {systemNavItems.length > 0 && <div className="admin-nav-group">系统管理</div>}
+          {renderNavItems(systemNavItems)}
           <button className="admin-nav-link nav-button" type="button" onClick={handleLogout} disabled={isLoggingOut}>
             {isLoggingOut ? '正在退出...' : '退出登录'}
           </button>
