@@ -489,7 +489,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           title: uploaded.filename || file.name,
           file: uploaded.id,
           filename: uploaded.filename || file.name,
-          url: uploaded.asset_url || uploaded.preview_url || `/admin-api/assets/${encodeURIComponent(uploaded.id)}`,
+          url: uploaded.preview_url || uploaded.asset_url || `/admin-api/assets/${encodeURIComponent(uploaded.id)}`,
         });
       }
       const nextList = [...attachments, ...uploadedItems];

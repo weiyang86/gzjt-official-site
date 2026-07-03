@@ -7,25 +7,6 @@ import { formatPreviewDate, getCoverId, normalizePreviewArticle, type PreviewArt
 
 const statusText: Record<string, string> = { draft: '草稿', published: '已发布', archived: '已归档' };
 
-const copyTextToClipboard = async (value: string) => {
-  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  if (typeof document === 'undefined') {
-    throw new Error('当前环境不支持复制。');
-  }
-  const textarea = document.createElement('textarea');
-  textarea.value = value;
-  textarea.setAttribute('readonly', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-};
-
 export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const isNotice = scope === 'notice';
   const [keyword, setKeyword] = useState('');
@@ -39,7 +20,6 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState('');
   const [previewLoadingId, setPreviewLoadingId] = useState('');
-  const [copyingId, setCopyingId] = useState('');
   const [previewItem, setPreviewItem] = useState<PreviewArticle | null>(null);
   const [previewShareUrl, setPreviewShareUrl] = useState('');
   const limit = 10;
@@ -60,11 +40,10 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
     confirmStatus: isNotice ? '确认修改公示公告状态？' : '确认修改新闻状态？',
     confirmDelete: isNotice ? '确认删除这条公示公告？删除后不可恢复。' : '确认删除这条新闻？删除后不可恢复。',
     deleteSuccess: isNotice ? '公示公告已删除。' : '新闻已删除。',
-    previewLinkCopied: isNotice ? '公示公告游客预览链接已复制到剪切板。' : '新闻游客预览链接已复制到剪切板。',
-    previewLinkCopyFailed: isNotice ? '公示公告游客预览链接复制失败，请稍后重试。' : '新闻游客预览链接复制失败，请稍后重试。',
     previewDialogTitle: isNotice ? '公示公告预览' : '新闻预览',
     previewLoading: isNotice ? '正在加载公示公告预览...' : '正在加载新闻预览...',
     previewEmpty: isNotice ? '暂无可预览内容。' : '暂无可预览内容。',
+    previewNotFound: isNotice ? '未找到该公告或当前账号无权限查看。' : '未找到该新闻或当前账号无权限查看。',
     openPreviewLink: isNotice ? '打开游客预览页' : '打开游客预览页',
   }), [isNotice]);
 
@@ -141,34 +120,23 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const handleOpenPreview = async (id: string) => {
     setPreviewLoadingId(id);
     setMessage(null);
+    setPreviewItem(null);
     setPreviewShareUrl('');
     try {
-      const [articleResult, previewLinkResult] = await Promise.all([
-        AdminApi.article(id, { scope }),
-        AdminApi.articlePreviewLink(id, { scope }),
-      ]);
-      setPreviewItem(normalizePreviewArticle(articleResult.data));
-      setPreviewShareUrl(previewLinkResult.data?.url || '');
+      const articleResult = await AdminApi.article(id, { scope });
+      const nextPreviewItem = normalizePreviewArticle(articleResult.data);
+      if (!nextPreviewItem) throw new Error(copy.previewNotFound);
+      setPreviewItem(nextPreviewItem);
+      AdminApi.articlePreviewLink(id, { scope })
+        .then((previewLinkResult) => setPreviewShareUrl(previewLinkResult.data?.url || ''))
+        .catch(() => setPreviewShareUrl(''));
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : copy.error, type: 'error' });
+      const messageText = err instanceof Error && err.message && !err.message.includes('Article not found in current scope')
+        ? err.message
+        : copy.previewNotFound;
+      setMessage({ text: messageText, type: 'error' });
     } finally {
       setPreviewLoadingId('');
-    }
-  };
-
-  const handleCopyPreviewLink = async (id: string) => {
-    setCopyingId(id);
-    try {
-      const result = await AdminApi.articlePreviewLink(id, { scope });
-      const path = result.data?.url || '';
-      if (!path) throw new Error(copy.previewLinkCopyFailed);
-      const absoluteUrl = typeof window === 'undefined' ? path : new URL(path, window.location.origin).toString();
-      await copyTextToClipboard(absoluteUrl);
-      setMessage({ text: copy.previewLinkCopied, type: 'success' });
-    } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : copy.previewLinkCopyFailed, type: 'error' });
-    } finally {
-      setCopyingId('');
     }
   };
 
@@ -250,8 +218,8 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
                     <td>{formatPreviewDate(item.publish_at)}</td>
                     <td>
                       <div className="table-actions">
-                        <button className="text-button" type="button" onClick={() => handleCopyPreviewLink(item.id)} disabled={copyingId === item.id}>
-                          {copyingId === item.id ? '复制中...' : '预览'}
+                        <button className="text-button" type="button" onClick={() => handleOpenPreview(item.id)} disabled={previewLoadingId === item.id}>
+                          {previewLoadingId === item.id ? '预览中...' : '预览'}
                         </button>
                         <a className="text-link" href={copy.editHref(item.id)}>编辑</a>
                         {item.status !== 'published' ? <button className="text-button" type="button" onClick={() => handleStatus(item.id, 'publish')}>发布</button> : null}
