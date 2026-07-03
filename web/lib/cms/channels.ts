@@ -3,12 +3,15 @@ import type { Channel, DirectusListResponse } from '@/types/cms';
 
 export const isNoticeChannel = (item: Channel) => Boolean(item) && (
   item.type === 'notice'
+  || item.slug === 'announcements'
   || (typeof item.path === 'string' && item.path.startsWith('/disclosure'))
 );
 
 export const isNewsChannel = (item: Channel) => Boolean(item) && (
-  item.type === 'news'
-  || item.isNewsCategory === true
+  !isNoticeChannel(item) && (
+    item.type === 'news'
+    || item.isNewsCategory === true
+  )
 );
 
 export type PublicScope = '' | 'news' | 'notice';

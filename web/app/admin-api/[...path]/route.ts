@@ -100,6 +100,7 @@ const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,r
 const directusUserFields = 'id,email,first_name,last_name,status,role';
 const directusUserListFields = 'id,email,first_name,last_name,status,role.id,role.name,role.description';
 const directusRoleFields = 'id,name,description';
+const legacyNoticeChannelSlug = 'announcements';
 
 const globalForAdminSessions = globalThis as typeof globalThis & {
   __gzjtAdminSessions?: Map<string, AdminSession>;
@@ -275,6 +276,19 @@ const directusFormRequest = async <T>(pathname: string, token: string, formData:
   }
 
   return payload as T;
+};
+
+const normalizeUploadError = (error: unknown) => {
+  const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) || 500 : 500;
+  const message = error instanceof Error ? error.message : String(error || '');
+  if (
+    message.includes('directus_files')
+    || message.includes("don't have permission")
+    || message.toLowerCase().includes('permission')
+  ) {
+    return Object.assign(new Error('文件上传失败：当前账号没有上传权限或文件库权限未配置，请联系管理员。'), { status });
+  }
+  return Object.assign(new Error(message || '文件上传失败，请稍后重试。'), { status });
 };
 
 const requireSession = (request: NextRequest) => {
@@ -468,8 +482,10 @@ const getChannelsPath = (scope = 'news') => {
   if (scope === 'notice') {
     params['filter[_or][0][type][_eq]'] = 'notice';
     params['filter[_or][1][path][_starts_with]'] = '/disclosure';
+    params['filter[_or][2][slug][_eq]'] = legacyNoticeChannelSlug;
   } else {
     params['filter[is_news_category][_eq]'] = true;
+    params['filter[slug][_neq]'] = legacyNoticeChannelSlug;
   }
   return buildDirectusPath('/items/channels', params);
 };
@@ -493,17 +509,23 @@ const buildCategoryListPath = (request: NextRequest) => {
   if (scope === 'notice') {
     params['filter[_and][0][_or][0][type][_eq]'] = 'notice';
     params['filter[_and][0][_or][1][path][_starts_with]'] = '/disclosure';
+    params['filter[_and][0][_or][2][slug][_eq]'] = legacyNoticeChannelSlug;
   } else {
     params['filter[_and][0][_or][0][is_news_category][_eq]'] = true;
     params['filter[_and][0][_or][1][type][_eq]'] = 'news';
+    params['filter[_and][1][slug][_neq]'] = legacyNoticeChannelSlug;
   }
   if (keyword) {
-    params['filter[_and][1][_or][0][name][_contains]'] = keyword;
-    params['filter[_and][1][_or][1][slug][_contains]'] = keyword;
-    params['filter[_and][1][_or][2][description][_contains]'] = keyword;
+    const keywordIndex = scope === 'notice' ? 1 : 2;
+    params[`filter[_and][${keywordIndex}][_or][0][name][_contains]`] = keyword;
+    params[`filter[_and][${keywordIndex}][_or][1][slug][_contains]`] = keyword;
+    params[`filter[_and][${keywordIndex}][_or][2][description][_contains]`] = keyword;
   }
   if (status && categoryStatuses.has(status)) {
-    params[keyword ? 'filter[_and][2][status][_eq]' : 'filter[_and][1][status][_eq]'] = status;
+    const statusIndex = scope === 'notice'
+      ? (keyword ? 2 : 1)
+      : (keyword ? 3 : 2);
+    params[`filter[_and][${statusIndex}][status][_eq]`] = status;
   }
   return buildDirectusPath('/items/channels', params);
 };
@@ -583,9 +605,11 @@ const buildCategoryCountPath = (scope: 'news' | 'notice') => {
   if (scope === 'notice') {
     params['filter[_or][0][type][_eq]'] = 'notice';
     params['filter[_or][1][path][_starts_with]'] = '/disclosure';
+    params['filter[_or][2][slug][_eq]'] = legacyNoticeChannelSlug;
   } else {
     params['filter[_or][0][is_news_category][_eq]'] = true;
     params['filter[_or][1][type][_eq]'] = 'news';
+    params['filter[slug][_neq]'] = legacyNoticeChannelSlug;
   }
   return buildDirectusPath('/items/channels', params);
 };
@@ -790,8 +814,60 @@ const normalizePageContentItemInput = (body: Record<string, unknown>, isCreate =
 };
 
 const getArticleDetailPath = (id: string) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-  fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,content,attachments,attachments.*,attachments.file,attachments.file.id,attachments.file.filename_download,attachments.directus_files_id,attachments.directus_files_id.id,attachments.directus_files_id.filename_download,attachments.file_id',
+  fields: 'id,title,subtitle,summary,cover,main_channel,status,publish_at,source,author,content,attachments,attachments.*,attachments.file,attachments.file.id,attachments.file.filename_download,attachments.directus_files_id,attachments.directus_files_id.id,attachments.directus_files_id.filename_download,attachments.file_id',
 });
+
+const scopedArticleNotFoundMessage = (scope: 'news' | 'notice') => (
+  scope === 'notice' ? '未找到该公告或当前账号无权限查看。' : '未找到该新闻或当前账号无权限查看。'
+);
+
+type ArticleChannelValue = string | number | { id?: string | number; name?: string; slug?: string; type?: string; path?: string } | null | undefined;
+
+const getArticleChannelId = (channel: ArticleChannelValue) => {
+  if (!channel) return '';
+  if (typeof channel === 'object') return channel.id !== undefined && channel.id !== null ? String(channel.id) : '';
+  return String(channel);
+};
+
+const getChannelDetail = async (id: string, token: string) => {
+  try {
+    const result = await directusJsonRequest<{ data?: { id?: string | number; name?: string; slug?: string; type?: string; path?: string } }>(
+      buildDirectusPath(`/items/channels/${encodeURIComponent(id)}`, {
+        fields: 'id,name,slug,type,path,status,is_news_category',
+      }),
+      token,
+    );
+    return result.data || null;
+  } catch {
+    return null;
+  }
+};
+
+const getScopedArticleDetail = async (id: string, scope: 'news' | 'notice', token: string) => {
+  const detail = await directusJsonRequest<{ data?: { main_channel?: ArticleChannelValue } & Record<string, unknown> }>(
+    getArticleDetailPath(id),
+    token,
+  );
+  let current = detail.data || null;
+  if (!current) {
+    throw Object.assign(new Error(scopedArticleNotFoundMessage(scope)), { status: 404 });
+  }
+
+  const noticeChannels = await getNoticeChannels(token);
+  const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
+  const mainChannelId = getArticleChannelId(current.main_channel);
+  const isNoticeArticle = mainChannelId ? noticeChannelIds.has(mainChannelId) : false;
+  if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
+    throw Object.assign(new Error(scopedArticleNotFoundMessage(scope)), { status: 404 });
+  }
+
+  if (mainChannelId && (!current.main_channel || typeof current.main_channel !== 'object')) {
+    const channel = await getChannelDetail(mainChannelId, token);
+    if (channel) current = { ...current, main_channel: { ...channel, id: String(channel.id || mainChannelId) } };
+  }
+
+  return { article: current, isNoticeArticle };
+};
 
 const normalizeAttachmentsInput = (value: unknown) => {
   if (!Array.isArray(value)) return [];
@@ -991,62 +1067,25 @@ const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => 
   const serviceToken = await getServiceDirectusToken(session.accessToken);
 
   if (!action && request.method === 'GET') {
-    const result = await directusJsonRequest<{ data?: unknown }>(getArticleDetailPath(id), serviceToken);
-    return NextResponse.json({ data: result.data || null });
+    const { article } = await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
+    return NextResponse.json({ data: article || null });
   }
 
   if (action === 'preview-link' && request.method === 'GET') {
-    const detail = await directusJsonRequest<{ data?: { main_channel?: { id?: string } | string | null } }>(getArticleDetailPath(id), serviceToken);
-    const current = detail.data || null;
-    if (!current) {
-      return NextResponse.json(
-        { error: { code: 'NOT_FOUND', message: 'Article not found' } },
-        { status: 404 },
-      );
-    }
-    const noticeChannels = await getNoticeChannels(serviceToken);
-    const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
-    const rawChannel = current.main_channel;
-    const mainChannelId = typeof rawChannel === 'object' && rawChannel ? String(rawChannel.id || '') : String(rawChannel || '');
-    const scope = getAdminScope(request);
-    const isNoticeArticle = mainChannelId ? noticeChannelIds.has(mainChannelId) : false;
-    if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
-      return NextResponse.json(
-        { error: { code: 'NOT_FOUND', message: 'Article not found in current scope' } },
-        { status: 404 },
-      );
-    }
+    const { isNoticeArticle } = await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
     const url = createArticlePreviewPath(id, isNoticeArticle ? 'notice' : 'news');
     return NextResponse.json({ data: { url } });
   }
 
   if (!action && request.method === 'PATCH') {
     const payload = await normalizeArticleInput(request);
+    await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
     const result = await directusJsonRequest<{ data?: unknown }>(`/items/articles/${encodeURIComponent(id)}`, serviceToken, 'PATCH', payload);
     return NextResponse.json({ data: result.data || null });
   }
 
   if (!action && request.method === 'DELETE') {
-    const detail = await directusJsonRequest<{ data?: { main_channel?: { id?: string } | string | null } }>(getArticleDetailPath(id), serviceToken);
-    const current = detail.data || null;
-    if (!current) {
-      return NextResponse.json(
-        { error: { code: 'NOT_FOUND', message: 'Article not found' } },
-        { status: 404 },
-      );
-    }
-    const noticeChannels = await getNoticeChannels(serviceToken);
-    const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
-    const rawChannel = current.main_channel;
-    const mainChannelId = typeof rawChannel === 'object' && rawChannel ? String(rawChannel.id || '') : String(rawChannel || '');
-    const scope = getAdminScope(request);
-    const isNoticeArticle = mainChannelId ? noticeChannelIds.has(mainChannelId) : false;
-    if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
-      return NextResponse.json(
-        { error: { code: 'NOT_FOUND', message: 'Article not found in current scope' } },
-        { status: 404 },
-      );
-    }
+    await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
     await directusJsonRequest(`/items/articles/${encodeURIComponent(id)}`, serviceToken, 'DELETE');
     return NextResponse.json({ data: { id, deleted: true } });
   }
@@ -1055,6 +1094,7 @@ const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => 
     const statusMap: Record<string, string> = { archive: 'archived', publish: 'published', draft: 'draft' };
     const nextStatus = statusMap[action];
     if (!nextStatus) return null;
+    await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
     const result = await updateArticleStatus(id, nextStatus, serviceToken);
     return NextResponse.json({ data: (result as { data?: unknown })?.data || null });
   }
@@ -1091,13 +1131,19 @@ const handleLocalFileUpload = async (request: NextRequest) => {
     );
   }
 
-  const uploadResult = await directusFormRequest<{ data?: {
+  let uploadResult: { data?: {
     id?: string;
     filename_download?: string;
     filename_disk?: string;
     type?: string;
     filesize?: number;
-  } }>('/files', session.accessToken, formData);
+  } };
+  try {
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    uploadResult = await directusFormRequest('/files', serviceToken, formData);
+  } catch (error) {
+    throw normalizeUploadError(error);
+  }
   const fileData = uploadResult.data;
   if (!fileData?.id) {
     throw Object.assign(new Error('Directus upload response did not include a file id'), { status: 500 });
