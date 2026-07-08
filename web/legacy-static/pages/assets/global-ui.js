@@ -120,9 +120,9 @@
     if (document.querySelector('.global-float')) return
     const wrap = document.createElement('div')
     wrap.className = 'global-float'
-    const phone = '0836-283XXXX'
-    const email = 'gzjt@ganzi.gov.cn'
+    const phone = '0836-2876659'
     const contactHref = '/pages/contact/index.html#form'
+    const qrImage = '/img/public-platform-qr.png'
     wrap.innerHTML = `
       <div class="gfloat-item" data-action="top" aria-label="返回顶部">
         <div class="gfloat-ico">↑</div>
@@ -131,43 +131,13 @@
         <div class="gfloat-ico">☎</div>
         <div class="gfloat-pop"><b>联系电话</b><span>${phone}</span></div>
       </div>
-      <div class="gfloat-item" aria-label="联系邮箱">
-        <div class="gfloat-ico">@</div>
-        <div class="gfloat-pop"><b>联系邮箱</b><span>${email}</span></div>
-      </div>
       <div class="gfloat-item" aria-label="微信二维码">
         <div class="gfloat-ico">⌁</div>
         <div class="gfloat-pop">
-          <b>微信二维码</b>
-          <span>扫码关注公众号</span>
+          <b>公众平台二维码</b>
+          <span>扫码关注公众平台</span>
           <div class="gfloat-qr" aria-hidden="true">
-            <svg viewBox="0 0 21 21" fill="none">
-              <rect width="21" height="21" fill="#fff"/>
-              ${(() => {
-                const blocks = []
-                const on = (x,y,w=1,h=1) => blocks.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#0B1220"/>`)
-                const finder = (ox,oy) => {
-                  on(ox,oy,7,7); on(ox+1,oy+1,5,5,''); on(ox+2,oy+2,3,3)
-                }
-                const ring = (ox,oy) => {
-                  on(ox,oy,7,1); on(ox,oy+6,7,1); on(ox,oy,1,7); on(ox+6,oy,1,7)
-                  on(ox+2,oy+2,3,1); on(ox+2,oy+4,3,1); on(ox+2,oy+2,1,3); on(ox+4,oy+2,1,3)
-                }
-                ring(0,0); ring(14,0); ring(0,14)
-                const dots = [
-                  [9,0],[10,0],[8,2],[9,2],[11,2],[9,3],[8,4],[10,4],[12,4],
-                  [8,6],[9,6],[10,6],[12,6],[8,8],[9,8],[11,8],[12,8],[13,8],
-                  [8,10],[10,10],[11,10],[13,10],[8,11],[9,11],[12,11],[13,11],
-                  [8,12],[10,12],[11,12],[12,12],[14,12],[15,12],[16,12],[17,12],
-                  [9,13],[11,13],[12,13],[14,13],[16,13],
-                  [8,14],[10,14],[12,14],[14,14],[16,14],[18,14],
-                  [8,16],[9,16],[11,16],[12,16],[14,16],[16,16],[18,16],
-                  [8,18],[10,18],[12,18],[13,18],[15,18],[17,18],[18,18]
-                ]
-                dots.forEach(([x,y]) => on(x,y,1,1))
-                return blocks.join('')
-              })()}
-            </svg>
+            <img src="${qrImage}" alt="甘孜建投公众平台二维码" loading="lazy" />
           </div>
         </div>
       </div>

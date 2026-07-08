@@ -940,8 +940,35 @@
 }
 .detail h1{margin:0;font-family:"Source Han Serif SC","Noto Serif SC","Songti SC","STSong",serif;font-weight:950;letter-spacing:.6px;font-size:34px}
 .detail .meta{margin-top:14px}
-.detail .body{margin-top:18px;color:rgba(11,18,32,.70);line-height:2.0;font-size:15px}
+.detail .body{margin-top:18px;color:rgba(11,18,32,.70);line-height:2.0;font-size:15px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .detail .body p{margin:0 0 14px}
+.detail .body img{max-width:100%;height:auto}
+.detail .body p[style*="text-align: center"] img,
+.detail .body p[style*="text-align:center"] img,
+.detail .body .ql-align-center img,
+.detail .body .image-style-align-center img,
+.detail .body figure.image-style-align-center img,
+.detail .body img[data-align="center"]{display:block;margin-left:auto;margin-right:auto}
+.detail .body img[data-align="right"]{display:block;margin-left:auto;margin-right:0}
+.detail .body img[data-align="left"]{display:block;margin-left:0;margin-right:auto}
+.detail .body table{width:auto;max-width:100%;border-collapse:collapse}
+.detail .body td,
+.detail .body th{border:1px solid #d0d7e2;padding:8px 10px;vertical-align:middle}
+.article-content{color:rgba(11,18,32,.70);line-height:2.0;font-size:15px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.article-content p{margin:0 0 14px}
+.article-content img{max-width:100%;height:auto}
+.article-content p[style*="text-align: center"] img,
+.article-content p[style*="text-align:center"] img,
+.article-content .text-center img,
+.article-content .ql-align-center img,
+.article-content .image-style-align-center img,
+.article-content figure.image-style-align-center img,
+.article-content img[data-align="center"]{display:block;margin-left:auto;margin-right:auto}
+.article-content img[data-align="right"]{display:block;margin-left:auto;margin-right:0}
+.article-content img[data-align="left"]{display:block;margin-left:0;margin-right:auto}
+.article-content table{width:auto;max-width:100%;border-collapse:collapse}
+.article-content td,
+.article-content th{border:1px solid #d0d7e2;padding:8px 10px;vertical-align:middle}
 .detail .attachments{margin-top:20px;display:grid;gap:10px}
 .attach{
   display:flex;

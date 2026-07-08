@@ -36,13 +36,16 @@
 
         /* ========== Reset & Base ========== */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; font-size: 16px; }
+        html { scroll-behavior: smooth; font-size: 16px; height: 100%; overflow: hidden; }
         body {
             font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
             color: var(--body-text);
             background: var(--snow-white);
             line-height: 1.7;
-            overflow-x: hidden;
+            overflow: hidden;
+            height: 100%;
+            min-height: 100dvh;
+            overscroll-behavior: none;
             -webkit-font-smoothing: antialiased;
         }
         ::selection { background: var(--tibetan-red); color: white; }
@@ -170,10 +173,10 @@
             border-radius: 20px;
             width: auto;
             max-width: 720px;
-            background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-            border: 1px solid rgba(255,255,255,.08);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.10));
+            border: 1px solid rgba(255,255,255,.22);
+            backdrop-filter: blur(22px);
+            box-shadow: 0 14px 34px rgba(0,0,0,0.18);
         }
         .nav-logo.header-logo::after{
             content:'';
@@ -212,7 +215,7 @@
             width: auto;
             max-width: 280px;
             object-fit: contain;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,.15));
+            filter: brightness(1.14) contrast(1.06) saturate(1.02) drop-shadow(0 2px 10px rgba(0,0,0,.18));
         }
         @media (max-width: 1024px){
             .nav-logo .logo-image{height:60px}
@@ -242,14 +245,16 @@
             color: #FFFFFF;
             transition: var(--transition);
             white-space: nowrap;
+            text-shadow: 0 8px 22px rgba(0,0,0,0.32);
         }
         .navbar.scrolled .nav-logo-text { color: var(--dark-text); }
         .nav-logo-sub {
             font-size: 13px;
             font-weight: 500;
-            color: rgba(255,255,255,.75);
+            color: rgba(228, 242, 255, 0.78);
             transition: var(--transition);
             white-space: nowrap;
+            text-shadow: 0 8px 22px rgba(0,0,0,0.30);
         }
         .navbar.scrolled .nav-logo-sub { color: var(--light-text); }
         .nav-links {
@@ -328,23 +333,27 @@
         /* ========== HERO SECTION ========== */
         .hero {
             position: relative;
-            min-height: 100vh;
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            background: linear-gradient(
-                165deg,
-                #1a2a4a 0%,
-                #2d4a6e 15%,
-                #3d5c7a 30%,
-                #4a6b8a 45%,
-                #6b8aa8 60%,
-                #8faabb 75%,
-                #b8c9d6 88%,
-                #d4e0e8 95%,
-                #e8f0f5 100%
-            );
+            background: #061b33;
+            isolation: isolate;
+        }
+        .hero::before{
+            content:'';
+            position:absolute;
+            inset:0;
+            background-image:url('/img/index_bg.png');
+            background-size:cover;
+            background-position:center 56%;
+            background-repeat:no-repeat;
+            transform:scale(1.02);
+            filter:saturate(1.08) contrast(1.02) brightness(.82);
+            z-index:0;
         }
 
         /* Snow Mountain Layers via CSS Gradients */
@@ -353,6 +362,7 @@
             bottom: 0; left: 0; right: 0;
             height: 70%;
             pointer-events: none;
+            opacity: 0.14;
         }
         .mountain-layer {
             position: absolute;
@@ -413,13 +423,18 @@
             position: absolute;
             inset: 0;
             background:
+                radial-gradient(1200px 680px at 50% 28%,
+                    rgba(5, 20, 40, 0.12) 0%,
+                    rgba(5, 20, 40, 0.48) 55%,
+                    rgba(5, 20, 40, 0.72) 100%
+                ),
                 linear-gradient(180deg,
-                    rgba(10, 20, 40, 0.5) 0%,
-                    rgba(10, 20, 40, 0.2) 40%,
-                    transparent 60%,
-                    rgba(248, 250, 252, 0.1) 100%
+                    rgba(5, 20, 40, 0.76) 0%,
+                    rgba(5, 20, 40, 0.28) 44%,
+                    rgba(248, 250, 252, 0.06) 100%
                 );
             pointer-events: none;
+            z-index: 3;
         }
 
         /* Hero content */
@@ -502,6 +517,15 @@
             align-items:center;
             justify-content:center;
         }
+        @media (max-height: 820px){
+            .hero-badge{margin-bottom:22px}
+            .hero-subtitle{margin-bottom:28px}
+            .hero-actions .btn-primary{height:56px;min-width:240px;padding:0 40px;font-size:20px}
+        }
+        @media (max-width: 768px){
+            .nav-logo.header-logo{top:16px;left:16px;padding:14px 16px;border-radius:18px;max-width:calc(100vw - 32px)}
+        }
+        #sideNav{display:none !important}
         .hero-actions .btn-primary:hover{
             transform:translateY(-3px);
             box-shadow:0 16px 40px rgba(179,18,23,0.45);
@@ -1665,11 +1689,6 @@
         </div>
     </div>
 
-    <!-- Scroll indicator -->
-    <div class="scroll-indicator">
-        <span>SCROLL</span>
-        <div class="scroll-line"></div>
-    </div>
 </section>
 
 <template data-home-single-screen>
@@ -2079,7 +2098,7 @@
         </div>
         <div class="footer-bottom">
             <span>甘孜州建设投资集团有限公司 2022 版权所有</span>
-            <span><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">蜀ICP备2022013144号-1</a> &nbsp;|&nbsp; <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51332102000065" target="_blank" rel="noopener noreferrer">川公网安备 51332102000065号</a></span>
+            <span><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">蜀ICP备2022013144号-2</a> &nbsp;|&nbsp; <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51332102000065" target="_blank" rel="noopener noreferrer">川公网安备 51332102000065号</a></span>
         </div>
     </div>
 </footer>
@@ -2092,14 +2111,6 @@
 </template>
 
 <!-- ==================== JAVASCRIPT ==================== -->
-<script>
-(function() {
-    const tpl = document.querySelector('template[data-home-single-screen]');
-    if (!tpl || tpl.dataset.rendered === '1') return;
-    tpl.dataset.rendered = '1';
-    tpl.parentNode.insertBefore(tpl.content.cloneNode(true), tpl);
-})();
-</script>
 <script>
 (function() {
     'use strict';
@@ -2307,7 +2318,9 @@
             entries.forEach(function(entry) {
                 if (entry.isIntersecting) {
                     animateCounters();
-                    counterObserver.unobserve(entry);
+                    if (entry && entry.target && entry.target.nodeType === 1) {
+                        counterObserver.unobserve(entry.target);
+                    }
                 }
             });
         }, { threshold: 0.3 });

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
+import { sanitizeRichTextHtml } from '@/lib/richtext/sanitize';
+import { CmsRichTextEditor, type CmsRichTextEditorHandle } from './CmsRichTextEditor';
 import type { AdminScope, Channel } from '../lists/types';
 
 type ArticleStatus = 'draft' | 'published' | 'archived';
@@ -45,28 +47,7 @@ type AttachmentItem = {
   url: string;
 };
 
-type EditorApi = {
-  getHtml: () => string;
-  setHtml: (html: string) => void;
-  destroy?: () => void;
-};
-
-type WangEditorGlobal = {
-  i18nChangeLanguage?: (language: string) => void;
-  createEditor: (options: unknown) => EditorApi;
-  createToolbar: (options: unknown) => { destroy?: () => void };
-};
-
-declare global {
-  interface Window {
-    wangEditor?: WangEditorGlobal;
-  }
-}
-
-let wangEditorLoadPromise: Promise<void> | null = null;
-
-const wangEditorCssHref = 'https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css';
-const wangEditorScriptSrc = 'https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/index.min.js';
+type EditorApi = CmsRichTextEditorHandle;
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const allowedAttachmentTypes = [
   'application/pdf',
@@ -96,37 +77,6 @@ const fromLocalDateTime = (value: string) => {
   if (!value) return new Date().toISOString();
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
-};
-
-const ensureWangEditor = () => {
-  if (typeof window === 'undefined') return Promise.reject(new Error('window is not available'));
-  if (window.wangEditor) return Promise.resolve();
-  if (wangEditorLoadPromise) return wangEditorLoadPromise;
-
-  wangEditorLoadPromise = new Promise<void>((resolve, reject) => {
-    if (!document.querySelector(`link[href="${wangEditorCssHref}"]`)) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = wangEditorCssHref;
-      document.head.appendChild(link);
-    }
-
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${wangEditorScriptSrc}"]`);
-    if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('wangEditor script failed to load')), { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = wangEditorScriptSrc;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('wangEditor script failed to load'));
-    document.body.appendChild(script);
-  });
-
-  return wangEditorLoadPromise;
 };
 
 const validateImageFile = (file?: File | null, label = '图片') => {
@@ -204,7 +154,6 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const [draggingAttachmentId, setDraggingAttachmentId] = useState('');
   const [dragOverAttachmentId, setDragOverAttachmentId] = useState('');
   const editorRef = useRef<EditorApi | null>(null);
-  const toolbarRef = useRef<{ destroy?: () => void } | null>(null);
   const contentRef = useRef('');
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -237,72 +186,34 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     return contentRef.current || form.content || '';
   };
 
-  const uploadEditorImage = async (file: File, insertFn: (url: string, alt?: string, href?: string) => void) => {
+  const uploadInlineImageToUrl = async (file: File) => {
     const error = validateImageFile(file, '正文图片');
-    if (error) {
-      setMessage({ text: error, type: 'error' });
-      return;
-    }
-    try {
-      setMessage({ text: '正文图片上传中...', type: 'info' });
-      const formData = new FormData();
-      formData.append('file', file);
-      const result = await AdminApi.uploadFile(formData);
-      const uploaded = (result.data || {}) as UploadPayload;
-      if (!uploaded.id) throw new Error('上传成功但未返回文件信息。');
-      const imageUrl = uploaded.preview_url || uploaded.asset_url || `/admin-api/assets/${encodeURIComponent(uploaded.id)}`;
-      insertFn(imageUrl, uploaded.filename || file.name, imageUrl);
-      setMessage({ text: '正文图片上传成功。', type: 'success' });
-    } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : '正文图片上传失败，请稍后重试。', type: 'error' });
-    }
+    if (error) throw new Error(error);
+    const formData = new FormData();
+    formData.append('file', file);
+    const result = await AdminApi.uploadFile(formData);
+    const uploaded = (result.data || {}) as UploadPayload;
+    if (!uploaded.id) throw new Error('上传成功但未返回文件信息。');
+    return {
+      id: uploaded.id,
+      filename: uploaded.filename || file.name,
+      url: uploaded.preview_url || uploaded.asset_url || `/admin-api/assets/${encodeURIComponent(uploaded.id)}`,
+    };
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  const insertHtmlIntoEditor = (html: string) => {
+    const editor = editorRef.current as unknown as { insertHtml?: (value: string) => void };
+    if (editor?.insertHtml) {
+      editor.insertHtml(html);
+      return;
+    }
+    const current = getEditorContent();
+    const nextHtml = `${current || '<p><br></p>'}${html}`;
+    setEditorHtml(nextHtml);
+  };
 
-    ensureWangEditor()
-      .then(() => {
-        if (!isMounted || !window.wangEditor || editorRef.current) return;
-        const E = window.wangEditor;
-        E.i18nChangeLanguage?.('zh-CN');
-        editorRef.current = E.createEditor({
-          selector: '#wang-editor',
-          html: contentRef.current || '<p><br></p>',
-          config: {
-            placeholder: '请输入正文内容',
-            MENU_CONF: {
-              uploadImage: {
-                customUpload: uploadEditorImage,
-              },
-            },
-            onChange(editor: EditorApi) {
-              const html = editor.getHtml();
-              contentRef.current = html;
-              setForm((prev) => ({ ...prev, content: html }));
-            },
-          },
-          mode: 'default',
-        });
-        toolbarRef.current = E.createToolbar({
-          editor: editorRef.current,
-          selector: '#wang-toolbar',
-          mode: 'default',
-        });
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setEditorFallback(true);
-        setMessage({ text: '富文本编辑器加载失败，已切换为基础文本模式。', type: 'error' });
-      });
-
-    return () => {
-      isMounted = false;
-      toolbarRef.current?.destroy?.();
-      editorRef.current?.destroy?.();
-      toolbarRef.current = null;
-      editorRef.current = null;
-    };
+  useEffect(() => () => {
+    editorRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -350,7 +261,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           contentRef.current = article.content || '';
           setCoverPreview(coverId ? `/admin-api/assets/${encodeURIComponent(coverId)}` : '');
           updateAttachments(normalizeAttachmentEntries(article.attachments));
-          if (editorRef.current) editorRef.current.setHtml(article.content || '<p><br></p>');
+          if (editorRef.current) editorRef.current.setHtml(article.content || '<p></p>');
         }
       } catch (err) {
         if (!isMounted) return;
@@ -515,7 +426,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     source: String(form.source || '').trim(),
     author: String(form.author || '').trim(),
     publish_at: fromLocalDateTime(String(form.publish_at || '')),
-    content: getEditorContent(),
+    content: sanitizeRichTextHtml(getEditorContent()).html,
     cover: getCoverId(form.cover),
     attachments: attachments.map((item) => ({ title: item.title.trim() || item.filename || '附件', file: item.file })),
   });
@@ -524,6 +435,9 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     if (!payload.title) return '请输入标题。';
     if (!payload.main_channel) return '请选择栏目。';
     if (!payload.content.trim()) return '请输入正文。';
+    if (/<img[^>]+src=["']data:image\//i.test(payload.content)) {
+      return '正文包含未上传的粘贴图片（base64）。请使用“图片上传”或“上传附件并插入正文”功能重新插入图片后再保存。';
+    }
     return '';
   };
 
@@ -720,7 +634,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           </div>
 
           <div className="span-2">
-            <label htmlFor="wang-editor">正文 <span className="required">*</span></label>
+            <label>正文 <span className="required">*</span></label>
             <div className="content-editor-tools">
               <input
                 ref={contentAttachmentInputRef}
@@ -744,8 +658,31 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
               </button>
             </div>
             <p className="field-help">在正文区域可一次上传多个 PDF、Word、Excel，系统会按当前顺序批量插入可下载链接；上方附件列表支持删除和拖动排序。</p>
-            <div id="wang-toolbar" className="wang-toolbar" />
-            <div id="wang-editor" className="wang-editor" aria-label="正文富文本编辑器" />
+            {!editorFallback ? (
+              <CmsRichTextEditor
+                value={form.content || ''}
+                minHeight={520}
+                uploadImage={async (file) => {
+                  setMessage({ text: '正文图片上传中...', type: 'info' });
+                  const uploaded = await uploadInlineImageToUrl(file);
+                  setMessage({ text: '正文图片上传成功。', type: 'success' });
+                  return { url: uploaded.url, filename: uploaded.filename };
+                }}
+                onReady={(handle) => {
+                  editorRef.current = handle;
+                  const current = contentRef.current || form.content || '';
+                  if (current && !handle.getHtml()) handle.setHtml(current);
+                }}
+                onChange={(html) => {
+                  contentRef.current = html;
+                  setField('content', html);
+                }}
+                onError={(errorText) => {
+                  setEditorFallback(true);
+                  setMessage({ text: errorText, type: 'error' });
+                }}
+              />
+            ) : null}
             <textarea
               className="content-editor"
               rows={16}

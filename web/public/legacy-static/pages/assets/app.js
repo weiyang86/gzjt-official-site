@@ -232,7 +232,7 @@
       entries.forEach(ent => {
         if (!ent.isIntersecting) return
         ent.target.classList.add('is-visible')
-        revealObs.unobserve(ent.target)
+        if (ent.target instanceof Element) revealObs.unobserve(ent.target)
       })
     }, { threshold: 0.18 })
     revealEls.forEach(el => revealObs.observe(el))
@@ -300,7 +300,7 @@
         if (el.getAttribute('data-counted') === '1') return
         el.setAttribute('data-counted', '1')
         animateCount(el)
-        countObs.unobserve(el)
+        if (el instanceof Element) countObs.unobserve(el)
       })
     }, { threshold: 0.28 })
     countEls.forEach(el => countObs.observe(el))
@@ -386,7 +386,7 @@
         if (!ent.isIntersecting) return
         const img = ent.target
         loadLazy(img)
-        lazyObs.unobserve(img)
+        if (img instanceof Element) lazyObs.unobserve(img)
       })
     }, { threshold: 0.18, rootMargin: '120px' })
     lazyEls.forEach(img => lazyObs.observe(img))
