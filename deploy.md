@@ -12,7 +12,7 @@ scripts/deploy/production-update.sh
 - PostgreSQL 数据库备份
 - Directus uploads / extensions 备份
 - Docker 镜像重构与服务重启
-- 本机 HTTP 健康检查
+- 本机 HTTP 健康检查，默认检查本次更新的 web 服务
 - 显式数据恢复
 
 ## 1. 本地发布前
@@ -53,7 +53,7 @@ REBUILD_SERVICES="web" \
 - `DB_SERVICE=directus-db`
 - `DIRECTUS_SERVICE=directus`
 - `REBUILD_SERVICES=web`
-- `HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:8055/server/health"`
+- `HEALTH_URLS="http://127.0.0.1:3000/"`
 
 如果生产 Compose 中服务名不同，可以通过环境变量覆盖：
 
@@ -61,9 +61,11 @@ REBUILD_SERVICES="web" \
 DB_SERVICE=postgres \
 DIRECTUS_SERVICE=directus \
 REBUILD_SERVICES="web cms-api" \
-HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:4000/health http://127.0.0.1:8055/server/health" \
+HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:4000/health" \
 ./scripts/deploy/production-update.sh deploy
 ```
+
+Directus 服务状态会在 `docker compose ps` 中展示。部分 Directus 生产配置下，匿名访问 `http://127.0.0.1:8055/server/health` 会返回 403；这种情况说明接口受权限策略限制，不适合作为默认发布健康检查。
 
 如果生产服务不是 `build:` 镜像，而是容器启动后自行安装/构建，可以追加：
 
