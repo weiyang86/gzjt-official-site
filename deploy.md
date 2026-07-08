@@ -53,7 +53,8 @@ REBUILD_SERVICES="web" \
 - `DB_SERVICE=directus-db`
 - `DIRECTUS_SERVICE=directus`
 - `REBUILD_SERVICES=web`
-- `HEALTH_URLS="http://127.0.0.1:3000/"`
+- `HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:3000/img/index_bg.png"`
+- `FORCE_RECREATE=1`
 
 如果生产 Compose 中服务名不同，可以通过环境变量覆盖：
 
@@ -67,10 +68,10 @@ HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:4000/health" \
 
 Directus 服务状态会在 `docker compose ps` 中展示。部分 Directus 生产配置下，匿名访问 `http://127.0.0.1:8055/server/health` 会返回 403；这种情况说明接口受权限策略限制，不适合作为默认发布健康检查。
 
-如果生产服务不是 `build:` 镜像，而是容器启动后自行安装/构建，可以追加：
+脚本默认会强制重建/重启 `web` 容器，确保容器启动命令重新执行，避免继续使用旧的 Next.js 构建产物或旧 public 资源。默认健康检查也会检查首页背景图 `/img/index_bg.png`，避免静态资源缺失时误判发布成功。如果确认不需要重建容器，可以显式关闭：
 
 ```bash
-FORCE_RECREATE=1 ./scripts/deploy/production-update.sh deploy
+FORCE_RECREATE=0 ./scripts/deploy/production-update.sh deploy
 ```
 
 ## 3. 脚本执行顺序
@@ -81,7 +82,7 @@ FORCE_RECREATE=1 ./scripts/deploy/production-update.sh deploy
 4. 拉取远端分支信息。
 5. 备份 PostgreSQL、uploads、extensions。
 6. 使用 `git pull --ff-only` 更新代码。
-7. 使用 `docker compose up -d --build --no-deps` 重构并重启配置的服务。
+7. 使用 `docker compose up -d --build --no-deps --force-recreate` 重构并重启配置的服务。
 8. 执行本机健康检查。
 
 备份目录默认生成在：

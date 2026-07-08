@@ -33,10 +33,11 @@ REBUILD_SERVICES="${REBUILD_SERVICES:-web}"
 
 UPLOADS_PATH="${UPLOADS_PATH:-.data/directus/uploads}"
 EXTENSIONS_PATH="${EXTENSIONS_PATH:-.data/directus/extensions}"
-HEALTH_URLS="${HEALTH_URLS:-http://127.0.0.1:3000/}"
+HEALTH_URLS="${HEALTH_URLS:-http://127.0.0.1:3000/ http://127.0.0.1:3000/img/index_bg.png}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-15}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-12}"
 HEALTH_RETRY_SLEEP="${HEALTH_RETRY_SLEEP:-5}"
+FORCE_RECREATE="${FORCE_RECREATE:-1}"
 
 POSTGRES_DB_DEFAULT="gzjt_cms"
 POSTGRES_USER_DEFAULT="gzjt_cms"
@@ -65,7 +66,7 @@ Common environment variables:
   REBUILD_SERVICES="web"
   DB_SERVICE=directus-db
   DIRECTUS_SERVICE=directus
-  HEALTH_URLS="http://127.0.0.1:3000/"
+  HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:3000/img/index_bg.png"
   FORCE_RECREATE=1
 
 Deploy flow:
@@ -269,7 +270,7 @@ rebuild_services() {
 
   log "Rebuilding/recreating services: $REBUILD_SERVICES"
 
-  if [[ "${FORCE_RECREATE:-0}" == "1" ]]; then
+  if [[ "$FORCE_RECREATE" == "1" ]]; then
     args+=(--force-recreate)
   fi
 
