@@ -33,7 +33,7 @@ REBUILD_SERVICES="${REBUILD_SERVICES:-web}"
 
 UPLOADS_PATH="${UPLOADS_PATH:-.data/directus/uploads}"
 EXTENSIONS_PATH="${EXTENSIONS_PATH:-.data/directus/extensions}"
-HEALTH_URLS="${HEALTH_URLS:-http://127.0.0.1:3000/ http://127.0.0.1:8055/server/health}"
+HEALTH_URLS="${HEALTH_URLS:-http://127.0.0.1:3000/}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-15}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-12}"
 HEALTH_RETRY_SLEEP="${HEALTH_RETRY_SLEEP:-5}"
@@ -65,7 +65,7 @@ Common environment variables:
   REBUILD_SERVICES="web"
   DB_SERVICE=directus-db
   DIRECTUS_SERVICE=directus
-  HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:8055/server/health"
+  HEALTH_URLS="http://127.0.0.1:3000/"
   FORCE_RECREATE=1
 
 Deploy flow:
