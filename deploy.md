@@ -1,73 +1,153 @@
-这次修复 不涉及数据库结构、不涉及 Directus 权限初始化脚本、不需要跑 seed/migration，所以服务器只需要：备份、拉 dev、重建/重启 web 服务、验证。
-1. 进入服务器项目目录
+# 生产环境代码更新脚本
+
+本项目生产环境已经通过 Docker Compose 部署后，推荐使用仓库内脚本完成服务器端更新：
+
+```bash
+scripts/deploy/production-update.sh
+```
+
+脚本覆盖：
+
+- 服务器端 Git 分支拉取
+- PostgreSQL 数据库备份
+- Directus uploads / extensions 备份
+- Docker 镜像重构与服务重启
+- 本机 HTTP 健康检查
+- 显式数据恢复
+
+## 1. 本地发布前
+
+先在本地确认代码已经提交并推送到服务器可拉取的远端分支，例如：
+
+```bash
+git status --short --branch
+git push origin dev
+```
+
+脚本只负责服务器从远端拉取代码；如果本地代码没有 push，服务器不会拿到这些更新。
+
+## 2. 服务器执行更新
+
+进入服务器项目目录：
+
+```bash
 cd /www/wwwroot/gzjt-official-site
+```
 
-git branch --show-current
-git status
-git log --oneline -5
+执行默认更新：
+
+```bash
+BRANCH=dev \
+COMPOSE_FILE=docker-compose.prod.yml \
+ENV_FILE=.env.directus \
+REBUILD_SERVICES="web" \
+./scripts/deploy/production-update.sh deploy
+```
+
+脚本默认使用：
+
+- `BRANCH=dev`
+- `REMOTE=origin`
+- `COMPOSE_FILE=docker-compose.prod.yml`
+- `ENV_FILE=.env.directus`
+- `DB_SERVICE=directus-db`
+- `DIRECTUS_SERVICE=directus`
+- `REBUILD_SERVICES=web`
+- `HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:8055/server/health"`
+
+如果生产 Compose 中服务名不同，可以通过环境变量覆盖：
+
+```bash
+DB_SERVICE=postgres \
+DIRECTUS_SERVICE=directus \
+REBUILD_SERVICES="web cms-api" \
+HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:4000/health http://127.0.0.1:8055/server/health" \
+./scripts/deploy/production-update.sh deploy
+```
+
+如果生产服务不是 `build:` 镜像，而是容器启动后自行安装/构建，可以追加：
+
+```bash
+FORCE_RECREATE=1 ./scripts/deploy/production-update.sh deploy
+```
+
+## 3. 脚本执行顺序
+
+1. 检查 `git`、`docker`、`curl`、`tar` 是否可用。
+2. 检查服务器工作区是否存在已跟踪文件的本地改动。
+3. 检查 Compose 文件和服务名是否存在。
+4. 拉取远端分支信息。
+5. 备份 PostgreSQL、uploads、extensions。
+6. 使用 `git pull --ff-only` 更新代码。
+7. 使用 `docker compose up -d --build --no-deps` 重构并重启配置的服务。
+8. 执行本机健康检查。
+
+备份目录默认生成在：
+
+```bash
+backups/YYYYMMDD_HHMMSS/
+```
+
+目录内包含：
+
+- `directus.dump`
+- `directus-uploads.tar.gz`
+- `directus-extensions.tar.gz`
+- `manifest.txt`
+
+## 4. 数据恢复
+
+数据恢复会替换生产数据库和 uploads，必须显式确认：
+
+```bash
+CONFIRM_RESTORE=YES \
+BRANCH=dev \
+COMPOSE_FILE=docker-compose.prod.yml \
+ENV_FILE=.env.directus \
+REBUILD_SERVICES="web" \
+./scripts/deploy/production-update.sh restore backups/YYYYMMDD_HHMMSS
+```
+
+恢复流程会：
+
+1. 停止 Directus 和配置的前端服务。
+2. 重建 PostgreSQL 数据库。
+3. 从 `directus.dump` 恢复数据库。
+4. 恢复 uploads 和 extensions。
+5. 重启服务并执行健康检查。
+
+日常代码发布通常不需要执行恢复。只有在误操作、数据库异常或上传文件损坏时才执行 `restore`。
+
+## 5. 更新失败处理
+
+如果脚本在 `git pull` 前失败，代码不会被更新；根据错误提示修复后重跑即可。
+
+如果脚本在服务重建或健康检查阶段失败，先保留终端输出和本次备份目录。推荐处理顺序：
+
+```bash
 docker compose --env-file .env.directus -f docker-compose.prod.yml ps
-如果 git status 里有服务器本地未提交改动，先不要继续，避免覆盖服务器本地文件。
-2. 部署前备份数据库和 uploads
-BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-
-set -a
-source .env.directus
-set +a
-
-docker exec gzjt-directus-db pg_dump -U "${POSTGRES_USER:-gzjt_cms}" "${POSTGRES_DB:-gzjt_cms}" > "$BACKUP_DIR/directus.sql"
-tar -czf "$BACKUP_DIR/uploads.tar.gz" .data/directus/uploads
-
-ls -lh "$BACKUP_DIR"
-确认看到 directus.sql 和 uploads.tar.gz。这一步只读备份，不会改数据库和上传文件。
-3. 拉取最新 dev
-git switch dev
-git fetch origin dev
-git pull --ff-only origin dev
-
-git log --oneline -5
-如果 git pull --ff-only 失败，说明服务器本地 dev 和远端有分叉，不要强推/不要 reset，先停下来处理。
-4. 只更新 web 容器
-优先使用这个，只重建并重启 web，不重启数据库，不重建 Directus：
-docker compose --env-file .env.directus -f docker-compose.prod.yml up -d --build --no-deps web
-如果你的 docker-compose.prod.yml 不是 build: 方式，而是容器启动时自己 npm ci && npm run build，用：
-docker compose --env-file .env.directus -f docker-compose.prod.yml up -d --force-recreate --no-deps web
-看日志：
 docker compose --env-file .env.directus -f docker-compose.prod.yml logs -f --tail=200 web
-5. 验证服务
-docker compose --env-file .env.directus -f docker-compose.prod.yml ps
+```
 
-curl -I http://127.0.0.1:3000/
-curl -I http://127.0.0.1:3000/admin/notice-articles
-curl -I http://127.0.0.1:3000/admin/notice-edit
-浏览器验证：
-https://www.gzjtjt.cn/admin/notice-articles
-https://www.gzjtjt.cn/admin/notice-edit
-重点测：
-公示公告标题点击弹预览
-“预览”按钮弹同一个预览框
-不出现 Article not found in current scope
-上传附件成功
-富文本上传/插入成功
-新闻列表预览仍正常
-6. 宝塔 / Nginx 不需要改
-这次没有改端口和部署结构，宝塔反代保持原样：
-官网域名 -> http://127.0.0.1:3000
-Directus 域名 -> http://127.0.0.1:8055
-不要执行这些操作
+如果确认是本次代码问题，优先在仓库中 revert 问题提交、推送到 `dev`，然后重新执行部署脚本。这样服务器仍保持 `git pull --ff-only` 的稳定更新方式。
+
+## 6. 不要执行
+
+生产环境不要执行以下操作：
+
+```bash
 docker compose down -v
 docker volume rm ...
-删除 .data/directus
-清空数据库
-重新跑 bootstrap seed
-给 public 开 directus_files 写权限
-7. 回滚方式
-如果上线后发现问题，推荐用 Git revert，不动数据库和 uploads：
-cd /www/wwwroot/gzjt-official-site
+rm -rf .data/directus
+```
 
-git log --oneline -5
-git revert <本次提交commit>
-docker compose --env-file .env.directus -f docker-compose.prod.yml up -d --build --no-deps web
-如果 compose 不是 build 方式：
-docker compose --env-file .env.directus -f docker-compose.prod.yml up -d --force-recreate --no-deps web
-数据库和 uploads 不需要回滚，因为这次代码更新不改库结构、不迁移数据。
+除非已经确认要完整恢复数据，也不要手动删除 PostgreSQL 数据目录、uploads 或 Directus extensions。
+
+## 7. 是否涉及数据库或部署结构
+
+本脚本本身不修改数据库结构，不执行 Directus 初始化、seed 或 migration。
+
+本脚本不要求修改 Nginx / 宝塔反代配置；默认仍按现有生产结构：
+
+- 官网域名反代到 `http://127.0.0.1:3000`
+- Directus 域名或路径反代到 `http://127.0.0.1:8055`
