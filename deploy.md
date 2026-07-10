@@ -74,6 +74,84 @@ Directus 服务状态会在 `docker compose ps` 中展示。部分 Directus 生�
 FORCE_RECREATE=0 ./scripts/deploy/production-update.sh deploy
 ```
 
+## 2.1 宝塔反代监听 3000 时的端口调整
+
+如果宝塔 Nginx 需要继续对外提供 `http://36.133.201.194:3000/`，不要让 Nginx 的 `listen 3000` 再反代到 `127.0.0.1:3000`，否则会形成代理循环：
+
+```text
+Nginx listen 3000 -> proxy_pass 127.0.0.1:3000 -> Nginx listen 3000
+```
+
+正确结构：
+
+```text
+公网 3000 -> 宝塔 Nginx listen 3000 -> 127.0.0.1:3001 -> web 容器内 3000
+```
+
+服务器首次调整时执行：
+
+```bash
+cd /www/wwwroot/gzjt-official-site
+
+git switch dev
+git pull --ff-only origin dev
+
+./scripts/deploy/patch-prod-web-port-3001.sh docker-compose.prod.yml
+
+docker compose --env-file .env.directus -f docker-compose.prod.yml up -d --force-recreate web
+docker compose --env-file .env.directus -f docker-compose.prod.yml ps
+
+curl -I http://127.0.0.1:3001/
+curl -I http://127.0.0.1:3001/img/index_bg.png
+```
+
+然后在宝塔反向代理项目 `192.168.0.184_3001` 的配置文件里，把：
+
+```nginx
+proxy_pass http://127.0.0.1:3000;
+```
+
+改成：
+
+```nginx
+proxy_pass http://127.0.0.1:3001;
+```
+
+保存后重启宝塔 Nginx：
+
+```bash
+/www/server/nginx/sbin/nginx -t
+/etc/init.d/nginx restart
+```
+
+最终验证：
+
+```bash
+ss -lntp | grep -E ':3000|:3001'
+curl -I http://127.0.0.1:3001/
+curl -I http://127.0.0.1:3000/
+curl -I http://36.133.201.194:3000/
+curl -I https://gzjtjt.cn/pages/about/index.html
+```
+
+预期结果：
+
+- `3000` 由宝塔 Nginx 监听。
+- `3001` 由 Docker / web 服务监听。
+- `127.0.0.1:3001` 返回 web 服务。
+- `127.0.0.1:3000` 和 `36.133.201.194:3000` 通过宝塔 Nginx 返回 web 服务。
+
+端口调整完成后，后续部署可以用 3001 先检查真实 web 后端：
+
+```bash
+HEALTH_URLS="http://127.0.0.1:3001/ http://127.0.0.1:3001/img/index_bg.png" \
+BRANCH=dev \
+COMPOSE_FILE=docker-compose.prod.yml \
+ENV_FILE=.env.directus \
+REBUILD_SERVICES="web" \
+./scripts/deploy/production-update.sh deploy
+```
+
 ## 3. 脚本执行顺序
 
 1. 检查 `git`、`docker`、`curl`、`tar` 是否可用。
