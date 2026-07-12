@@ -38,6 +38,9 @@ HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-15}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-12}"
 HEALTH_RETRY_SLEEP="${HEALTH_RETRY_SLEEP:-5}"
 FORCE_RECREATE="${FORCE_RECREATE:-1}"
+CLEAN_WEB_BUILD="${CLEAN_WEB_BUILD:-1}"
+WEB_BUILD_PATHS="${WEB_BUILD_PATHS:-web/.next web/tsconfig.tsbuildinfo}"
+DEPLOY_ASSET_PATHS="${DEPLOY_ASSET_PATHS:-web/public/img/index_bg.png}"
 
 POSTGRES_DB_DEFAULT="gzjt_cms"
 POSTGRES_USER_DEFAULT="gzjt_cms"
@@ -68,14 +71,16 @@ Common environment variables:
   DIRECTUS_SERVICE=directus
   HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:3000/img/index_bg.png"
   FORCE_RECREATE=1
+  CLEAN_WEB_BUILD=1
 
 Deploy flow:
   1. Preflight check git, docker compose, compose services, and tracked local changes.
   2. Fetch the target branch.
   3. Back up PostgreSQL, uploads, and extensions.
   4. Pull code with --ff-only.
-  5. Rebuild/recreate configured services.
-  6. Run local health checks.
+  5. Clean old frontend build artifacts by default.
+  6. Rebuild/recreate configured services.
+  7. Run local health checks.
 
 Restore is intentionally explicit because it replaces production data.
 EOF
@@ -265,6 +270,43 @@ pull_code() {
   git pull --ff-only "$REMOTE" "$BRANCH"
 }
 
+clean_web_build_artifacts() {
+  if [[ "$CLEAN_WEB_BUILD" != "1" ]]; then
+    log "CLEAN_WEB_BUILD is disabled; keeping existing frontend build artifacts"
+    return 0
+  fi
+
+  log "Cleaning old frontend build artifacts: $WEB_BUILD_PATHS"
+
+  local item
+  for item in $WEB_BUILD_PATHS; do
+    case "$item" in
+      web/.next|web/.next/*|web/tsconfig.tsbuildinfo)
+        rm -rf "$PROJECT_DIR/$item"
+        ;;
+      *)
+        die "Refusing to remove unexpected build path: $item"
+        ;;
+    esac
+  done
+}
+
+print_deploy_asset_hashes() {
+  local item
+
+  for item in $DEPLOY_ASSET_PATHS; do
+    if [[ -f "$PROJECT_DIR/$item" ]]; then
+      if command -v sha256sum >/dev/null 2>&1; then
+        log "Asset sha256: $(sha256sum "$PROJECT_DIR/$item")"
+      else
+        log "Asset sha256: $(shasum -a 256 "$PROJECT_DIR/$item")"
+      fi
+    else
+      log "Asset not found: $item"
+    fi
+  done
+}
+
 rebuild_services() {
   local args=(up -d --build --no-deps)
 
@@ -333,6 +375,8 @@ deploy() {
   backup_dir="$(backup_data "$old_commit" "$target_commit" | tail -n 1)"
 
   pull_code
+  print_deploy_asset_hashes
+  clean_web_build_artifacts
   rebuild_services
   health_checks
 

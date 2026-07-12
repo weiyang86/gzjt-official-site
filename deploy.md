@@ -55,6 +55,7 @@ REBUILD_SERVICES="web" \
 - `REBUILD_SERVICES=web`
 - `HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:3000/img/index_bg.png"`
 - `FORCE_RECREATE=1`
+- `CLEAN_WEB_BUILD=1`
 
 如果生产 Compose 中服务名不同，可以通过环境变量覆盖：
 
@@ -68,10 +69,16 @@ HEALTH_URLS="http://127.0.0.1:3000/ http://127.0.0.1:4000/health" \
 
 Directus 服务状态会在 `docker compose ps` 中展示。部分 Directus 生产配置下，匿名访问 `http://127.0.0.1:8055/server/health` 会返回 403；这种情况说明接口受权限策略限制，不适合作为默认发布健康检查。
 
-脚本默认会强制重建/重启 `web` 容器，确保容器启动命令重新执行，避免继续使用旧的 Next.js 构建产物或旧 public 资源。默认健康检查也会检查首页背景图 `/img/index_bg.png`，避免静态资源缺失时误判发布成功。如果确认不需要重建容器，可以显式关闭：
+脚本默认会强制重建/重启 `web` 容器，并在拉取代码后清理 `web/.next` 与 `web/tsconfig.tsbuildinfo`，确保容器启动命令重新执行，避免继续使用旧的 Next.js 构建产物或旧 public 资源。默认健康检查也会检查首页背景图 `/img/index_bg.png`，避免静态资源缺失时误判发布成功。如果确认不需要重建容器，可以显式关闭：
 
 ```bash
 FORCE_RECREATE=0 ./scripts/deploy/production-update.sh deploy
+```
+
+如果确认不需要清理前端构建产物，可以显式关闭：
+
+```bash
+CLEAN_WEB_BUILD=0 ./scripts/deploy/production-update.sh deploy
 ```
 
 ## 2.1 宝塔反代监听 3000 时的端口调整
@@ -152,6 +159,16 @@ REBUILD_SERVICES="web" \
 ./scripts/deploy/production-update.sh deploy
 ```
 
+如果首页背景图已经替换但浏览器仍显示旧图，先用服务器验证真实文件是否已更新：
+
+```bash
+sha256sum web/public/img/index_bg.png
+curl -I "http://127.0.0.1:3001/img/index_bg.png?v=$(date +%s)"
+curl -I "http://36.133.201.194:3000/img/index_bg.png?v=$(date +%s)"
+```
+
+首页代码会在构建时给 `/img/index_bg.png` 自动追加内容哈希版本号；只要脚本完成 `git pull`、清理 `.next`、重建/重启 `web`，浏览器就会请求新的图片地址。
+
 ## 3. 脚本执行顺序
 
 1. 检查 `git`、`docker`、`curl`、`tar` 是否可用。
@@ -160,8 +177,10 @@ REBUILD_SERVICES="web" \
 4. 拉取远端分支信息。
 5. 备份 PostgreSQL、uploads、extensions。
 6. 使用 `git pull --ff-only` 更新代码。
-7. 使用 `docker compose up -d --build --no-deps --force-recreate` 重构并重启配置的服务。
-8. 执行本机健康检查。
+7. 打印关键静态资源 sha256，默认包含 `web/public/img/index_bg.png`。
+8. 默认清理 `web/.next` 与 `web/tsconfig.tsbuildinfo`。
+9. 使用 `docker compose up -d --build --no-deps --force-recreate` 重构并重启配置的服务。
+10. 执行本机健康检查。
 
 备份目录默认生成在：
 
