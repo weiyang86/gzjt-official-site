@@ -189,3 +189,88 @@ NODE
 node scripts/migrate/debug-legacy-date-parser.mjs
 node scripts/migrate/debug-legacy-date-parser.mjs "甘孜建设投资集团召开会议 2026-06-09"
 ```
+
+## 6. MIGRATE-FIX-03：正文图片迁移到 Directus Files
+
+### 6.1 crawler 输出图片字段
+
+crawler 会把正文中的 `<img>` 地址转换为绝对地址，并在 preview JSON 的每条 `item` 中输出：
+
+```json
+{
+  "cover_image_url": "https://www.gzzjct.cn/upload/example.jpg",
+  "images": [
+    { "url": "https://www.gzzjct.cn/upload/example.jpg", "alt": "", "filename": "example.jpg" }
+  ],
+  "content_html": "<p>正文</p><img src=\"https://www.gzzjct.cn/upload/example.jpg\">"
+}
+```
+
+第一张正文图片会作为默认封面候选；如果 `cover_image_url` 单独存在但不在 `images` 中，导入脚本也会把它加入处理队列。
+
+### 6.2 dry-run：只检查文本和图片清单
+
+不加 `--commit` 时不登录 Directus、不下载图片、不上传文件，只生成报告：
+
+```bash
+node scripts/migrate/import-legacy-articles.mjs \
+  --input=scripts/migrate/output/legacy-articles-2026-06-preview.json \
+  --status=draft \
+  --skip-images \
+  --force-update=false
+```
+
+### 6.3 commit：下载并上传图片
+
+确认 preview JSON 后执行：
+
+```bash
+export DIRECTUS_URL=http://localhost:8055
+export ADMIN_EMAIL=admin@example.com
+export ADMIN_PASSWORD='your-password'
+node scripts/migrate/import-legacy-articles.mjs \
+  --input=scripts/migrate/output/legacy-articles-2026-06-preview.json \
+  --status=draft \
+  --commit \
+  --force-update=false
+```
+
+导入规则：
+
+1. 每篇文章正文图片按 URL 下载；
+2. 上传到 Directus `/files`；
+3. 第一张成功上传的图片 ID 写入 `articles.cover`；
+4. `content_html` 中旧站图片 URL 替换为 `${DIRECTUS_URL}/assets/<file-id>`；
+5. 同一次导入中相同图片 URL 只上传一次，后续复用缓存；
+6. 图片下载或上传失败不会导致整篇文章失败，会写入报告 `warnings` 和 `images.failed`。
+
+如果需要自定义正文图片域名，可增加：
+
+```bash
+--assets-base-url=https://cms.example.com
+```
+
+### 6.4 跳过图片，只导入文字
+
+```bash
+node scripts/migrate/import-legacy-articles.mjs \
+  --input=scripts/migrate/output/legacy-articles-2026-06-preview.json \
+  --status=draft \
+  --commit \
+  --skip-images \
+  --force-update=false
+```
+
+使用 `--skip-images` 时，文章仍会导入；`articles.cover` 不写入 Directus 文件 ID，正文图片 URL 保持 preview JSON 中的旧站绝对地址。
+
+### 6.5 查看图片处理报告
+
+```bash
+node - <<'NODE'
+const r = require('./scripts/migrate/output/legacy-import-2026-06-report.json');
+console.log('uploaded:', r.images?.uploaded?.length || 0);
+console.log('reused:', r.images?.reused?.length || 0);
+console.log('failed:', r.images?.failed?.length || 0);
+console.log('warnings:', (r.warnings || []).slice(0, 10));
+NODE
+```
