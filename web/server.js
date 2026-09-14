@@ -1,0 +1,1449 @@
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const baseDir = __dirname;
+const loadEnvFile = (absPath) => {
+    if (!fs.existsSync(absPath)) return;
+    const content = fs.readFileSync(absPath, 'utf8');
+    content.split(/\r?\n/).forEach((line) => {
+        const raw = line.trim();
+        if (!raw || raw.startsWith('#')) return;
+        const index = raw.indexOf('=');
+        if (index <= 0) return;
+        const key = raw.slice(0, index).trim();
+        let value = raw.slice(index + 1).trim();
+        if (!key || process.env[key] !== undefined) return;
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+        }
+        process.env[key] = value;
+    });
+};
+
+loadEnvFile(path.join(baseDir, '..', '.env.directus'));
+
+const directusUrl = (process.env.DIRECTUS_URL || 'http://localhost:8055').replace(/\/+$/, '');
+const sessionSecret = process.env.ADMIN_SESSION_SECRET || 'local-dev-admin-session-secret-change-before-production';
+const sessionCookieName = 'gzjt_admin_session';
+const sessionMaxAgeSeconds = 60 * 60 * 8;
+const adminSessions = new Map();
+const serviceDirectusToken = process.env.DIRECTUS_TOKEN || '';
+const serviceDirectusEmail = process.env.DIRECTUS_EMAIL || process.env.ADMIN_EMAIL || '';
+const serviceDirectusPassword = process.env.DIRECTUS_PASSWORD || process.env.ADMIN_PASSWORD || '';
+let publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
+
+if (!process.env.ADMIN_SESSION_SECRET) {
+    console.warn('[admin-api] ADMIN_SESSION_SECRET is using a local development default. Set a strong secret in production.');
+}
+
+const mimeTypes = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon'
+};
+
+const readFileIfExists = (absPath) => new Promise((resolve) => {
+    fs.stat(absPath, (err, stat) => {
+        if (err || !stat.isFile()) return resolve(null);
+        fs.readFile(absPath, (err2, data) => {
+            if (err2) return resolve(null);
+            resolve(data);
+        });
+    });
+});
+
+const send = (res, absPath, data) => {
+    const ext = path.extname(absPath).toLowerCase();
+    const contentType = mimeTypes[ext] || 'text/plain';
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(data);
+};
+
+const sendJson = (res, statusCode, payload, headers = {}) => {
+    res.writeHead(statusCode, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        ...headers
+    });
+    res.end(JSON.stringify(payload));
+};
+
+const readJsonBody = (req, limitBytes = 1024 * 1024) => new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', (chunk) => {
+        raw += chunk;
+        if (Buffer.byteLength(raw) > limitBytes) {
+            reject(Object.assign(new Error('Request body too large'), { statusCode: 413 }));
+            req.destroy();
+        }
+    });
+    req.on('end', () => {
+        if (!raw) return resolve({});
+        try {
+            resolve(JSON.parse(raw));
+        } catch (err) {
+            reject(Object.assign(new Error('Invalid JSON request body'), { statusCode: 400 }));
+        }
+    });
+    req.on('error', reject);
+});
+
+const parseCookies = (req) => {
+    const header = req.headers.cookie || '';
+    return header.split(';').reduce((cookies, pair) => {
+        const index = pair.indexOf('=');
+        if (index < 0) return cookies;
+        const key = pair.slice(0, index).trim();
+        const value = pair.slice(index + 1).trim();
+        if (!key) return cookies;
+        cookies[key] = decodeURIComponent(value);
+        return cookies;
+    }, {});
+};
+
+const signSessionId = (sessionId) => crypto
+    .createHmac('sha256', sessionSecret)
+    .update(sessionId)
+    .digest('base64url');
+
+const encodeSessionCookie = (sessionId) => `${sessionId}.${signSessionId(sessionId)}`;
+
+const decodeSessionCookie = (cookieValue) => {
+    if (!cookieValue || !cookieValue.includes('.')) return null;
+    const [sessionId, signature] = cookieValue.split('.');
+    if (!sessionId || !signature) return null;
+    const expected = signSessionId(sessionId);
+    const signatureBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expected);
+    if (signatureBuffer.length !== expectedBuffer.length) return null;
+    if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+    return sessionId;
+};
+
+const cookieOptions = (maxAgeSeconds) => {
+    const parts = [
+        `${sessionCookieName}=`,
+        'Path=/',
+        'HttpOnly',
+        'SameSite=Lax',
+        `Max-Age=${maxAgeSeconds}`
+    ];
+    if (process.env.NODE_ENV === 'production') parts.push('Secure');
+    return parts;
+};
+
+const createSessionCookie = (sessionId) => {
+    const parts = cookieOptions(sessionMaxAgeSeconds);
+    parts[0] = `${sessionCookieName}=${encodeURIComponent(encodeSessionCookie(sessionId))}`;
+    return parts.join('; ');
+};
+
+const clearSessionCookie = () => cookieOptions(0).join('; ');
+
+const createAdminSession = (directusAuth) => {
+    const sessionId = crypto.randomBytes(32).toString('base64url');
+    const expiresAt = Date.now() + sessionMaxAgeSeconds * 1000;
+    adminSessions.set(sessionId, {
+        accessToken: directusAuth.access_token,
+        refreshToken: directusAuth.refresh_token,
+        expiresAt
+    });
+    return sessionId;
+};
+
+const getAdminSession = (req) => {
+    const sessionId = decodeSessionCookie(parseCookies(req)[sessionCookieName]);
+    if (!sessionId) return null;
+    const session = adminSessions.get(sessionId);
+    if (!session) return null;
+    if (session.expiresAt <= Date.now()) {
+        adminSessions.delete(sessionId);
+        return null;
+    }
+    return { sessionId, ...session };
+};
+
+const deleteAdminSession = (req) => {
+    const sessionId = decodeSessionCookie(parseCookies(req)[sessionCookieName]);
+    if (sessionId) adminSessions.delete(sessionId);
+};
+
+const normalizeDirectusError = async (response) => {
+    let body = null;
+    try { body = await response.json(); } catch (err) {}
+    const message = body?.errors?.[0]?.message || body?.message || response.statusText || 'Directus request failed';
+    return { message, details: body || null };
+};
+
+const directusRequest = async (pathname, options = {}) => {
+    const url = `${directusUrl}${pathname}`;
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const directusError = await normalizeDirectusError(response);
+            const err = Object.assign(new Error(directusError.message), {
+                statusCode: response.status,
+                code: 'DIRECTUS_ERROR',
+                details: directusError.details
+            });
+            throw err;
+        }
+        if (response.status === 204) return null;
+        return response.json();
+    } catch (err) {
+        if (err.code === 'DIRECTUS_ERROR') throw err;
+        throw Object.assign(new Error(`Directus is unavailable at ${directusUrl}`), {
+            statusCode: 500,
+            code: 'DIRECTUS_UNAVAILABLE',
+            cause: err
+        });
+    }
+};
+
+const directusJsonRequest = (pathname, token, method = 'GET', body) => directusRequest(pathname, {
+    method,
+    headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+});
+
+const getPublicDirectusHeaders = async () => {
+    if (serviceDirectusToken) return { Authorization: `Bearer ${serviceDirectusToken}` };
+    if (publicDirectusAuthCache.accessToken && publicDirectusAuthCache.expiresAt > Date.now() + 30_000) {
+        return { Authorization: `Bearer ${publicDirectusAuthCache.accessToken}` };
+    }
+    if (!serviceDirectusEmail || !serviceDirectusPassword) {
+        throw Object.assign(new Error('Directus service credentials are not configured'), {
+            statusCode: 500,
+            code: 'DIRECTUS_SERVICE_AUTH_MISSING'
+        });
+    }
+    const loginResult = await directusRequest('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: serviceDirectusEmail, password: serviceDirectusPassword })
+    });
+    const accessToken = loginResult?.data?.access_token || '';
+    const expiresRaw = Number(loginResult?.data?.expires || 300);
+    if (!accessToken) {
+        throw Object.assign(new Error('Directus service login did not return an access token'), {
+            statusCode: 500,
+            code: 'DIRECTUS_SERVICE_AUTH_FAILED'
+        });
+    }
+    const expiresMs = expiresRaw > 86_400 ? expiresRaw : expiresRaw * 1000;
+    publicDirectusAuthCache = {
+        accessToken,
+        expiresAt: Date.now() + Math.max(60_000, expiresMs)
+    };
+    return { Authorization: `Bearer ${accessToken}` };
+};
+
+const directusPublicRequest = async (pathname, allowRetry = true) => {
+    try {
+        const headers = await getPublicDirectusHeaders();
+        return await directusRequest(pathname, { headers });
+    } catch (err) {
+        if (
+            allowRetry
+            && err?.code === 'DIRECTUS_ERROR'
+            && Number(err?.statusCode) === 401
+            && !serviceDirectusToken
+        ) {
+            publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
+            return directusPublicRequest(pathname, false);
+        }
+        throw err;
+    }
+};
+
+const articleStatuses = new Set(['draft', 'published', 'archived']);
+const categoryStatuses = new Set(['enabled', 'disabled']);
+const categoryTypes = new Set(['list', 'page', 'link', 'module']);
+const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
+const pageModuleStatuses = new Set(['enabled', 'disabled']);
+const pageContentStatuses = new Set(['draft', 'published', 'archived']);
+const pageContentItemStatuses = new Set(['enabled', 'disabled']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image']);
+const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const maxUploadBytes = 10 * 1024 * 1024;
+const maxMultipartBytes = 12 * 1024 * 1024;
+
+const buildDirectusPath = (pathname, params = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        searchParams.set(key, String(value));
+    });
+    const query = searchParams.toString();
+    return query ? `${pathname}?${query}` : pathname;
+};
+
+const directusAssetUrl = (value) => {
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (!raw) return '';
+    if (/^(https?:)?\/\//.test(raw) || raw.startsWith('/') || raw.startsWith('data:')) return raw;
+    return `${directusUrl}/assets/${encodeURIComponent(raw)}`;
+};
+
+const isNoticeChannel = (item) => Boolean(item) && (
+    item.type === 'notice'
+    || (typeof item.path === 'string' && item.path.startsWith('/disclosure'))
+);
+
+const isNewsChannel = (item) => Boolean(item) && (
+    item.type === 'news'
+    || item.is_news_category === true
+    || item.isNewsCategory === true
+);
+
+const getPublicScope = (parsedUrl) => {
+    const type = (parsedUrl.searchParams.get('type') || '').trim();
+    const scope = (parsedUrl.searchParams.get('scope') || '').trim();
+    if (type === 'notice' || scope === 'notice') return 'notice';
+    if (type === 'news' || scope === 'news') return 'news';
+    return '';
+};
+
+const getPublicChannels = async (scope = '') => {
+    const channels = await directusPublicRequest(buildDirectusPath('/items/channels', {
+        fields: 'id,name,slug,type,path,sort,status,visible,is_news_category',
+        limit: -1,
+        sort: 'sort,id',
+        'filter[status][_eq]': 'enabled',
+        'filter[visible][_eq]': true
+    }));
+    const items = (Array.isArray(channels?.data) ? channels.data : []).map((item) => ({
+        id: String(item.id),
+        name: item.name || '',
+        slug: item.slug || '',
+        type: item.type || '',
+        path: item.path || '',
+        sort: Number(item.sort) || 0,
+        status: item.status || '',
+        visible: item.visible !== false,
+        isNewsCategory: item.type === 'news' || item.is_news_category === true
+    }));
+    if (scope === 'notice') return items.filter(isNoticeChannel);
+    if (scope === 'news') return items.filter(isNewsChannel);
+    return items;
+};
+
+const mapPublicArticleSummary = (item, channelMap = new Map()) => {
+    const rawChannel = item.main_channel;
+    const rawChannelId = rawChannel && typeof rawChannel === 'object'
+        ? (rawChannel.id ?? '')
+        : (rawChannel ?? '');
+    const channelId = rawChannelId !== undefined && rawChannelId !== null && rawChannelId !== ''
+        ? String(rawChannelId)
+        : '';
+    const fallbackChannel = channelId ? channelMap.get(channelId) : null;
+    return {
+        id: String(item.id),
+        title: item.title || '',
+        subtitle: item.subtitle || '',
+        cover: directusAssetUrl(item.cover || item.cover_url || ''),
+        summary: item.summary || '',
+        source: item.source || '',
+        author: item.author || '',
+        publishAt: item.publish_at || '',
+        publishDate: item.publish_at ? String(item.publish_at).slice(0, 10) : '',
+        status: item.status || '',
+        isTop: item.is_top === true,
+        isHomeRecommend: item.is_home_recommend === true,
+        sort: Number(item.sort) || 0,
+        newsSubcategory: item.news_subcategory || '',
+        mainChannel: channelId
+            ? {
+                id: channelId,
+                name: (rawChannel && typeof rawChannel === 'object' ? rawChannel.name : '') || fallbackChannel?.name || '',
+                slug: (rawChannel && typeof rawChannel === 'object' ? rawChannel.slug : '') || fallbackChannel?.slug || ''
+            }
+            : null
+    };
+};
+
+const getPublicArticles = async (parsedUrl) => {
+    const page = Math.max(1, Number.parseInt(parsedUrl.searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number.parseInt(parsedUrl.searchParams.get('pageSize') || parsedUrl.searchParams.get('limit') || '10', 10) || 10));
+    const scope = getPublicScope(parsedUrl);
+    const channelSlug = (parsedUrl.searchParams.get('channelSlug') || '').trim();
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+
+    const allChannels = await getPublicChannels();
+    const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
+    const noticeChannels = allChannels.filter(isNoticeChannel);
+    const newsChannels = allChannels.filter(isNewsChannel);
+    const noticeChannelIds = noticeChannels.map((item) => item.id).filter(Boolean);
+    const newsChannelIds = newsChannels.map((item) => item.id).filter(Boolean);
+    const selectedChannel = channelSlug && channelSlug !== 'all'
+        ? allChannels.find((item) => item.slug === channelSlug)
+        : null;
+
+    if (channelSlug && channelSlug !== 'all' && !selectedChannel) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'notice' && selectedChannel && !isNoticeChannel(selectedChannel)) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'news' && selectedChannel && !isNewsChannel(selectedChannel)) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'notice' && !selectedChannel && !noticeChannelIds.length) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+    if (scope === 'news' && !selectedChannel && !newsChannelIds.length) {
+        return { page, pageSize, total: 0, items: [] };
+    }
+
+    const params = {
+        fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,main_channel.id,main_channel.name,main_channel.slug',
+        sort: '-publish_at,-id',
+        page,
+        limit: pageSize,
+        meta: 'filter_count',
+        'filter[status][_eq]': 'published'
+    };
+    if (selectedChannel) {
+        params['filter[main_channel][_eq]'] = selectedChannel.id;
+    } else if (scope === 'notice') {
+        params['filter[main_channel][_in]'] = noticeChannelIds.join(',');
+    } else if (scope === 'news') {
+        params['filter[main_channel][_in]'] = newsChannelIds.join(',');
+    }
+    if (keyword) params.search = keyword;
+
+    const articles = await directusPublicRequest(buildDirectusPath('/items/articles', params));
+    const items = Array.isArray(articles?.data) ? articles.data.map((item) => mapPublicArticleSummary(item, channelMap)) : [];
+    return {
+        page,
+        pageSize,
+        total: Number(articles?.meta?.filter_count || items.length),
+        items
+    };
+};
+
+const getPublicNewsTotal = async () => {
+    const channels = await directusPublicRequest(buildDirectusPath('/items/channels', {
+        fields: 'id,type,is_news_category,status,visible',
+        limit: -1,
+        sort: 'sort,id',
+        'filter[status][_eq]': 'enabled',
+        'filter[visible][_eq]': true
+    }));
+    const newsChannelIds = (Array.isArray(channels?.data) ? channels.data : [])
+        .filter((item) => item && (item.type === 'news' || item.is_news_category === true))
+        .map((item) => String(item.id))
+        .filter(Boolean);
+    if (!newsChannelIds.length) return 0;
+
+    const articles = await directusPublicRequest(buildDirectusPath('/items/articles', {
+        fields: 'id',
+        limit: 1,
+        meta: 'filter_count',
+        'filter[status][_eq]': 'published',
+        'filter[main_channel][_in]': newsChannelIds.join(',')
+    }));
+    return Number(articles?.meta?.filter_count || 0);
+};
+
+const mapPublicArticleDetail = (item, channelMap = new Map()) => {
+    const base = mapPublicArticleSummary(item, channelMap);
+    const content = item.content
+        || item.content_html
+        || item.body
+        || item.body_html
+        || item.html
+        || item.rich_text
+        || item.text
+        || '';
+    const rawAttachments = Array.isArray(item.attachments) ? item.attachments : [];
+    const attachments = rawAttachments
+        .map((att, index) => {
+            if (!att || typeof att !== 'object') return null;
+            const title = att.title || att.name || `附件${index + 1}`;
+            const url = att.url
+                || (att.file && typeof att.file === 'string' ? directusAssetUrl(att.file) : '')
+                || (att.file && typeof att.file === 'object' && att.file.id ? directusAssetUrl(att.file.id) : '')
+                || (att.directus_files_id ? directusAssetUrl(att.directus_files_id) : '')
+                || (att.file_id ? directusAssetUrl(att.file_id) : '')
+                || '';
+            if (!url) return null;
+            return { title, url };
+        })
+        .filter(Boolean);
+    return { ...base, content, attachments };
+};
+
+const getPublicArticleById = async (id) => {
+    const rawId = String(id || '').trim();
+    if (!rawId) {
+        throw Object.assign(new Error('Missing article id'), { statusCode: 400, code: 'PUBLIC_ARTICLE_ID_MISSING' });
+    }
+    const allChannels = await getPublicChannels();
+    const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
+    const article = await directusPublicRequest(buildDirectusPath(`/items/articles/${encodeURIComponent(rawId)}`, {
+        fields: '*.*'
+    }));
+    const item = article?.data || null;
+    if (!item || item.status !== 'published') {
+        throw Object.assign(new Error('Article not found'), { statusCode: 404, code: 'PUBLIC_ARTICLE_NOT_FOUND' });
+    }
+    return mapPublicArticleDetail(item, channelMap);
+};
+
+const getPageModuleRoute = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/page-modules\/([^/]+)$/);
+    if (!match) return null;
+    return { id: decodeURIComponent(match[1]) };
+};
+
+const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status,date_updated';
+
+const buildPageModulesPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const parentCode = (parsedUrl.searchParams.get('parent_code') || '').trim();
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const devStatus = (parsedUrl.searchParams.get('dev_status') || '').trim();
+    const params = {
+        fields: pageModuleFields,
+        sort: 'parent_code,sort,module_title',
+        limit: 500
+    };
+    if (parentCode) params['filter[parent_code][_eq]'] = parentCode;
+    if (devStatus && pageModuleDevStatuses.has(devStatus)) params['filter[dev_status][_eq]'] = devStatus;
+    if (keyword) {
+        params['filter[_or][0][module_title][_contains]'] = keyword;
+        params['filter[_or][1][module_code][_contains]'] = keyword;
+        params['filter[_or][2][parent_title][_contains]'] = keyword;
+        params['filter[_or][3][placeholder_text][_contains]'] = keyword;
+        params['filter[_or][4][remark][_contains]'] = keyword;
+    }
+    return buildDirectusPath('/items/page_modules', params);
+};
+
+const normalizePageModuleInput = (body) => {
+    const payload = {};
+    if (typeof body.placeholder_text === 'string') payload.placeholder_text = body.placeholder_text.trim();
+    if (typeof body.remark === 'string') payload.remark = body.remark.trim();
+    if (body.dev_status !== undefined) {
+        if (!pageModuleDevStatuses.has(body.dev_status)) throw Object.assign(new Error('invalid dev_status'), { statusCode: 400 });
+        payload.dev_status = body.dev_status;
+    }
+    if (body.status !== undefined) {
+        if (!pageModuleStatuses.has(body.status)) throw Object.assign(new Error('invalid status'), { statusCode: 400 });
+        payload.status = body.status;
+    }
+    if (body.sort !== undefined) {
+        const sort = Number(body.sort);
+        if (!Number.isFinite(sort)) throw Object.assign(new Error('sort must be a number'), { statusCode: 400 });
+        payload.sort = sort;
+    }
+    if (!Object.keys(payload).length) throw Object.assign(new Error('no editable page module fields provided'), { statusCode: 400 });
+    return payload;
+};
+
+const groupPageModules = (modules) => {
+    const groups = [];
+    const groupMap = new Map();
+    modules.forEach((module) => {
+        const parentCode = module.parent_code || 'uncategorized';
+        if (!groupMap.has(parentCode)) {
+            const group = {
+                parent_title: module.parent_title || '未分组',
+                parent_code: parentCode,
+                modules: []
+            };
+            groupMap.set(parentCode, group);
+            groups.push(group);
+        }
+        groupMap.get(parentCode).modules.push(module);
+    });
+    return groups;
+};
+
+const buildContentModulesPath = () => buildDirectusPath('/items/page_modules', {
+    fields: pageModuleFields,
+    sort: 'sort,module_title',
+    limit: 500,
+    'filter[status][_eq]': 'enabled'
+});
+
+const getContentModulePath = (moduleCode) => buildDirectusPath('/items/page_modules', {
+    fields: pageModuleFields,
+    limit: 1,
+    'filter[module_code][_eq]': moduleCode,
+    'filter[status][_eq]': 'enabled'
+});
+
+const buildContentModuleTree = (modules) => {
+    const groups = [];
+    const groupMap = new Map();
+    modules.forEach((module) => {
+        const parentCode = module.parent_code || 'uncategorized';
+        if (!groupMap.has(parentCode)) {
+            const group = {
+                parent_title: module.parent_title || '未分组',
+                parent_code: parentCode,
+                sort: Number.isFinite(Number(module.sort)) ? Number(module.sort) : 0,
+                children: []
+            };
+            groupMap.set(parentCode, group);
+            groups.push(group);
+        }
+        const group = groupMap.get(parentCode);
+        group.sort = Math.min(group.sort, Number.isFinite(Number(module.sort)) ? Number(module.sort) : group.sort);
+        group.children.push(module);
+    });
+    return groups.sort((a, b) => a.sort - b.sort).map((group) => ({
+        parent_title: group.parent_title,
+        parent_code: group.parent_code,
+        children: group.children.sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+    }));
+};
+
+const emptyPageContent = (moduleCode) => ({
+    module_code: moduleCode,
+    title: '',
+    subtitle: '',
+    cover: null,
+    summary: '',
+    content: '',
+    extra_json: {},
+    status: 'draft'
+});
+
+const getPageContentPath = (moduleCode) => buildDirectusPath('/items/page_contents', {
+    fields: 'id,module_code,title,subtitle,cover,summary,content,extra_json,status,date_updated',
+    limit: 1,
+    'filter[module_code][_eq]': moduleCode
+});
+
+const normalizeExtraJson = (value) => {
+    if (value === undefined || value === null || value === '') return {};
+    if (typeof value === 'object' && !Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+        } catch (err) {
+            throw Object.assign(new Error('extra_json must be valid JSON object'), { statusCode: 400 });
+        }
+    }
+    throw Object.assign(new Error('extra_json must be a JSON object'), { statusCode: 400 });
+};
+
+const normalizePageContentInput = (body, moduleCode) => {
+    const status = pageContentStatuses.has(body.status) ? body.status : 'draft';
+    return {
+        module_code: moduleCode,
+        title: typeof body.title === 'string' ? body.title.trim() : '',
+        subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+        cover: body.cover || null,
+        summary: typeof body.summary === 'string' ? body.summary.trim() : '',
+        content: typeof body.content === 'string' ? body.content : '',
+        extra_json: normalizeExtraJson(body.extra_json),
+        status
+    };
+};
+
+const buildPageContentItemsPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const moduleCode = (parsedUrl.searchParams.get('module_code') || '').trim();
+    const itemType = (parsedUrl.searchParams.get('item_type') || '').trim();
+    const params = {
+        fields: 'id,module_code,item_type,title,subtitle,date_label,image,content,link_url,sort,status,extra_json,date_updated',
+        sort: 'sort,id',
+        limit: 500
+    };
+    if (moduleCode) params['filter[module_code][_eq]'] = moduleCode;
+    if (itemType && pageContentItemTypes.has(itemType)) params['filter[item_type][_eq]'] = itemType;
+    return buildDirectusPath('/items/page_content_items', params);
+};
+
+const getPageContentItemRoute = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/page-content-items\/([^/]+)(?:\/(disable))?$/);
+    if (!match) return null;
+    return { id: decodeURIComponent(match[1]), action: match[2] || null };
+};
+
+const normalizePageContentItemInput = (body, isCreate = false) => {
+    const moduleCode = typeof body.module_code === 'string' ? body.module_code.trim() : '';
+    if (isCreate && !moduleCode) throw Object.assign(new Error('module_code is required'), { statusCode: 400 });
+    const itemType = pageContentItemTypes.has(body.item_type) ? body.item_type : 'timeline';
+    const status = pageContentItemStatuses.has(body.status) ? body.status : 'enabled';
+    const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0;
+    const payload = {
+        item_type: itemType,
+        title: typeof body.title === 'string' ? body.title.trim() : '',
+        subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+        date_label: typeof body.date_label === 'string' ? body.date_label.trim() : '',
+        image: body.image || null,
+        content: typeof body.content === 'string' ? body.content : '',
+        link_url: typeof body.link_url === 'string' ? body.link_url.trim() : '',
+        sort,
+        status,
+        extra_json: normalizeExtraJson(body.extra_json)
+    };
+    if (isCreate) payload.module_code = moduleCode;
+    if (!payload.title) throw Object.assign(new Error('title is required'), { statusCode: 400 });
+    return payload;
+};
+
+const getCategoryIdFromPath = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/categories\/([^/]+)(?:\/(enable|disable|usage))?$/);
+    if (!match) return null;
+    return { id: decodeURIComponent(match[1]), action: match[2] || null };
+};
+
+const getAdminScope = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    return parsedUrl.searchParams.get('scope') === 'notice' ? 'notice' : 'news';
+};
+
+const buildCategoryListPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const scope = getAdminScope(req);
+    const params = {
+        fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name',
+        sort: 'sort,name',
+        limit: 100
+    };
+    if (scope === 'notice') {
+        params['filter[_and][0][_or][0][type][_eq]'] = 'notice';
+        params['filter[_and][0][_or][1][path][_starts_with]'] = '/disclosure';
+    } else {
+        params['filter[_and][0][_or][0][is_news_category][_eq]'] = true;
+        params['filter[_and][0][_or][1][type][_eq]'] = 'news';
+    }
+    if (keyword) {
+        params['filter[_and][1][_or][0][name][_contains]'] = keyword;
+        params['filter[_and][1][_or][1][slug][_contains]'] = keyword;
+        params['filter[_and][1][_or][2][description][_contains]'] = keyword;
+    }
+    if (status && categoryStatuses.has(status)) {
+        params[keyword ? 'filter[_and][2][status][_eq]' : 'filter[_and][1][status][_eq]'] = status;
+    }
+    return buildDirectusPath('/items/channels', params);
+};
+
+const getCategoryDetailPath = (id) => buildDirectusPath(`/items/channels/${encodeURIComponent(id)}`, {
+    fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name'
+});
+
+const normalizeCategoryInput = (body, isCreate = false, scope = 'news') => {
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+    if (!name) throw Object.assign(new Error('name is required'), { statusCode: 400 });
+    if (!slug) throw Object.assign(new Error('slug is required'), { statusCode: 400 });
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+        throw Object.assign(new Error('slug must use lowercase letters, numbers, and hyphens'), { statusCode: 400 });
+    }
+    const status = categoryStatuses.has(body.status) ? body.status : 'enabled';
+    const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0;
+    const payload = scope === 'notice'
+        ? {
+            name,
+            slug,
+            type: 'notice',
+            path: typeof body.path === 'string' ? body.path.trim() : `/disclosure/${slug}`,
+            sort,
+            visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
+            status,
+            description: typeof body.description === 'string' ? body.description.trim() : ''
+        }
+        : {
+            name,
+            slug,
+            type: categoryTypes.has(body.type) ? body.type : 'list',
+            path: typeof body.path === 'string' ? body.path.trim() : `/channels/${slug}`,
+            sort,
+            visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
+            status,
+            is_news_category: true,
+            description: typeof body.description === 'string' ? body.description.trim() : ''
+        };
+    if (body.parent) payload.parent = body.parent;
+    if (isCreate) {
+        payload.visible = typeof body.visible === 'boolean' ? body.visible : true;
+        payload.status = categoryStatuses.has(body.status) ? body.status : 'enabled';
+    }
+    return payload;
+};
+
+const buildCategoryUsagePath = (id) => buildDirectusPath('/items/articles', {
+    fields: 'id',
+    limit: 1,
+    meta: 'filter_count',
+    'filter[main_channel][_eq]': id
+});
+
+const getArticleIdFromPath = (normalizedPath) => {
+    const match = normalizedPath.match(/^\/admin-api\/articles\/([^/]+)(?:\/(archive|publish|draft))?$/);
+    if (!match) return null;
+    return {
+        id: decodeURIComponent(match[1]),
+        action: match[2] || null
+    };
+};
+
+const normalizePagination = (rawPage, rawLimit) => {
+    const page = Math.max(1, Number.parseInt(rawPage || '1', 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(rawLimit || '10', 10) || 10));
+    return { page, limit };
+};
+
+const buildArticleListPath = (req) => {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const { page, limit } = normalizePagination(parsedUrl.searchParams.get('page'), parsedUrl.searchParams.get('limit'));
+    const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+    const channel = (parsedUrl.searchParams.get('channel') || '').trim();
+    const status = (parsedUrl.searchParams.get('status') || '').trim();
+    const params = {
+        fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
+        sort: '-publish_at,-id',
+        page,
+        limit,
+        meta: 'filter_count'
+    };
+
+    if (keyword) {
+        params['filter[_or][0][title][_contains]'] = keyword;
+        params['filter[_or][1][summary][_contains]'] = keyword;
+        params['filter[_or][2][subtitle][_contains]'] = keyword;
+    }
+    if (channel) params['filter[main_channel][slug][_eq]'] = channel;
+    if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
+
+    return buildDirectusPath('/items/articles', params);
+};
+
+const getChannelsPath = (scope = 'news') => {
+    const params = {
+        fields: 'id,name,slug,type,status,sort,is_news_category',
+        sort: 'sort,name',
+        limit: 100,
+        'filter[status][_eq]': 'enabled'
+    };
+    if (scope === 'notice') {
+        params['filter[_or][0][type][_eq]'] = 'notice';
+        params['filter[_or][1][path][_starts_with]'] = '/disclosure';
+    } else {
+        params['filter[is_news_category][_eq]'] = true;
+    }
+    return buildDirectusPath('/items/channels', params);
+};
+
+const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
+    fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend'
+});
+
+const normalizeArticleInput = (body, fallbackStatus) => {
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const mainChannel = body.main_channel || body.channel || null;
+    const status = articleStatuses.has(body.status) ? body.status : fallbackStatus;
+    const payload = {
+        title,
+        subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+        summary: typeof body.summary === 'string' ? body.summary.trim() : '',
+        content: typeof body.content === 'string' ? body.content : '',
+        cover: body.cover || null,
+        main_channel: mainChannel,
+        source: typeof body.source === 'string' ? body.source.trim() : '',
+        author: typeof body.author === 'string' ? body.author.trim() : '',
+        publish_at: body.publish_at || new Date().toISOString(),
+        status
+    };
+
+    if (!payload.title) {
+        throw Object.assign(new Error('title is required'), { statusCode: 400 });
+    }
+    if (!payload.main_channel) {
+        throw Object.assign(new Error('main_channel is required'), { statusCode: 400 });
+    }
+    return payload;
+};
+
+const updateArticleStatus = (id, status, token) => directusJsonRequest(`/items/articles/${encodeURIComponent(id)}`, token, 'PATCH', {
+    status,
+    ...(status === 'published' ? { publish_at: new Date().toISOString() } : {})
+});
+
+const readRawBody = (req, limitBytes = maxMultipartBytes) => new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    req.on('data', (chunk) => {
+        total += chunk.length;
+        if (total > limitBytes) {
+            reject(Object.assign(new Error('File upload is too large. Maximum size is 10MB.'), { statusCode: 413 }));
+            req.destroy();
+            return;
+        }
+        chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+});
+
+const getMultipartBoundary = (contentType) => {
+    const match = String(contentType || '').match(/boundary=(?:(?:"([^"]+)")|([^;]+))/i);
+    return match ? (match[1] || match[2] || '').trim() : '';
+};
+
+const parseMultipartFileInfo = (bodyBuffer, boundary) => {
+    const boundaryBuffer = Buffer.from(`--${boundary}`);
+    let searchFrom = 0;
+    while (searchFrom < bodyBuffer.length) {
+        const partStart = bodyBuffer.indexOf(boundaryBuffer, searchFrom);
+        if (partStart < 0) break;
+        const headerStart = partStart + boundaryBuffer.length + 2;
+        const headerEnd = bodyBuffer.indexOf('\r\n\r\n', headerStart, 'latin1');
+        if (headerEnd < 0) break;
+        const headersText = bodyBuffer.slice(headerStart, headerEnd).toString('utf8');
+        const contentStart = headerEnd + 4;
+        const nextBoundary = bodyBuffer.indexOf(Buffer.from(`\r\n--${boundary}`), contentStart);
+        if (nextBoundary < 0) break;
+        searchFrom = nextBoundary + 2;
+
+        if (!/filename=/i.test(headersText)) continue;
+        const nameMatch = headersText.match(/name="([^"]+)"/i);
+        const filenameMatch = headersText.match(/filename="([^"]*)"/i);
+        const typeMatch = headersText.match(/content-type:\s*([^\r\n]+)/i);
+        const filename = filenameMatch ? filenameMatch[1] : '';
+        const type = typeMatch ? typeMatch[1].trim().toLowerCase() : '';
+        const size = Math.max(0, nextBoundary - contentStart);
+        return { fieldName: nameMatch ? nameMatch[1] : '', filename, type, size };
+    }
+    return null;
+};
+
+const validateUpload = (req, bodyBuffer) => {
+    const contentType = req.headers['content-type'] || '';
+    if (!String(contentType).toLowerCase().startsWith('multipart/form-data')) {
+        throw Object.assign(new Error('multipart/form-data is required'), { statusCode: 400 });
+    }
+    const boundary = getMultipartBoundary(contentType);
+    if (!boundary) throw Object.assign(new Error('multipart boundary is missing'), { statusCode: 400 });
+    const fileInfo = parseMultipartFileInfo(bodyBuffer, boundary);
+    if (!fileInfo || !fileInfo.filename) {
+        throw Object.assign(new Error('image file is required'), { statusCode: 400 });
+    }
+    if (!allowedImageTypes.has(fileInfo.type)) {
+        throw Object.assign(new Error('Only JPG, PNG, and WEBP images are allowed'), { statusCode: 400 });
+    }
+    if (fileInfo.size > maxUploadBytes) {
+        throw Object.assign(new Error('File upload is too large. Maximum size is 10MB.'), { statusCode: 413 });
+    }
+    return fileInfo;
+};
+
+const directusUploadRequest = async (req, token) => {
+    const bodyBuffer = await readRawBody(req);
+    const fileInfo = validateUpload(req, bodyBuffer);
+    const uploadResult = await directusRequest('/files', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': req.headers['content-type']
+        },
+        body: bodyBuffer
+    });
+    const fileData = uploadResult?.data;
+    if (!fileData?.id) {
+        throw Object.assign(new Error('Directus upload response did not include a file id'), { statusCode: 500 });
+    }
+    return {
+        id: fileData.id,
+        filename: fileData.filename_download || fileData.filename_disk || fileInfo.filename,
+        type: fileData.type || fileInfo.type,
+        filesize: fileData.filesize || fileInfo.size,
+        preview_url: `/admin-api/assets/${encodeURIComponent(fileData.id)}`
+    };
+};
+
+const proxyDirectusAsset = async (id, token, res) => {
+    try {
+        const response = await fetch(`${directusUrl}/assets/${encodeURIComponent(id)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) {
+            const err = Object.assign(new Error('Directus asset request failed'), { statusCode: response.status, code: 'DIRECTUS_ERROR' });
+            throw err;
+        }
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const cacheControl = response.headers.get('cache-control') || 'private, max-age=300';
+        const arrayBuffer = await response.arrayBuffer();
+        res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl });
+        res.end(Buffer.from(arrayBuffer));
+    } catch (err) {
+        sendAdminError(res, err);
+    }
+};
+
+const requireAdminAuth = (req, res) => {
+    const session = getAdminSession(req);
+    if (!session) {
+        sendJson(res, 401, { error: { code: 'UNAUTHORIZED', message: 'Admin login required' } });
+        return null;
+    }
+    return session;
+};
+
+const sendAdminError = (res, err) => {
+    if (err.statusCode === 401) {
+        return sendJson(res, 401, { error: { code: 'UNAUTHORIZED', message: 'Admin login required' } });
+    }
+    if (err.statusCode === 403) {
+        return sendJson(res, 403, { error: { code: 'FORBIDDEN', message: 'Directus denied this operation' } });
+    }
+    if (err.code === 'DIRECTUS_UNAVAILABLE') {
+        return sendJson(res, 500, { error: { code: 'DIRECTUS_UNAVAILABLE', message: err.message } });
+    }
+    if (err.statusCode === 400 || err.statusCode === 413) {
+        return sendJson(res, err.statusCode, { error: { code: 'BAD_REQUEST', message: err.message } });
+    }
+    return sendJson(res, 500, { error: { code: 'SERVER_ERROR', message: 'Admin API service error' } });
+};
+
+const handleAdminApi = async (req, res, normalizedPath) => {
+    try {
+        if (normalizedPath === '/admin-api/login' && req.method === 'POST') {
+            const body = await readJsonBody(req);
+            const email = typeof body.email === 'string' ? body.email.trim() : '';
+            const password = typeof body.password === 'string' ? body.password : '';
+            if (!email || !password) {
+                return sendJson(res, 400, { error: { code: 'BAD_REQUEST', message: 'email and password are required' } });
+            }
+
+            const loginResult = await directusRequest('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const authData = loginResult?.data;
+            if (!authData?.access_token) {
+                return sendJson(res, 500, { error: { code: 'DIRECTUS_LOGIN_ERROR', message: 'Directus login response did not include an access token' } });
+            }
+
+            const sessionId = createAdminSession(authData);
+            return sendJson(res, 200, { ok: true }, { 'Set-Cookie': createSessionCookie(sessionId) });
+        }
+
+        if (normalizedPath === '/admin-api/logout' && req.method === 'POST') {
+            deleteAdminSession(req);
+            return sendJson(res, 200, { ok: true }, { 'Set-Cookie': clearSessionCookie() });
+        }
+
+        if (normalizedPath === '/admin-api/me' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const me = await directusJsonRequest('/users/me?fields=id,email,first_name,last_name,role.id,role.name,role.description', session.accessToken);
+            return sendJson(res, 200, { data: me?.data || null });
+        }
+
+        if (normalizedPath === '/admin-api/channels' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const channels = await directusJsonRequest(getChannelsPath(getAdminScope(req)), session.accessToken);
+            return sendJson(res, 200, { data: channels?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/page-modules' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const modules = await directusJsonRequest(buildPageModulesPath(req), session.accessToken);
+            return sendJson(res, 200, { data: modules?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/page-modules/grouped' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const modules = await directusJsonRequest(buildPageModulesPath(req), session.accessToken);
+            return sendJson(res, 200, { data: groupPageModules(modules?.data || []) });
+        }
+
+        const pageModuleRoute = getPageModuleRoute(normalizedPath);
+        if (pageModuleRoute && req.method === 'PATCH') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const payload = normalizePageModuleInput(body);
+            const module = await directusJsonRequest(`/items/page_modules/${encodeURIComponent(pageModuleRoute.id)}`, session.accessToken, 'PATCH', payload);
+            return sendJson(res, 200, { data: module?.data || null });
+        }
+
+        if (normalizedPath === '/admin-api/content-modules/tree' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const modules = await directusJsonRequest(buildContentModulesPath(), session.accessToken);
+            return sendJson(res, 200, { data: buildContentModuleTree(modules?.data || []) });
+        }
+
+        const contentModuleMatch = normalizedPath.match(/^\/admin-api\/content-modules\/([^/]+)$/);
+        if (contentModuleMatch && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const moduleCode = decodeURIComponent(contentModuleMatch[1]);
+            const result = await directusJsonRequest(getContentModulePath(moduleCode), session.accessToken);
+            const module = Array.isArray(result?.data) ? result.data[0] : null;
+            return sendJson(res, module ? 200 : 404, module ? { data: module } : { error: { code: 'NOT_FOUND', message: 'Content module not found' } });
+        }
+
+        const pageContentMatch = normalizedPath.match(/^\/admin-api\/page-contents\/([^/]+)$/);
+        if (pageContentMatch && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const moduleCode = decodeURIComponent(pageContentMatch[1]);
+            const result = await directusJsonRequest(getPageContentPath(moduleCode), session.accessToken);
+            const content = Array.isArray(result?.data) ? result.data[0] : null;
+            return sendJson(res, 200, { data: content || emptyPageContent(moduleCode) });
+        }
+
+        if (pageContentMatch && req.method === 'PUT') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const moduleCode = decodeURIComponent(pageContentMatch[1]);
+            const body = await readJsonBody(req);
+            const payload = normalizePageContentInput(body, moduleCode);
+            const existing = await directusJsonRequest(getPageContentPath(moduleCode), session.accessToken);
+            const found = Array.isArray(existing?.data) ? existing.data[0] : null;
+            const result = found?.id
+                ? await directusJsonRequest(`/items/page_contents/${encodeURIComponent(found.id)}`, session.accessToken, 'PATCH', payload)
+                : await directusJsonRequest('/items/page_contents', session.accessToken, 'POST', payload);
+            return sendJson(res, found?.id ? 200 : 201, { data: result?.data || null });
+        }
+
+        if (normalizedPath === '/admin-api/page-content-items' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const items = await directusJsonRequest(buildPageContentItemsPath(req), session.accessToken);
+            return sendJson(res, 200, { data: items?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/page-content-items' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const payload = normalizePageContentItemInput(body, true);
+            const item = await directusJsonRequest('/items/page_content_items', session.accessToken, 'POST', payload);
+            return sendJson(res, 201, { data: item?.data || null });
+        }
+
+        const pageContentItemRoute = getPageContentItemRoute(normalizedPath);
+        if (pageContentItemRoute) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            if (pageContentItemRoute.action === 'disable' && req.method === 'PATCH') {
+                const item = await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(pageContentItemRoute.id)}`, session.accessToken, 'PATCH', { status: 'disabled' });
+                return sendJson(res, 200, { data: item?.data || null });
+            }
+            if (!pageContentItemRoute.action && req.method === 'PATCH') {
+                const body = await readJsonBody(req);
+                const payload = normalizePageContentItemInput(body, false);
+                const item = await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(pageContentItemRoute.id)}`, session.accessToken, 'PATCH', payload);
+                return sendJson(res, 200, { data: item?.data || null });
+            }
+        }
+
+        if (normalizedPath === '/admin-api/categories' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const categories = await directusJsonRequest(buildCategoryListPath(req), session.accessToken);
+            return sendJson(res, 200, { data: categories?.data || [] });
+        }
+
+        if (normalizedPath === '/admin-api/categories' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const categoryPayload = normalizeCategoryInput(body, true, getAdminScope(req));
+            const category = await directusJsonRequest('/items/channels', session.accessToken, 'POST', categoryPayload);
+            return sendJson(res, 201, { data: category?.data || null });
+        }
+
+        const categoryRoute = getCategoryIdFromPath(normalizedPath);
+        if (categoryRoute) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+
+            if (!categoryRoute.action && req.method === 'GET') {
+                const category = await directusJsonRequest(getCategoryDetailPath(categoryRoute.id), session.accessToken);
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (!categoryRoute.action && req.method === 'PATCH') {
+                const body = await readJsonBody(req);
+                const categoryPayload = normalizeCategoryInput(body, false, getAdminScope(req));
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', categoryPayload);
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (!categoryRoute.action && req.method === 'DELETE') {
+                const usage = await directusJsonRequest(buildCategoryUsagePath(categoryRoute.id), session.accessToken);
+                const count = Number(usage?.meta?.filter_count || 0);
+                if (count > 0) {
+                    throw Object.assign(new Error(`Cannot delete category that has ${count} articles`), { statusCode: 400 });
+                }
+                await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'DELETE');
+                return sendJson(res, 200, { data: { id: categoryRoute.id, deleted: true } });
+            }
+
+            if (categoryRoute.action === 'disable' && req.method === 'PATCH') {
+                const scope = getAdminScope(req);
+                const payload = scope === 'notice'
+                    ? { status: 'disabled', visible: false }
+                    : { status: 'disabled', visible: false, is_news_category: true };
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', payload);
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (categoryRoute.action === 'enable' && req.method === 'PATCH') {
+                const scope = getAdminScope(req);
+                const payload = scope === 'notice'
+                    ? { status: 'enabled', visible: true }
+                    : { status: 'enabled', visible: true, is_news_category: true };
+                const category = await directusJsonRequest(`/items/channels/${encodeURIComponent(categoryRoute.id)}`, session.accessToken, 'PATCH', payload);
+                return sendJson(res, 200, { data: category?.data || null });
+            }
+
+            if (categoryRoute.action === 'usage' && req.method === 'GET') {
+                const usage = await directusJsonRequest(buildCategoryUsagePath(categoryRoute.id), session.accessToken);
+                return sendJson(res, 200, { data: { article_count: Number(usage?.meta?.filter_count || 0) } });
+            }
+        }
+
+        if (normalizedPath === '/admin-api/articles' && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const parsedUrl = new URL(req.url, 'http://localhost');
+            const scope = getAdminScope(req);
+            const { page, limit } = normalizePagination(parsedUrl.searchParams.get('page'), parsedUrl.searchParams.get('limit'));
+            const keyword = (parsedUrl.searchParams.get('keyword') || '').trim();
+            const channel = (parsedUrl.searchParams.get('channel') || '').trim();
+            const status = (parsedUrl.searchParams.get('status') || '').trim();
+            const noticeChannelsResult = await directusJsonRequest(buildDirectusPath('/items/channels', {
+                fields: 'id,slug,name',
+                limit: 200,
+                sort: 'sort,name',
+                'filter[_or][0][type][_eq]': 'notice',
+                'filter[_or][1][path][_starts_with]': '/disclosure'
+            }), session.accessToken);
+            const noticeChannels = Array.isArray(noticeChannelsResult?.data) ? noticeChannelsResult.data : [];
+            const noticeChannelIds = noticeChannels.map((item) => String(item.id)).filter(Boolean);
+
+            const params = {
+                fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
+                sort: '-publish_at,-id',
+                page,
+                limit,
+                meta: 'filter_count'
+            };
+
+            if (keyword) {
+                params['filter[_or][0][title][_contains]'] = keyword;
+                params['filter[_or][1][summary][_contains]'] = keyword;
+                params['filter[_or][2][subtitle][_contains]'] = keyword;
+            }
+            if (status && articleStatuses.has(status)) {
+                params['filter[status][_eq]'] = status;
+            }
+
+            if (scope === 'notice') {
+                if (!noticeChannelIds.length) {
+                    return sendJson(res, 200, { data: [], meta: { filter_count: 0 } });
+                }
+                if (channel) {
+                    const found = noticeChannels.find((item) => String(item.slug || '') === channel);
+                    if (!found) return sendJson(res, 200, { data: [], meta: { filter_count: 0 } });
+                    params['filter[main_channel][_eq]'] = String(found.id);
+                } else {
+                    params['filter[main_channel][_in]'] = noticeChannelIds.join(',');
+                }
+            } else {
+                if (noticeChannelIds.length) params['filter[main_channel][_nin]'] = noticeChannelIds.join(',');
+                if (channel) params['filter[main_channel][slug][_eq]'] = channel;
+            }
+
+            const articles = await directusJsonRequest(buildDirectusPath('/items/articles', params), session.accessToken);
+            return sendJson(res, 200, { data: articles?.data || [], meta: articles?.meta || null });
+        }
+
+        if (normalizedPath === '/admin-api/articles' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const body = await readJsonBody(req);
+            const articlePayload = normalizeArticleInput(body, 'draft');
+            const article = await directusJsonRequest('/items/articles', session.accessToken, 'POST', articlePayload);
+            return sendJson(res, 201, { data: article?.data || null });
+        }
+
+        const articleRoute = getArticleIdFromPath(normalizedPath);
+        if (articleRoute) {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+
+            if (!articleRoute.action && req.method === 'GET') {
+                const article = await directusJsonRequest(getArticleDetailPath(articleRoute.id), session.accessToken);
+                return sendJson(res, 200, { data: article?.data || null });
+            }
+
+            if (!articleRoute.action && req.method === 'PATCH') {
+                const body = await readJsonBody(req);
+                const articlePayload = normalizeArticleInput(body, body.status || 'draft');
+                const article = await directusJsonRequest(`/items/articles/${encodeURIComponent(articleRoute.id)}`, session.accessToken, 'PATCH', articlePayload);
+                return sendJson(res, 200, { data: article?.data || null });
+            }
+
+            if (articleRoute.action && req.method === 'PATCH') {
+                const statusMap = { archive: 'archived', publish: 'published', draft: 'draft' };
+                const nextStatus = statusMap[articleRoute.action];
+                const article = await updateArticleStatus(articleRoute.id, nextStatus, session.accessToken);
+                return sendJson(res, 200, { data: article?.data || null });
+            }
+        }
+
+        if (normalizedPath === '/admin-api/files' && req.method === 'POST') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            const file = await directusUploadRequest(req, session.accessToken);
+            return sendJson(res, 201, { data: file });
+        }
+
+        const assetMatch = normalizedPath.match(/^\/admin-api\/assets\/([^/]+)$/);
+        if (assetMatch && req.method === 'GET') {
+            const session = requireAdminAuth(req, res);
+            if (!session) return;
+            await proxyDirectusAsset(decodeURIComponent(assetMatch[1]), session.accessToken, res);
+            return;
+        }
+
+        return sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'Admin API endpoint not found' } });
+    } catch (err) {
+        return sendAdminError(res, err);
+    }
+};
+
+const homeEntry = '/index.html';
+
+http.createServer((req, res) => {
+    const rawUrl = req.url || '/';
+    const urlPath = rawUrl.split('?')[0].split('#')[0];
+    const pathname = urlPath === '/' ? homeEntry : urlPath;
+    let decodedPath = pathname;
+    try { decodedPath = decodeURIComponent(pathname); } catch (e) {}
+    const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, '/'));
+    const normalizedNoSlash = normalizedPath.replace(/\/+$/, '') || '/';
+
+    if (normalizedPath === '/admin-api' || normalizedPath.startsWith('/admin-api/')) {
+        handleAdminApi(req, res, normalizedPath);
+        return;
+    }
+
+    if (normalizedPath === '/api/public/cms/channels' && req.method === 'GET') {
+        const parsedUrl = new URL(req.url, 'http://localhost');
+        Promise.resolve()
+            .then(() => getPublicChannels(getPublicScope(parsedUrl)))
+            .then((channels) => sendJson(res, 200, channels))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_CHANNELS_FAILED', message: err?.message || 'Failed to load public channels' } }));
+        return;
+    }
+
+    const publicArticleMatch = normalizedPath.match(/^\/api\/public\/cms\/articles\/([^/]+)$/);
+    if (publicArticleMatch && req.method === 'GET') {
+        Promise.resolve()
+            .then(() => getPublicArticleById(decodeURIComponent(publicArticleMatch[1])))
+            .then((payload) => sendJson(res, 200, payload))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_ARTICLE_FAILED', message: err?.message || 'Failed to load public article' } }));
+        return;
+    }
+
+    if (normalizedPath === '/api/public/cms/articles' && req.method === 'GET') {
+        const parsedUrl = new URL(req.url, 'http://localhost');
+        Promise.resolve()
+            .then(() => getPublicArticles(parsedUrl))
+            .then((payload) => sendJson(res, 200, payload))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_ARTICLES_FAILED', message: err?.message || 'Failed to load public articles' } }));
+        return;
+    }
+
+    if (normalizedPath === '/api/public/news-total' && req.method === 'GET') {
+        Promise.resolve()
+            .then(getPublicNewsTotal)
+            .then((total) => sendJson(res, 200, { total }))
+            .catch((err) => sendJson(res, err?.statusCode || 500, { error: { code: err?.code || 'PUBLIC_NEWS_TOTAL_FAILED', message: err?.message || 'Failed to load public news total' } }));
+        return;
+    }
+
+    const redirectMap = {
+        '/group': '/pages/about/index.html',
+        '/news-center': '/pages/news/index.html',
+        '/business-dev': '/pages/business/index.html',
+        '/party-masses': '/pages/party/index.html',
+        '/social-responsibility': '/pages/responsibility/index.html',
+        '/contact-us': '/pages/contact/index.html'
+    };
+
+    const legacySubsidiaryMatch = normalizedNoSlash.match(/^\/subsidiaries\/([^/]+)\/news$/);
+    if (legacySubsidiaryMatch) {
+        res.writeHead(302, { Location: `/subsidiaries/${legacySubsidiaryMatch[1]}/dynamics` });
+        res.end();
+        return;
+    }
+
+    const redirectTo = redirectMap[normalizedNoSlash];
+    if (redirectTo) {
+        res.writeHead(302, { Location: redirectTo });
+        res.end();
+        return;
+    }
+
+    const isAssetRequest = path.posix.extname(normalizedPath) !== '';
+    const candidates = [];
+
+    if (normalizedPath === homeEntry || normalizedPath.startsWith('/pages/') || isAssetRequest) {
+        candidates.push(normalizedPath);
+    } else {
+        const clean = normalizedNoSlash;
+        const heroListRoots = new Set(['/business-dynamics', '/clean-gov', '/subsidiaries', '/disclosure']);
+        candidates.push(`/pages${clean}/index.html`);
+        if (heroListRoots.has(clean)) candidates.push('/pages/_hero-list/index.html');
+        candidates.push('/pages/_list/index.html');
+        candidates.push('/pages/_placeholder/index.html');
+    }
+
+    const tryNext = async (idx) => {
+        if (idx >= candidates.length) {
+            res.writeHead(404);
+            res.end('Not Found');
+            return;
+        }
+        const safePath = path.posix.normalize(candidates[idx]).replace(/^(\.\.(\/|\\|$))+/, '');
+        const absPath = path.join(baseDir, safePath);
+        if (!absPath.startsWith(baseDir)) {
+            res.writeHead(403);
+            res.end('Forbidden');
+            return;
+        }
+        const data = await readFileIfExists(absPath);
+        if (!data) return tryNext(idx + 1);
+        send(res, absPath, data);
+    };
+
+    tryNext(0);
+}).listen(Number(process.env.PORT) || 3010, () => {
+    const port = Number(process.env.PORT) || 3010;
+    console.log(`Server running at http://localhost:${port}`);
+    console.log(`Admin API proxy target: ${directusUrl}`);
+});

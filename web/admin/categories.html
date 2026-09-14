@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>新闻分类 - 甘孜建设投资集团官网内容管理后台</title>
+  <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body class="admin-app-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar" aria-label="后台菜单">
+      <div class="sidebar-brand"><span class="brand-mark">甘</span><div><strong>内容管理后台</strong><small>新闻维护</small></div></div>
+      <nav class="admin-nav">
+        <a class="admin-nav-link" href="/admin/dashboard.html">工作台</a>
+        <a class="admin-nav-link" href="/admin/articles.html">新闻管理</a>
+        <a class="admin-nav-link is-active" href="/admin/categories.html">新闻分类</a>
+        <a class="admin-nav-link" href="/admin/notice-articles.html">公示公告管理</a>
+        <a class="admin-nav-link" href="/admin/notice-categories.html">公示公告分类</a>
+        <a class="admin-nav-link" href="/admin/notice-edit.html">新增公示公告</a>
+        <a class="admin-nav-link" href="/admin/content.html">页面内容管理</a>
+        <a class="admin-nav-link" href="/admin/article-edit.html">新增新闻</a>
+        <button id="logout-button" class="admin-nav-link nav-button" type="button">退出登录</button>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="eyebrow">Categories</p><h1>新闻分类</h1></div>
+        <div id="topbar-user" class="topbar-user">正在验证登录态…</div>
+      </header>
+
+      <main class="dashboard-content">
+        <section class="notice-card">
+          <div class="section-title-row">
+            <div><p class="eyebrow">分类维护</p><h2>新闻分类管理</h2></div>
+            <a class="secondary-button" href="/admin/articles.html">回到新闻管理</a>
+          </div>
+          <p>停用分类会设置 <code>status=disabled</code> 和 <code>visible=false</code>，不会删除已有数据，已关联新闻仍保留原分类关系。</p>
+        </section>
+
+        <div class="split-grid">
+          <section class="editor-card">
+            <div class="section-title-row"><div><p class="eyebrow">新增 / 编辑</p><h2 id="category-form-title">新增分类</h2></div><button id="reset-category-form" class="secondary-button" type="button">清空表单</button></div>
+            <div id="category-message" class="inline-message" hidden></div>
+            <form id="category-form" class="editor-grid">
+              <input id="category-id" type="hidden">
+              <label>分类名称 <span class="required">*</span><input id="category-name" name="name" type="text" maxlength="64" required></label>
+              <label>分类标识 slug <span class="required">*</span><input id="category-slug" name="slug" type="text" maxlength="64" placeholder="例如 group-news" required></label>
+              <label>类型
+                <select id="category-type" name="type">
+                  <option value="list">列表</option>
+                  <option value="page">单页</option>
+                  <option value="link">链接</option>
+                  <option value="module">模块</option>
+                </select>
+              </label>
+              <label>前台路径<input id="category-path" name="path" type="text" maxlength="128" placeholder="/channels/group-news"></label>
+              <label>排序<input id="category-sort" name="sort" type="number" step="1" value="0"></label>
+              <label>状态
+                <select id="category-status" name="status">
+                  <option value="enabled">启用</option>
+                  <option value="disabled">停用</option>
+                </select>
+              </label>
+              <label class="span-2">分类说明<textarea id="category-description" name="description" rows="3" maxlength="500"></textarea></label>
+              <div class="form-actions span-2"><button class="primary-link-button" type="submit">保存分类</button></div>
+            </form>
+          </section>
+
+          <div class="split-grid-right">
+            <section class="notice-card">
+              <form id="category-filters" class="filter-form compact-filter">
+                <label>搜索<input id="category-keyword" type="search" placeholder="名称 / slug / 说明"></label>
+                <label>状态
+                  <select id="category-status-filter">
+                    <option value="">全部状态</option>
+                    <option value="enabled">启用</option>
+                    <option value="disabled">停用</option>
+                  </select>
+                </label>
+                <button class="secondary-button" type="submit">查询</button>
+              </form>
+            </section>
+
+            <section class="table-card" aria-live="polite">
+              <div class="table-wrap">
+                <table class="admin-table">
+                  <thead><tr><th>名称</th><th>Slug</th><th>状态</th><th>排序</th><th>新闻数量</th><th>说明</th><th>操作</th></tr></thead>
+                  <tbody id="categories-body"><tr><td colspan="7">正在加载…</td></tr></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/admin/js/admin-api.js"></script>
+  <script src="/admin/js/categories.js"></script>
+</body>
+</html>

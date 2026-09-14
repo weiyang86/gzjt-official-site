@@ -1,0 +1,1833 @@
+{
+  "generated_at": "2026-06-28T17:26:44.465Z",
+  "note": "Generated from existing web HTML. Review uncertain=true records before importing.",
+  "channels": [
+    {
+      "name": "首页",
+      "slug": "home",
+      "type": "page",
+      "path": "/A版官网首页.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "name": "集团概况",
+      "slug": "集团概况",
+      "type": "page",
+      "path": "/pages/about/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "新闻中心",
+      "slug": "group-news",
+      "type": "page",
+      "path": "/pages/news/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "业务板块",
+      "slug": "business-news",
+      "type": "page",
+      "path": "/pages/business/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "联系我们",
+      "slug": "联系我们",
+      "type": "page",
+      "path": "/pages/contact/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "内容标题",
+      "slug": "内容标题",
+      "type": "page",
+      "path": "/pages/detail/article-detail.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": true
+    },
+    {
+      "name": "新闻标题",
+      "slug": "新闻标题",
+      "type": "page",
+      "path": "/pages/detail/news-detail.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": true
+    },
+    {
+      "name": "项目名称",
+      "slug": "项目名称",
+      "type": "page",
+      "path": "/pages/detail/project-detail.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": true
+    },
+    {
+      "name": "工程咨询公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "工程咨询公司-组织架构-甘孜州建设投资集团有限公司",
+      "type": "page",
+      "path": "/pages/org/consulting/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "数字建投中心｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "数字建投中心-组织架构-甘孜州建设投资集团有限公司",
+      "type": "page",
+      "path": "/pages/org/digital/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "投资运营公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "投资运营公司-组织架构-甘孜州建设投资集团有限公司",
+      "type": "page",
+      "path": "/pages/org/investment/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "项目公司（示意）｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "项目公司-示意-组织架构-甘孜州建设投资集团有限公司",
+      "type": "page",
+      "path": "/pages/org/project-company/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "交通建设公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "交通建设公司-组织架构-甘孜州建设投资集团有限公司",
+      "type": "page",
+      "path": "/pages/org/traffic/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "城市建设公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "城市建设公司-组织架构-甘孜州建设投资集团有限公司",
+      "type": "page",
+      "path": "/pages/org/urban/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "党建群团",
+      "slug": "party-mass",
+      "type": "page",
+      "path": "/pages/party/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "项目展示",
+      "slug": "项目展示",
+      "type": "page",
+      "path": "/pages/projects/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "name": "社会责任",
+      "slug": "social-responsibility",
+      "type": "page",
+      "path": "/pages/responsibility/index.html",
+      "status": "enabled",
+      "visible": true,
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    }
+  ],
+  "pages": [
+    {
+      "title": "甘孜州建设投资集团有限公司",
+      "slug": "甘孜州建设投资集团有限公司",
+      "content": "<p>聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。</p>\n<p>Directus 未启动时保留静态内容。</p>\n<p>© 甘孜州建设投资集团有限公司</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "集团概况",
+      "content": "<p>以工程建设能力为底盘，以投融资能力为支撑，以数字化治理为引擎，服务区域发展与民生改善。</p>\n<p>PROFILE 企业简介 立足甘孜、服务全州，聚焦交通建设、城市建设、工程咨询、投资运营、数字建投、文旅开发等领域，打造投融建运一体化国有资本运营平台。</p>\n<p>坚持以高质量发展为主线，聚焦重大项目建设与民生保障，强化安全、质量、进度与成本协同管控。</p>\n<p>持续深化改革与治理能力提升，以数字化手段赋能工程监管与经营管理，提升综合竞争力。</p>\n<p>愿景 ：成为西部地区具有核心竞争力的综合性建设投资集团。</p>\n<p>构建“战略牵引、项目为王、合规护航、数字驱动”的运营体系，形成指标化、清单化、闭环化的管理机制。</p>",
+      "cover": "../../img/雅砻江大桥.jpg",
+      "status": "published",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "新闻中心",
+      "content": "<p>聚合集团新闻、行业动态、通知公告、媒体聚焦，支持分类 Tab、搜索与分页。</p>\n<p>UPDATES 资讯聚合 按分类浏览或输入关键词搜索，列表支持分页展示。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": "../../img/雅砻江大桥.jpg",
+      "status": "published",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "业务板块",
+      "content": "<p>围绕基础设施建设与区域发展，形成“投融建运”协同的六大业务板块，持续提升专业化能力。</p>\n<p>SECTORS 六大业务板块 统一卡片体系与动效系统，Hover 提升层级与发光边框，保持科技感与商务感平衡。</p>\n<p>以“安全、质量、进度、成本”四维协同为主线，沉淀可复制的管理体系与标准化方法。</p>\n<p>以项目案例串联业务能力，点击进入项目详情模板。</p>\n<p>进入视口触发数字滚动动画，采用统一 KPI 风格组件。</p>\n<p>坚持专业化、标准化、数字化，推动产业协同与高质量发展。</p>",
+      "cover": "../../img/318康定市过境段公路工程项目434互通工程.jpg",
+      "status": "published",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "联系我们",
+      "content": "<p>提供联系方式、地图、在线留言与招聘入口，统一采用玻璃拟态与动效系统。</p>\n<p>INFO 联系方式 提供地址、电话、邮箱与服务时间，地图可替换为企业自有地图服务。</p>\n<p>表单提交后展示轻量提示，后续可接入后端接口或工单系统。</p>\n<p>我们期待与你沟通合作，共同建设美丽甘孜。</p>",
+      "cover": "../../img/雅砻江大桥.jpg",
+      "status": "published",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "工程咨询公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "工程咨询公司-组织架构-甘孜州建设投资集团有限公司",
+      "content": "<p>此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。</p>\n<p>可在此维护工程咨询公司职责、业务范围、组织分工、重点项目等信息。</p>\n<p>后期如需新增图片、列表或跳转入口，可直接在本页内容区修改。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "数字建投中心｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "数字建投中心-组织架构-甘孜州建设投资集团有限公司",
+      "content": "<p>此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。</p>\n<p>可在此维护数字建投中心职责、业务范围、组织分工、重点项目等信息。</p>\n<p>后期如需新增图片、列表或跳转入口，可直接在本页内容区修改。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "投资运营公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "投资运营公司-组织架构-甘孜州建设投资集团有限公司",
+      "content": "<p>此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。</p>\n<p>可在此维护投资运营公司职责、业务范围、组织分工、重点项目等信息。</p>\n<p>后期如需新增图片、列表或跳转入口，可直接在本页内容区修改。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目公司（示意）｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "项目公司-示意-组织架构-甘孜州建设投资集团有限公司",
+      "content": "<p>此页面用于承接组织架构图中“项目公司（示意）”的详情入口，后续可按实际项目公司列表拆分为多个独立页面。</p>\n<p>可在此维护项目公司介绍、项目清单、运营情况、联系方式等内容。</p>\n<p>后期如需按不同项目公司拆分，可复制本页结构并修改标题与内容即可。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "交通建设公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "交通建设公司-组织架构-甘孜州建设投资集团有限公司",
+      "content": "<p>此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。</p>\n<p>可在此维护交通建设公司职责、业务范围、组织分工、重点项目等信息。</p>\n<p>后期如需新增图片、列表或跳转入口，可直接在本页内容区修改。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "城市建设公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "城市建设公司-组织架构-甘孜州建设投资集团有限公司",
+      "content": "<p>此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。</p>\n<p>可在此维护城市建设公司职责、业务范围、组织分工、重点项目等信息。</p>\n<p>后期如需新增图片、列表或跳转入口，可直接在本页内容区修改。</p>\n<p>聚合最新动态与信息公示，提升对外传播力与服务能力。</p>",
+      "cover": null,
+      "status": "published",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "党建工作",
+      "content": "<p>坚持党建引领，凝聚奋进力量，推动企业高质量发展。聚焦党代会、主题教育、基层党建、学习贯彻二十大精神、专题学习、工会工作、青年工作、统战工作等重点板块。</p>\n<p>TOPICS 党建板块 按板块聚合内容入口，点击进入栏目后可继续扩展图文与专题内容。</p>\n<p>点击图片可放大预览（Lightbox）。</p>\n<p>提供视频栏目入口，具体视频内容可在后续接入媒体资源库。</p>\n<p>坚持党建引领，推动融合发展，形成高质量发展的内生动力。</p>",
+      "cover": "../../img/雅砻江大桥.jpg",
+      "status": "published",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "项目展示",
+      "content": "<p>项目轮播 + 项目地图 + 项目列表 + 筛选条件 + 详情入口，统一采用 C 版设计语言与动效系统。</p>\n<p>MAP 项目地图 地图采用 object-fit: contain，点位层自动对齐图片可见区域，缩放下坐标稳定。</p>\n<p>支持按类型 / 地区 / 年度筛选，卡片点击进入项目详情入口。</p>\n<p>以项目为抓手，形成“地图 + 列表 + 详情”的统一信息链路，提升展示与检索效率。</p>",
+      "cover": "../../img/雅砻江大桥.jpg",
+      "status": "published",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "社会责任",
+      "content": "<p>聚焦乡村振兴、公益活动、环保建设与社会贡献，形成可量化、可持续的责任体系与成果展示。</p>\n<p>ACTIONS 责任行动 以卡片方式展示重点行动方向，后续可接入真实项目与报道。</p>\n<p>进入视口触发数字滚动动画，可对接年度责任报告指标体系。</p>\n<p>以高质量建设服务民生，以绿色低碳推动可持续发展，以责任担当回馈社会。</p>",
+      "cover": "../../img/海螺沟路基建成后2.jpg",
+      "status": "published",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    }
+  ],
+  "banners": [
+    {
+      "title": "集团概况",
+      "subtitle": "集团概况",
+      "image_path": "../../img/雅砻江大桥.jpg",
+      "link_url": "/pages/about/index.html",
+      "position": "集团概况",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": true
+    },
+    {
+      "title": "新闻中心",
+      "subtitle": "新闻中心",
+      "image_path": "../../img/雅砻江大桥.jpg",
+      "link_url": "/pages/news/index.html",
+      "position": "新闻中心",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": true
+    },
+    {
+      "title": "业务板块",
+      "subtitle": "业务板块",
+      "image_path": "../../img/318康定市过境段公路工程项目434互通工程.jpg",
+      "link_url": "/pages/business/index.html",
+      "position": "业务板块",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": true
+    },
+    {
+      "title": "联系我们",
+      "subtitle": "联系我们",
+      "image_path": "../../img/雅砻江大桥.jpg",
+      "link_url": "/pages/contact/index.html",
+      "position": "联系我们",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": true
+    },
+    {
+      "title": "党建工作",
+      "subtitle": "党建工作",
+      "image_path": "../../img/雅砻江大桥.jpg",
+      "link_url": "/pages/party/index.html",
+      "position": "党建工作",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": true
+    },
+    {
+      "title": "项目展示",
+      "subtitle": "项目展示",
+      "image_path": "../../img/雅砻江大桥.jpg",
+      "link_url": "/pages/projects/index.html",
+      "position": "项目展示",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": true
+    },
+    {
+      "title": "社会责任",
+      "subtitle": "社会责任",
+      "image_path": "../../img/海螺沟路基建成后2.jpg",
+      "link_url": "/pages/responsibility/index.html",
+      "position": "社会责任",
+      "sort": 1,
+      "status": "published",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": true
+    }
+  ],
+  "articles": [
+    {
+      "title": "聚焦集团重点工作动态",
+      "summary": "聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。",
+      "content": "<p>聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。</p>\n<p>Directus 未启动时保留静态内容。</p>\n<p>© 甘孜州建设投资集团有限公司</p>",
+      "channel_slug": "group-news",
+      "status": "published",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": true
+    },
+    {
+      "title": "业务动态",
+      "summary": "聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。",
+      "content": "<p>聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。</p>\n<p>Directus 未启动时保留静态内容。</p>\n<p>© 甘孜州建设投资集团有限公司</p>",
+      "channel_slug": "group-news",
+      "status": "published",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": true
+    },
+    {
+      "title": "党建群团",
+      "summary": "聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。",
+      "content": "<p>聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。</p>\n<p>Directus 未启动时保留静态内容。</p>\n<p>© 甘孜州建设投资集团有限公司</p>",
+      "channel_slug": "group-news",
+      "status": "published",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": true
+    },
+    {
+      "title": "公示公告",
+      "summary": "聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。",
+      "content": "<p>聚焦基础设施、产业投资、城市运营与交旅融合，服务区域高质量发展。</p>\n<p>Directus 未启动时保留静态内容。</p>\n<p>© 甘孜州建设投资集团有限公司</p>",
+      "channel_slug": "group-news",
+      "status": "published",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": true
+    }
+  ],
+  "companies": [
+    {
+      "name": "工程咨询公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "consulting",
+      "intro": "此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。",
+      "cover": null,
+      "status": "enabled",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": true
+    },
+    {
+      "name": "数字建投中心｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "digital",
+      "intro": "此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。",
+      "cover": null,
+      "status": "enabled",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": true
+    },
+    {
+      "name": "投资运营公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "investment",
+      "intro": "此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。",
+      "cover": null,
+      "status": "enabled",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": true
+    },
+    {
+      "name": "项目公司（示意）｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "project-company",
+      "intro": "此页面用于承接组织架构图中“项目公司（示意）”的详情入口，后续可按实际项目公司列表拆分为多个独立页面。",
+      "cover": null,
+      "status": "enabled",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": true
+    },
+    {
+      "name": "交通建设公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "traffic",
+      "intro": "此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。",
+      "cover": null,
+      "status": "enabled",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": true
+    },
+    {
+      "name": "城市建设公司｜组织架构｜甘孜州建设投资集团有限公司",
+      "slug": "urban",
+      "intro": "此页面为组织架构图的可编辑详情入口，后续可按需要替换为该板块的真实介绍内容。",
+      "cover": null,
+      "status": "enabled",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": true
+    }
+  ],
+  "business_sectors": [
+    {
+      "name": "甘孜州建设投资集团有限公司",
+      "slug": "甘孜州建设投资集团有限公司",
+      "intro": "围绕基础设施建设与区域发展，形成“投融建运”协同的六大业务板块，持续提升专业化能力。",
+      "cover": "../../img/318康定市过境段公路工程项目434互通工程.jpg",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": true
+    }
+  ],
+  "quick_links": [
+    {
+      "title": "甘孜建投 GANZI JIANTOU",
+      "slug": "web-a版官网首页-html-甘孜建投-ganzi-jiantou",
+      "url": "/A版官网首页.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-a版官网首页-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-a版官网首页-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-a版官网首页-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-a版官网首页-html-业务板块",
+      "url": "/pages/business/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-a版官网首页-html-党建工作",
+      "url": "/pages/party/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-a版官网首页-html-社会责任",
+      "url": "/pages/responsibility/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-a版官网首页-html-联系我们",
+      "url": "/pages/contact/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "了解集团",
+      "slug": "web-a版官网首页-html-了解集团",
+      "url": "/pages/about/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "查看更多",
+      "slug": "web-a版官网首页-html-查看更多",
+      "url": "/pages/news/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "静态兜底 聚焦集团重点工作动态 Directus 未启动时保留静态内容。",
+      "slug": "web-a版官网首页-html-静态兜底-聚焦集团重点工作动态-directus-未启动时保留静态内容",
+      "url": "/pages/detail/news-detail.html?id=static-group-news",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团新闻静态兜底内容 --",
+      "slug": "web-a版官网首页-html-集团新闻静态兜底内容",
+      "url": "/pages/detail/news-detail.html?id=static-1",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "下属公司",
+      "slug": "web-a版官网首页-html-下属公司",
+      "url": "/pages/org/investment/index.html",
+      "position": "home",
+      "status": "enabled",
+      "source_file": "web/A版官网首页.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-about-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-about-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-about-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-about-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-about-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-about-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-about-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-about-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-about-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-about-index-html-在线服务",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "了解业务布局",
+      "slug": "web-pages-about-index-html-了解业务布局",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/about/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-news-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-news-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-news-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-news-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-news-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-news-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-news-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-news-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-news-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-news-index-html-在线服务",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "订阅与服务",
+      "slug": "web-pages-news-index-html-订阅与服务",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/news/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-business-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-business-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-business-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-business-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-business-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-business-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-business-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-business-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-business-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "查看项目",
+      "slug": "web-pages-business-index-html-查看项目",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "典型案例",
+      "slug": "web-pages-business-index-html-典型案例",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/business/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-contact-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-contact-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-contact-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-contact-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-contact-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-contact-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-contact-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-contact-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-contact-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "招聘入口",
+      "slug": "web-pages-contact-index-html-招聘入口",
+      "url": "../detail/article-detail.html?id=job",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/contact/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-detail-article-detail-html-甘孜州建设投资集团-ganzi-construction-investment-gro",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-detail-article-detail-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-detail-article-detail-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-detail-article-detail-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-detail-article-detail-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-detail-article-detail-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-detail-article-detail-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-detail-article-detail-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-detail-article-detail-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "返回栏目",
+      "slug": "web-pages-detail-article-detail-html-返回栏目",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/article-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-detail-news-detail-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-detail-news-detail-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-detail-news-detail-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-detail-news-detail-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-detail-news-detail-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-detail-news-detail-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-detail-news-detail-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-detail-news-detail-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-detail-news-detail-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "返回列表",
+      "slug": "web-pages-detail-news-detail-html-返回列表",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/news-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-detail-project-detail-html-甘孜州建设投资集团-ganzi-construction-investment-gro",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-detail-project-detail-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-detail-project-detail-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-detail-project-detail-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-detail-project-detail-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-detail-project-detail-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-detail-project-detail-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-detail-project-detail-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-detail-project-detail-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "返回列表",
+      "slug": "web-pages-detail-project-detail-html-返回列表",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/detail/project-detail.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-org-consulting-index-html-甘孜州建设投资集团-ganzi-construction-investment-grou",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-org-consulting-index-html-在线服务",
+      "url": "/pages/contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-org-consulting-index-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-org-consulting-index-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-org-consulting-index-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/consulting/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-org-digital-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-org-digital-index-html-在线服务",
+      "url": "/pages/contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-org-digital-index-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-org-digital-index-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-org-digital-index-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/digital/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-org-investment-index-html-甘孜州建设投资集团-ganzi-construction-investment-grou",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-org-investment-index-html-在线服务",
+      "url": "/pages/contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-org-investment-index-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-org-investment-index-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-org-investment-index-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/investment/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-org-project-company-index-html-甘孜州建设投资集团-ganzi-construction-investment",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-org-project-company-index-html-在线服务",
+      "url": "/pages/contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-org-project-company-index-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-org-project-company-index-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-org-project-company-index-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/project-company/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-org-traffic-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-org-traffic-index-html-在线服务",
+      "url": "/pages/contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-org-traffic-index-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-org-traffic-index-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-org-traffic-index-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/traffic/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-org-urban-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-org-urban-index-html-在线服务",
+      "url": "/pages/contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-org-urban-index-html-首页",
+      "url": "/A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-org-urban-index-html-集团概况",
+      "url": "/pages/about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-org-urban-index-html-新闻中心",
+      "url": "/pages/news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/org/urban/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-party-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-party-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-party-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-party-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-party-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-party-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-party-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-party-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-party-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建动态",
+      "slug": "web-pages-party-index-html-党建动态",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "栏目 聚焦党代会 聚焦党代会相关会议精神、决策部署与贯彻落实动态。",
+      "slug": "web-pages-party-index-html-栏目-聚焦党代会-聚焦党代会相关会议精神-决策部署与贯彻落实动态",
+      "url": "/party-masses/congress",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/party/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-projects-index-html-甘孜州建设投资集团-ganzi-construction-investment-group",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-projects-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-projects-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-projects-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-projects-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-projects-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-projects-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-projects-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-projects-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-projects-index-html-在线服务",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "详情模板",
+      "slug": "web-pages-projects-index-html-详情模板",
+      "url": "../detail/project-detail.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/projects/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "甘孜州建设投资集团 GANZI CONSTRUCTION INVESTMENT GROUP",
+      "slug": "web-pages-responsibility-index-html-甘孜州建设投资集团-ganzi-construction-investment-grou",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "首页",
+      "slug": "web-pages-responsibility-index-html-首页",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "集团概况",
+      "slug": "web-pages-responsibility-index-html-集团概况",
+      "url": "../about/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "新闻中心",
+      "slug": "web-pages-responsibility-index-html-新闻中心",
+      "url": "../news/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "业务板块",
+      "slug": "web-pages-responsibility-index-html-业务板块",
+      "url": "../business/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "项目展示",
+      "slug": "web-pages-responsibility-index-html-项目展示",
+      "url": "../projects/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "党建工作",
+      "slug": "web-pages-responsibility-index-html-党建工作",
+      "url": "../party/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "社会责任",
+      "slug": "web-pages-responsibility-index-html-社会责任",
+      "url": "../responsibility/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "联系我们",
+      "slug": "web-pages-responsibility-index-html-联系我们",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    },
+    {
+      "title": "在线服务",
+      "slug": "web-pages-responsibility-index-html-在线服务",
+      "url": "../contact/index.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    }
+  ],
+  "friend_links": [
+    {
+      "title": "蜀ICP备00000000号",
+      "slug": "web-pages-responsibility-index-html-蜀icp备00000000号",
+      "url": "../../A版官网首页.html",
+      "position": "page",
+      "status": "enabled",
+      "source_file": "web/pages/responsibility/index.html",
+      "uncertain": false
+    }
+  ]
+}

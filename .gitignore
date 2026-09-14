@@ -1,7 +1,13 @@
-# env
+# env and secrets
 .env
 .env.*
 !.env.example
+!.env.directus.example
+.env.directus
+web/.env
+web/.env.*
+!web/.env.example
+!web/services/cms-api/.env.example
 
 # macOS
 .DS_Store
@@ -9,24 +15,37 @@
 # logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # node
 node_modules/
+web/node_modules/
 dist/
 build/
+web/dist/
+web/build/
+web/.next/
+web/tsconfig.tsbuildinfo
+web/services/cms-api/dist/
 
-# docker runtime data
+# docker/runtime data
+.data/
 database/
 uploads/
 backups/
+web/.data/
+web/database/
+web/uploads/
+web/backups/
 
 # editor
 .vscode/
 .idea/
 
-# temporary
+# temporary/cache
 tmp/
 .temp/
 .cache/
-!.env.example
-!infra/directus/.env.example
+web/.cache/

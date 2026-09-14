@@ -1,0 +1,35 @@
+{
+  "name": "ganzi-jiantou-official-site",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:site",
+    "dev:site": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "rm -rf .next/dev/types && next typegen && tsc --noEmit",
+    "dev:api": "npm --prefix services/cms-api run start:dev",
+    "dev:admin": "npm --prefix apps/cms-admin run dev",
+    "build:api": "npm --prefix services/cms-api run build",
+    "build:admin": "npm --prefix apps/cms-admin run build"
+  },
+  "dependencies": {
+    "@aws-crypto/util": "^5.2.0",
+    "@ckeditor/ckeditor5-build-decoupled-document": "^44.3.0",
+    "@ckeditor/ckeditor5-react": "^11.1.2",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}
