@@ -2,5 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "sourceMap": false
-  }
+  },
+  "exclude": ["node_modules", "dist", "src/modules/admin/**", "src/modules/auth/**", "src/prisma/**", "src/storage/**", "src/modules/public/public-home.controller.ts", "src/modules/public/public-news.controller.ts"]
 }

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { request as apiStoreRequest, asset as apiStoreAsset } from './api-store';
 
 const loadEnvFile = (absPath: string) => {
   if (!fs.existsSync(absPath)) return;
@@ -31,8 +32,6 @@ const getDirectusUrl = () => {
   return (process.env.DIRECTUS_URL || process.env.PUBLIC_URL || 'http://localhost:8055').replace(/\/+$/, '');
 };
 
-let publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
-
 export class CmsRequestError extends Error {
   constructor(
     message: string,
@@ -43,16 +42,36 @@ export class CmsRequestError extends Error {
   }
 }
 
+const localAssetUrl = (assetId: string) => `/api/public/cms/assets/${encodeURIComponent(assetId)}`;
+
+const legacyDirectusAssetId = (assetUrl: string) => {
+  try {
+    const url = new URL(assetUrl);
+    const isLegacyHost = url.hostname === 'directus'
+      || url.hostname === 'localhost'
+      || url.hostname === 'gzjtjt.cn'
+      || url.hostname.endsWith('.gzjtjt.cn');
+    if (!isLegacyHost || !url.pathname.startsWith('/assets/')) return '';
+    return url.pathname.replace(/^\/assets\//, '').split('/')[0] || '';
+  } catch {
+    return '';
+  }
+};
+
 export const buildDirectusAssetUrl = (assetId?: string | null) => {
   const directusUrl = getDirectusUrl();
   if (!assetId || !directusUrl) return '';
-  if (/^https?:\/\//i.test(assetId) || assetId.startsWith('data:')) return assetId;
+  if (/^https?:\/\//i.test(assetId)) {
+    const legacyId = legacyDirectusAssetId(assetId);
+    return legacyId ? localAssetUrl(legacyId) : assetId;
+  }
+  if (assetId.startsWith('data:')) return assetId;
   if (assetId.startsWith('/assets/')) {
     const trimmed = assetId.replace(/^\/assets\//, '').split(/[?#]/)[0];
-    return trimmed ? `/api/public/cms/assets/${encodeURIComponent(trimmed)}` : `${directusUrl}${assetId}`;
+    return trimmed ? localAssetUrl(trimmed) : `${directusUrl}${assetId}`;
   }
   if (assetId.startsWith('/')) return assetId;
-  return `/api/public/cms/assets/${encodeURIComponent(assetId)}`;
+  return localAssetUrl(assetId);
 };
 
 export const normalizePublicAssetUrl = (assetUrl?: string | null) => {
@@ -71,6 +90,8 @@ export const normalizePublicAssetUrl = (assetUrl?: string | null) => {
       if (url.origin === directus.origin && url.pathname.startsWith('/assets/')) {
         return buildDirectusAssetUrl(`${url.pathname}${url.search}${url.hash}`);
       }
+      const legacyId = legacyDirectusAssetId(assetUrl);
+      if (legacyId) return localAssetUrl(legacyId);
     } catch {
       return assetUrl;
     }
@@ -88,15 +109,6 @@ export const buildDirectusPath = (pathname: string, params: Record<string, strin
   return query ? `${pathname}?${query}` : pathname;
 };
 
-const normalizeDirectusError = async (response: Response) => {
-  let body: unknown = null;
-  try {
-    body = await response.json();
-  } catch {}
-  const payload = body as { errors?: Array<{ message?: string }>; message?: string } | null;
-  return payload?.errors?.[0]?.message || payload?.message || response.statusText || 'Directus request failed';
-};
-
 type NextRequestInit = RequestInit & {
   next?: {
     revalidate?: number | false;
@@ -105,103 +117,23 @@ type NextRequestInit = RequestInit & {
 };
 
 export async function cmsFetch<T>(pathname: string, init?: NextRequestInit): Promise<T> {
-  const directusUrl = getDirectusUrl();
-  if (!directusUrl) {
-    throw new CmsRequestError('DIRECTUS_URL or PUBLIC_URL is not configured.', 500);
+  try {
+    return await apiStoreRequest(pathname, init) as T;
+  } catch (error) {
+    const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 502;
+    throw new CmsRequestError(error instanceof Error ? error.message : 'Data API request failed', status || 502);
   }
-
-  const headers = new Headers(init?.headers);
-  headers.set('Accept', headers.get('Accept') || 'application/json');
-  const response = await fetch(`${directusUrl}${pathname}`, {
-    ...init,
-    headers,
-    next: {
-      revalidate: 300,
-      ...init?.next,
-    },
-  });
-
-  if (!response.ok) {
-    throw new CmsRequestError(await normalizeDirectusError(response), response.status);
-  }
-
-  return response.json() as Promise<T>;
 }
 
-const getPublicDirectusHeaders = async (): Promise<Record<string, string>> => {
-  loadCmsEnv();
-  const serviceDirectusToken = process.env.DIRECTUS_TOKEN || '';
-  const serviceDirectusEmail = process.env.DIRECTUS_EMAIL || process.env.ADMIN_EMAIL || '';
-  const serviceDirectusPassword = process.env.DIRECTUS_PASSWORD || process.env.ADMIN_PASSWORD || '';
-
-  if (serviceDirectusToken) return { Authorization: `Bearer ${serviceDirectusToken}` };
-  if (publicDirectusAuthCache.accessToken && publicDirectusAuthCache.expiresAt > Date.now() + 30_000) {
-    return { Authorization: `Bearer ${publicDirectusAuthCache.accessToken}` };
-  }
-  if (!serviceDirectusEmail || !serviceDirectusPassword) {
-    return {};
-  }
-
-  const loginResult = await cmsFetch<{ data?: { access_token?: string; expires?: number } }>('/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: serviceDirectusEmail, password: serviceDirectusPassword }),
-    next: { revalidate: false },
-  });
-  const accessToken = loginResult?.data?.access_token || '';
-  const expiresRaw = Number(loginResult?.data?.expires || 300);
-  if (!accessToken) throw new CmsRequestError('Directus service login did not return an access token.', 500);
-  const expiresMs = expiresRaw > 86_400 ? expiresRaw : expiresRaw * 1000;
-  publicDirectusAuthCache = {
-    accessToken,
-    expiresAt: Date.now() + Math.max(60_000, expiresMs),
-  };
-  return { Authorization: `Bearer ${accessToken}` };
-};
-
 export async function cmsPublicFetch<T>(pathname: string, init?: NextRequestInit): Promise<T> {
-  const headers = await getPublicDirectusHeaders();
-  const mergedHeaders = new Headers(init?.headers);
-  Object.entries(headers).forEach(([key, value]) => mergedHeaders.set(key, value));
-  try {
-    return await cmsFetch<T>(pathname, {
-      ...init,
-      headers: mergedHeaders,
-    });
-  } catch (error) {
-    if (error instanceof CmsRequestError && error.status === 401 && !process.env.DIRECTUS_TOKEN) {
-      publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
-      const retryHeaders = await getPublicDirectusHeaders();
-      const retryMergedHeaders = new Headers(init?.headers);
-      Object.entries(retryHeaders).forEach(([key, value]) => retryMergedHeaders.set(key, value));
-      return cmsFetch<T>(pathname, {
-        ...init,
-        headers: retryMergedHeaders,
-      });
-    }
-    throw error;
-  }
+  return cmsFetch<T>(pathname, init);
 }
 
 export async function cmsPublicAssetFetch(assetId: string): Promise<Response> {
-  const directusUrl = getDirectusUrl();
-  if (!directusUrl) {
-    throw new CmsRequestError('DIRECTUS_URL or PUBLIC_URL is not configured.', 500);
+  try {
+    return await apiStoreAsset(assetId);
+  } catch (error) {
+    const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 502;
+    throw new CmsRequestError(error instanceof Error ? error.message : 'Asset fetch failed', status || 502);
   }
-  const requestAsset = async () => {
-    const headers = await getPublicDirectusHeaders();
-    return fetch(`${directusUrl}/assets/${encodeURIComponent(assetId)}`, {
-      headers,
-      cache: 'no-store',
-    });
-  };
-  let response = await requestAsset();
-  if (response.status === 401 && !process.env.DIRECTUS_TOKEN) {
-    publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
-    response = await requestAsset();
-  }
-  if (!response.ok) {
-    throw new CmsRequestError(await normalizeDirectusError(response), response.status);
-  }
-  return response;
 }

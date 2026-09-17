@@ -1,0 +1,19 @@
+services:
+  web:
+    image: node:20-alpine
+    container_name: gzjt-web
+    restart: unless-stopped
+    working_dir: /app/web
+    command: sh -c "npm ci --no-audit --no-fund && npm run build && npm run start -- -H 0.0.0.0 -p 3000"
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      CMS_DATA_API_URL: ${CMS_DATA_API_URL:?Set CMS_DATA_API_URL to the API endpoint reachable from this container}
+      CMS_UPLOAD_DIR: /app/web/.data/cms-uploads
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?Set a long random ADMIN_SESSION_SECRET}
+      PORT: 3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./web:/app/web
+      - ./.data/directus/uploads:/app/web/.data/cms-uploads
