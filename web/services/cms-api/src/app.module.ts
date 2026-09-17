@@ -2,11 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { AdminModule } from './modules/admin/admin.module'
-import { AuthModule } from './modules/auth/auth.module'
 import { PublicModule } from './modules/public/public.module'
-import { PrismaModule } from './prisma/prisma.module'
-import { StorageModule } from './storage/storage.module'
 
 const envFilePath = [
   resolve(__dirname, '..', '.env'),
@@ -36,17 +32,13 @@ const preloadEnv = () => {
         if (!process.env[key]) process.env[key] = value
       })
     })
-  if (!process.env.CMS_API_PUBLIC_ONLY) process.env.CMS_API_PUBLIC_ONLY = 'true'
 }
 
 preloadEnv()
 
-const publicOnly = process.env.CMS_API_PUBLIC_ONLY === 'true'
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath }),
-    ...(publicOnly ? [] : [PrismaModule, StorageModule, AuthModule, AdminModule]),
     PublicModule
   ]
 })

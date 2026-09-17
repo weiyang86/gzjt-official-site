@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const apiStore = require('./lib/cms/api-store.js');
 
 const baseDir = __dirname;
 const loadEnvFile = (absPath) => {
@@ -184,25 +185,12 @@ const normalizeDirectusError = async (response) => {
 };
 
 const directusRequest = async (pathname, options = {}) => {
-    const url = `${directusUrl}${pathname}`;
     try {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            const directusError = await normalizeDirectusError(response);
-            const err = Object.assign(new Error(directusError.message), {
-                statusCode: response.status,
-                code: 'DIRECTUS_ERROR',
-                details: directusError.details
-            });
-            throw err;
-        }
-        if (response.status === 204) return null;
-        return response.json();
+        return await apiStore.request(pathname, options);
     } catch (err) {
-        if (err.code === 'DIRECTUS_ERROR') throw err;
-        throw Object.assign(new Error(`Directus is unavailable at ${directusUrl}`), {
-            statusCode: 500,
-            code: 'DIRECTUS_UNAVAILABLE',
+        throw Object.assign(new Error(err.message || 'Data API request failed'), {
+            statusCode: err.status || 500,
+            code: 'DATA_API_ERROR',
             cause: err
         });
     }
@@ -218,53 +206,11 @@ const directusJsonRequest = (pathname, token, method = 'GET', body) => directusR
 });
 
 const getPublicDirectusHeaders = async () => {
-    if (serviceDirectusToken) return { Authorization: `Bearer ${serviceDirectusToken}` };
-    if (publicDirectusAuthCache.accessToken && publicDirectusAuthCache.expiresAt > Date.now() + 30_000) {
-        return { Authorization: `Bearer ${publicDirectusAuthCache.accessToken}` };
-    }
-    if (!serviceDirectusEmail || !serviceDirectusPassword) {
-        throw Object.assign(new Error('Directus service credentials are not configured'), {
-            statusCode: 500,
-            code: 'DIRECTUS_SERVICE_AUTH_MISSING'
-        });
-    }
-    const loginResult = await directusRequest('/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: serviceDirectusEmail, password: serviceDirectusPassword })
-    });
-    const accessToken = loginResult?.data?.access_token || '';
-    const expiresRaw = Number(loginResult?.data?.expires || 300);
-    if (!accessToken) {
-        throw Object.assign(new Error('Directus service login did not return an access token'), {
-            statusCode: 500,
-            code: 'DIRECTUS_SERVICE_AUTH_FAILED'
-        });
-    }
-    const expiresMs = expiresRaw > 86_400 ? expiresRaw : expiresRaw * 1000;
-    publicDirectusAuthCache = {
-        accessToken,
-        expiresAt: Date.now() + Math.max(60_000, expiresMs)
-    };
-    return { Authorization: `Bearer ${accessToken}` };
+    return {};
 };
 
 const directusPublicRequest = async (pathname, allowRetry = true) => {
-    try {
-        const headers = await getPublicDirectusHeaders();
-        return await directusRequest(pathname, { headers });
-    } catch (err) {
-        if (
-            allowRetry
-            && err?.code === 'DIRECTUS_ERROR'
-            && Number(err?.statusCode) === 401
-            && !serviceDirectusToken
-        ) {
-            publicDirectusAuthCache = { accessToken: '', expiresAt: 0 };
-            return directusPublicRequest(pathname, false);
-        }
-        throw err;
-    }
+    return directusRequest(pathname);
 };
 
 const articleStatuses = new Set(['draft', 'published', 'archived']);
@@ -293,7 +239,7 @@ const directusAssetUrl = (value) => {
     const raw = typeof value === 'string' ? value.trim() : '';
     if (!raw) return '';
     if (/^(https?:)?\/\//.test(raw) || raw.startsWith('/') || raw.startsWith('data:')) return raw;
-    return `${directusUrl}/assets/${encodeURIComponent(raw)}`;
+    return `/api/public/cms/assets/${encodeURIComponent(raw)}`;
 };
 
 const isNoticeChannel = (item) => Boolean(item) && (
@@ -952,14 +898,10 @@ const validateUpload = (req, bodyBuffer) => {
 const directusUploadRequest = async (req, token) => {
     const bodyBuffer = await readRawBody(req);
     const fileInfo = validateUpload(req, bodyBuffer);
-    const uploadResult = await directusRequest('/files', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': req.headers['content-type']
-        },
-        body: bodyBuffer
-    });
+    const parsed = await new Request('http://localhost/files', {
+        method: 'POST', headers: { 'content-type': req.headers['content-type'] }, body: bodyBuffer
+    }).formData();
+    const uploadResult = await apiStore.upload(parsed.get('file'));
     const fileData = uploadResult?.data;
     if (!fileData?.id) {
         throw Object.assign(new Error('Directus upload response did not include a file id'), { statusCode: 500 });
@@ -975,9 +917,7 @@ const directusUploadRequest = async (req, token) => {
 
 const proxyDirectusAsset = async (id, token, res) => {
     try {
-        const response = await fetch(`${directusUrl}/assets/${encodeURIComponent(id)}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await apiStore.asset(id);
         if (!response.ok) {
             const err = Object.assign(new Error('Directus asset request failed'), { statusCode: response.status, code: 'DIRECTUS_ERROR' });
             throw err;
@@ -1351,6 +1291,20 @@ http.createServer((req, res) => {
         return;
     }
 
+    const publicAssetMatch = normalizedPath.match(/^\/api\/public\/cms\/assets\/([^/]+)$/);
+    if (publicAssetMatch && req.method === 'GET') {
+        apiStore.asset(decodeURIComponent(publicAssetMatch[1]))
+            .then(async (asset) => {
+                res.writeHead(asset.status, {
+                    'Content-Type': asset.headers.get('content-type') || 'application/octet-stream',
+                    'Cache-Control': asset.headers.get('cache-control') || 'public, max-age=3600'
+                });
+                res.end(Buffer.from(await asset.arrayBuffer()));
+            })
+            .catch((err) => sendJson(res, err?.status || 404, { error: { code: 'ASSET_NOT_FOUND', message: err?.message || 'Asset not found' } }));
+        return;
+    }
+
     if (normalizedPath === '/api/public/cms/channels' && req.method === 'GET') {
         const parsedUrl = new URL(req.url, 'http://localhost');
         Promise.resolve()
@@ -1445,5 +1399,8 @@ http.createServer((req, res) => {
 }).listen(Number(process.env.PORT) || 3010, () => {
     const port = Number(process.env.PORT) || 3010;
     console.log(`Server running at http://localhost:${port}`);
-    console.log(`Admin API proxy target: ${directusUrl}`);
+    const defaultDataApi = process.env.NODE_ENV === 'production'
+        ? 'http://192.168.0.221:8000/_plugins/gw/curd'
+        : 'http://localhost:8008/_plugins/gw/curd';
+    console.log(`CMS data API: ${process.env.CMS_DATA_API_URL || defaultDataApi}`);
 });

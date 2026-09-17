@@ -1,4 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { resolve } from 'node:path'
+
+const apiStore: { request: (path: string) => Promise<any> } = require(resolve(__dirname, '../../../../../lib/cms/api-store.js'))
 
 type DirectusListResponse<T> = { data?: T[] }
 type DirectusItemResponse<T> = { data?: T }
@@ -6,16 +9,11 @@ type DirectusItemResponse<T> = { data?: T }
 @Injectable()
 export class DirectusCmsService {
   private readonly logger = new Logger(DirectusCmsService.name)
-  private readonly baseUrl = (process.env.CMS_BASE_URL || process.env.DIRECTUS_URL || 'http://localhost:8055').replace(/\/$/, '')
-  private readonly directusToken = process.env.DIRECTUS_TOKEN || ''
-  private readonly directusEmail = process.env.DIRECTUS_EMAIL || process.env.ADMIN_EMAIL || ''
-  private readonly directusPassword = process.env.DIRECTUS_PASSWORD || process.env.ADMIN_PASSWORD || ''
-  private accessToken: string | null = this.directusToken || null
 
   cmsAsset(fileId?: string | null) {
     if (!fileId) return null
     if (/^https?:\/\//i.test(fileId)) return fileId
-    return `${this.baseUrl}/assets/${encodeURIComponent(fileId)}`
+    return `/api/public/cms/assets/${encodeURIComponent(fileId)}`
   }
 
   formatDate(value?: string | Date | null) {
@@ -293,44 +291,14 @@ export class DirectusCmsService {
   }
 
   private async fetchDirectus<T>(path: string, params: Record<string, string> = {}): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`)
+    const url = new URL(path, 'http://local')
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value))
-    const response = await this.fetchWithAuth(url)
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
-    return response.json() as Promise<T>
-  }
-
-  private async fetchWithAuth(url: URL) {
-    const requestOnce = async () => {
-      const token = await this.ensureAccessToken()
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined
-      return fetch(url, { headers })
-    }
-    let response = await requestOnce()
-    if (response.status === 401 && this.accessToken && this.directusEmail && this.directusPassword) {
-      this.accessToken = null
-      response = await requestOnce()
-    }
-    return response
-  }
-
-  private async ensureAccessToken() {
-    if (this.accessToken) return this.accessToken
-    if (!this.directusEmail || !this.directusPassword) return null
-    const response = await fetch(`${this.baseUrl}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: this.directusEmail, password: this.directusPassword })
-    })
-    if (!response.ok) throw new Error(`Directus login failed (${response.status})`)
-    const data = await response.json() as { data?: { access_token?: string } }
-    this.accessToken = data?.data?.access_token || null
-    return this.accessToken
+    return apiStore.request(`${url.pathname}${url.search}`) as Promise<T>
   }
 
   private warnFailure(scope: string, error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
-    this.logger.warn(`Directus request failed for ${scope}: ${message}. Returning fallback data.`)
+    this.logger.warn(`CMS data API request failed for ${scope}: ${message}. Returning fallback data.`)
   }
 
   private fileUrl(value: any) {
