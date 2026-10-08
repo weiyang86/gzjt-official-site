@@ -8,11 +8,12 @@
 
 ## 生产部署
 
-`docker-compose.api.yml` 只启动官网服务。启动前设置容器可访问的 `CMS_DATA_API_URL`、足够长的随机 `ADMIN_SESSION_SECRET`，以及与统一身份平台一致的 `ADMIN_SSO_SECRET`。例如数据 API 在 Docker 主机的 8008 端口时使用 `http://host.docker.internal:8008/_plugins/gw/curd`。必须确保该地址对容器可达；容器内的 `localhost` 指向容器自身。
+`docker-compose.api.yml` 只启动官网服务。启动前设置容器可访问的 `CMS_DATA_API_URL`、足够长的随机 `ADMIN_SESSION_SECRET`，以及与统一身份平台一致的 `ADMIN_SSO_SECRET`。游客预览链接默认使用 `ADMIN_SESSION_SECRET` 签名，也可以通过独立的 `ARTICLE_PREVIEW_SECRET` 覆盖；生产环境修改任一签名密钥后，已经生成的旧预览链接会失效。例如数据 API 在 Docker 主机的 8008 端口时使用 `http://host.docker.internal:8008/_plugins/gw/curd`。必须确保该地址对容器可达；容器内的 `localhost` 指向容器自身。
 
 ```bash
 CMS_DATA_API_URL=http://host.docker.internal:8008/_plugins/gw/curd \
 ADMIN_SESSION_SECRET='<random-secret>' \
+ARTICLE_PREVIEW_SECRET='<optional-preview-secret>' \
 ADMIN_SSO_SECRET='<shared-sso-secret>' \
   docker compose -f docker-compose.api.yml up -d
 ```
