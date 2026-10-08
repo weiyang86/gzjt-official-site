@@ -10,6 +10,7 @@ const getPreviewSecret = () => {
   return (
     process.env.ARTICLE_PREVIEW_SECRET
     || process.env.PREVIEW_SECRET
+    || process.env.ADMIN_SESSION_SECRET
     || process.env.DIRECTUS_TOKEN
     || process.env.DIRECTUS_PASSWORD
     || process.env.ADMIN_PASSWORD
