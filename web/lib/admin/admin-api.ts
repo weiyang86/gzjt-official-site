@@ -120,6 +120,10 @@ export const AdminApi = {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   }),
+  ssoLogin: (key: string, targetUrl?: string) => adminFetch<{ targetUrl?: string }>('/admin-api/sso-login', {
+    method: 'POST',
+    body: JSON.stringify({ key, targetUrl }),
+  }),
   logout: () => adminFetch('/admin-api/logout', { method: 'POST' }),
   me: () => adminFetch<AdminUser>('/admin-api/me'),
   dashboardStats: () => adminFetch<DashboardStats>('/admin-api/dashboard/stats'),

@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { NextResponse, type NextRequest } from 'next/server';
 import { allAdminMenuKeys, adminMenuItems, menuKeysWithDashboard, type AdminMenuKey } from '@/lib/admin/menu-permissions';
+import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from '@/lib/admin/sso';
 import { createArticlePreviewPath } from '@/lib/preview/article-preview';
-import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset } from '@/lib/cms/api-store';
+import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset, loginTrustedUser } from '@/lib/cms/api-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -917,6 +918,49 @@ const handleLocalLogin = async (request: NextRequest) => {
   }
 };
 
+const handleLocalSsoLogin = async (request: NextRequest) => {
+  let body: { key?: string; targetUrl?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON request body' } }, { status: 400 });
+  }
+
+  const encryptedKey = typeof body.key === 'string' ? body.key : '';
+  const ssoSecret = getEnvValue('ADMIN_SSO_SECRET');
+  if (!ssoSecret) {
+    return NextResponse.json(
+      { error: { code: 'SSO_NOT_CONFIGURED', message: '单点登录服务尚未配置' } },
+      { status: 503 },
+    );
+  }
+
+  try {
+    const { username } = parseAdminSsoCredential(encryptedKey, ssoSecret);
+    const loginResult = await loginTrustedUser(username) as { data?: { access_token?: string; refresh_token?: string } };
+    const authData = loginResult.data;
+    if (!authData?.access_token) throw new AdminSsoError('单点登录失败', 'SSO_LOGIN_ERROR', 500);
+
+    const sessionId = crypto.randomBytes(32).toString('base64url');
+    adminSessions.set(sessionId, {
+      accessToken: authData.access_token,
+      refreshToken: authData.refresh_token,
+      expiresAt: Date.now() + sessionMaxAgeSeconds * 1000,
+      email: username,
+    });
+    return createSessionResponse({ ok: true, data: { targetUrl: normalizeAdminTargetUrl(body.targetUrl) } }, 200, sessionId);
+  } catch (error) {
+    const status = error instanceof AdminSsoError
+      ? error.status
+      : (typeof error === 'object' && error && 'status' in error ? Number(error.status) || 500 : 500);
+    const code = error instanceof AdminSsoError ? error.code : (status === 401 ? 'SSO_USER_UNAVAILABLE' : 'SSO_LOGIN_ERROR');
+    return NextResponse.json(
+      { error: { code, message: error instanceof Error ? error.message : '单点登录失败' } },
+      { status },
+    );
+  }
+};
+
 const handleLocalLogout = (request: NextRequest) => {
   const sessionId = decodeSessionCookie(request.cookies.get(sessionCookieName)?.value);
   if (sessionId) adminSessions.delete(sessionId);
@@ -948,6 +992,7 @@ const handleLocalMe = async (request: NextRequest) => {
 const getLocalAuthHandler = async (request: NextRequest, context: RouteContext) => {
   const route = await getRoutePath(context);
   if (route === 'login' && request.method === 'POST') return await handleLocalLogin(request);
+  if (route === 'sso-login' && request.method === 'POST') return await handleLocalSsoLogin(request);
   if (route === 'logout' && request.method === 'POST') return handleLocalLogout(request);
   if (route === 'me' && request.method === 'GET') return await handleLocalMe(request);
   return null;

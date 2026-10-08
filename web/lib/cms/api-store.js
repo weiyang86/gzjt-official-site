@@ -205,9 +205,26 @@ function safeUser(row) {
 async function login(body) {
   const user = (await allRows('directus_users')).map(normalizeRow).find(row => row.email === body.email && row.status === 'active');
   if (!user || !await verifyPassword(body.password || '', user.password)) throw Object.assign(new Error('账号或密码错误'), { status: 401 });
+  return issueUserAccessToken(user);
+}
+function issueUserAccessToken(user) {
   const accessToken = crypto.randomUUID();
   sessions.set(accessToken, { userId: user.id, expiresAt: Date.now() + 8 * 3600_000 });
   return { data: { access_token: accessToken, refresh_token: accessToken, expires: 8 * 3600 } };
+}
+async function loginTrustedUser(identifier) {
+  const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+  const activeUsers = (await allRows('directus_users')).map(normalizeRow).filter(row => row.status === 'active');
+  const exactMatches = activeUsers.filter(row => (
+    String(row.email || '').trim().toLowerCase() === normalizedIdentifier
+    || String(row.external_identifier || '').trim().toLowerCase() === normalizedIdentifier
+  ));
+  const localPartMatches = normalizedIdentifier.includes('@') ? [] : activeUsers.filter(row => (
+    String(row.email || '').trim().toLowerCase().split('@')[0] === normalizedIdentifier
+  ));
+  const matches = exactMatches.length ? exactMatches : localPartMatches;
+  if (matches.length !== 1) throw Object.assign(new Error('单点登录账号不存在、已停用或标识不唯一'), { status: 401 });
+  return issueUserAccessToken(matches[0]);
 }
 async function userForToken(token) {
   const session = sessions.get(token);
@@ -278,4 +295,4 @@ async function asset(id) {
   const bytes = await fs.readFile(path.join(uploadDir(), filename));
   return new Response(bytes, { headers: { 'content-type': metadata.type || 'application/octet-stream', 'content-length': String(bytes.length), 'cache-control': 'public, max-age=3600' } });
 }
-module.exports = { call, allRows, request, upload, asset, hashPassword, verifyPassword, apiUrl };
+module.exports = { call, allRows, request, upload, asset, hashPassword, verifyPassword, loginTrustedUser, apiUrl };

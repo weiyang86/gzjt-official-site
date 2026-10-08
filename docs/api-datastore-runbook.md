@@ -8,13 +8,18 @@
 
 ## 生产部署
 
-`docker-compose.api.yml` 只启动官网服务。启动前设置容器可访问的 `CMS_DATA_API_URL` 和足够长的随机 `ADMIN_SESSION_SECRET`。例如数据 API 在 Docker 主机的 8008 端口时使用 `http://host.docker.internal:8008/_plugins/gw/curd`。必须确保该地址对容器可达；容器内的 `localhost` 指向容器自身。
+`docker-compose.api.yml` 只启动官网服务。启动前设置容器可访问的 `CMS_DATA_API_URL`、足够长的随机 `ADMIN_SESSION_SECRET`，以及与统一身份平台一致的 `ADMIN_SSO_SECRET`。例如数据 API 在 Docker 主机的 8008 端口时使用 `http://host.docker.internal:8008/_plugins/gw/curd`。必须确保该地址对容器可达；容器内的 `localhost` 指向容器自身。
 
 ```bash
 CMS_DATA_API_URL=http://host.docker.internal:8008/_plugins/gw/curd \
 ADMIN_SESSION_SECRET='<random-secret>' \
+ADMIN_SSO_SECRET='<shared-sso-secret>' \
   docker compose -f docker-compose.api.yml up -d
 ```
+
+## 管理后台单点登录
+
+统一身份平台可访问 `/admin/login?key=<encrypted>&targetUrl=<path>`。`key` 的明文格式为 `后台账号标识#毫秒时间戳`，账号标识可使用完整邮箱、`external_identifier` 或唯一的邮箱前缀；加密方式须兼容 Java `DES/ECB/PKCS5Padding` 和 URL-safe Base64。链接默认 5 分钟有效，可用 `ADMIN_SSO_MAX_AGE_SECONDS` 配置为 30 至 3600 秒。`targetUrl` 仅接受本站 `/admin` 路径；为空、外站地址或登录页地址时统一跳转 `/admin`。共享密钥仅通过部署环境变量提供，不得提交到仓库。
 
 Compose 将原上传目录 `./.data/directus/uploads` 挂载到官网的文件目录，保留迁移后的图片和附件。若新机器没有该目录，应先从备份复制全部上传文件；数据库行只保存文件元数据，不能替代文件本体。新上传文件也会写入此目录。
 
