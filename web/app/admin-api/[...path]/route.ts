@@ -3,7 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { NextResponse, type NextRequest } from 'next/server';
 import { allAdminMenuKeys, adminMenuItems, menuKeysWithDashboard, type AdminMenuKey } from '@/lib/admin/menu-permissions';
+import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from '@/lib/admin/sso';
 import { createArticlePreviewPath } from '@/lib/preview/article-preview';
+import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset, loginTrustedUser } from '@/lib/cms/api-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -199,21 +201,7 @@ const clearSessionResponse = () => {
   return response;
 };
 
-const directusRequest = async <T>(pathname: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${directusUrl}${pathname}`, {
-    ...init,
-    cache: 'no-store',
-  });
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
-
-  if (!response.ok) {
-    const message = payload?.errors?.[0]?.message || payload?.message || response.statusText || 'Directus request failed';
-    throw Object.assign(new Error(message), { status: response.status, payload });
-  }
-
-  return payload as T;
-};
+const directusRequest = async <T>(pathname: string, init?: RequestInit): Promise<T> => apiStoreRequest(pathname, init) as Promise<T>;
 
 const buildDirectusPath = (pathname: string, params: Record<string, string | number | boolean | null | undefined> = {}) => {
   const search = new URLSearchParams();
@@ -235,47 +223,14 @@ const directusJsonRequest = <T>(pathname: string, token: string, method = 'GET',
 });
 
 const getServiceDirectusToken = async (fallbackToken?: string) => {
-  const configuredToken = getEnvValue('DIRECTUS_TOKEN');
-  if (configuredToken) return configuredToken;
-  if (serviceAuthCache.accessToken && serviceAuthCache.expiresAt > Date.now() + 30_000) return serviceAuthCache.accessToken;
-  const email = getEnvValue('DIRECTUS_EMAIL') || getEnvValue('ADMIN_EMAIL');
-  const password = getEnvValue('DIRECTUS_PASSWORD') || getEnvValue('ADMIN_PASSWORD');
-  if (!email || !password) {
-    if (fallbackToken) return fallbackToken;
-    throw Object.assign(new Error('Directus service credentials are not configured'), { status: 500 });
-  }
-  const loginResult = await directusRequest<{ data?: { access_token?: string; expires?: number } }>('/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const accessToken = loginResult.data?.access_token || '';
-  if (!accessToken) throw Object.assign(new Error('Directus service login did not return an access token'), { status: 500 });
-  const expiresRaw = Number(loginResult.data?.expires || 300);
-  const expiresMs = expiresRaw > 86_400 ? expiresRaw : expiresRaw * 1000;
-  serviceAuthCache.accessToken = accessToken;
-  serviceAuthCache.expiresAt = Date.now() + Math.max(60_000, expiresMs);
-  return accessToken;
+  return fallbackToken || 'internal-api-service';
 };
 
 const directusFormRequest = async <T>(pathname: string, token: string, formData: FormData): Promise<T> => {
-  const response = await fetch(`${directusUrl}${pathname}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-    cache: 'no-store',
-  });
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
-
-  if (!response.ok) {
-    const message = payload?.errors?.[0]?.message || payload?.message || response.statusText || 'Directus upload failed';
-    throw Object.assign(new Error(message), { status: response.status, payload });
-  }
-
-  return payload as T;
+  if (pathname !== '/files') throw Object.assign(new Error('Unsupported file endpoint'), { status: 404 });
+  const file = formData.get('file');
+  if (!(file instanceof File)) throw Object.assign(new Error('file is required'), { status: 400 });
+  return apiStoreUpload(file) as Promise<T>;
 };
 
 const normalizeUploadError = (error: unknown) => {
@@ -963,6 +918,49 @@ const handleLocalLogin = async (request: NextRequest) => {
   }
 };
 
+const handleLocalSsoLogin = async (request: NextRequest) => {
+  let body: { key?: string; targetUrl?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON request body' } }, { status: 400 });
+  }
+
+  const encryptedKey = typeof body.key === 'string' ? body.key : '';
+  const ssoSecret = getEnvValue('ADMIN_SSO_SECRET');
+  if (!ssoSecret) {
+    return NextResponse.json(
+      { error: { code: 'SSO_NOT_CONFIGURED', message: '单点登录服务尚未配置' } },
+      { status: 503 },
+    );
+  }
+
+  try {
+    const { username } = parseAdminSsoCredential(encryptedKey, ssoSecret);
+    const loginResult = await loginTrustedUser(username) as { data?: { access_token?: string; refresh_token?: string } };
+    const authData = loginResult.data;
+    if (!authData?.access_token) throw new AdminSsoError('单点登录失败', 'SSO_LOGIN_ERROR', 500);
+
+    const sessionId = crypto.randomBytes(32).toString('base64url');
+    adminSessions.set(sessionId, {
+      accessToken: authData.access_token,
+      refreshToken: authData.refresh_token,
+      expiresAt: Date.now() + sessionMaxAgeSeconds * 1000,
+      email: username,
+    });
+    return createSessionResponse({ ok: true, data: { targetUrl: normalizeAdminTargetUrl(body.targetUrl) } }, 200, sessionId);
+  } catch (error) {
+    const status = error instanceof AdminSsoError
+      ? error.status
+      : (typeof error === 'object' && error && 'status' in error ? Number(error.status) || 500 : 500);
+    const code = error instanceof AdminSsoError ? error.code : (status === 401 ? 'SSO_USER_UNAVAILABLE' : 'SSO_LOGIN_ERROR');
+    return NextResponse.json(
+      { error: { code, message: error instanceof Error ? error.message : '单点登录失败' } },
+      { status },
+    );
+  }
+};
+
 const handleLocalLogout = (request: NextRequest) => {
   const sessionId = decodeSessionCookie(request.cookies.get(sessionCookieName)?.value);
   if (sessionId) adminSessions.delete(sessionId);
@@ -994,6 +992,7 @@ const handleLocalMe = async (request: NextRequest) => {
 const getLocalAuthHandler = async (request: NextRequest, context: RouteContext) => {
   const route = await getRoutePath(context);
   if (route === 'login' && request.method === 'POST') return await handleLocalLogin(request);
+  if (route === 'sso-login' && request.method === 'POST') return await handleLocalSsoLogin(request);
   if (route === 'logout' && request.method === 'POST') return handleLocalLogout(request);
   if (route === 'me' && request.method === 'GET') return await handleLocalMe(request);
   return null;
@@ -1157,7 +1156,7 @@ const handleLocalFileUpload = async (request: NextRequest) => {
       type: fileData.type || file.type,
       filesize: fileData.filesize || file.size,
       preview_url: `/admin-api/assets/${encodedId}`,
-      asset_url: `${directusUrl}/assets/${encodedId}`,
+      asset_url: `/api/public/cms/assets/${encodedId}`,
     },
   }, { status: 201 });
 };
@@ -1376,11 +1375,7 @@ const handleLocalAsset = async (request: NextRequest, path: string[]) => {
   if (!id || request.method !== 'GET') return null;
   const { session, response } = requireSession(request);
   if (!session) return response;
-  const serviceToken = await getServiceDirectusToken(session.accessToken);
-  const assetResponse = await fetch(`${directusUrl}/assets/${encodeURIComponent(id)}`, {
-    headers: { Authorization: `Bearer ${serviceToken}` },
-    cache: 'no-store',
-  });
+  const assetResponse = await apiStoreAsset(id);
   return new Response(assetResponse.body, {
     status: assetResponse.status,
     statusText: assetResponse.statusText,

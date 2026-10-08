@@ -1,15 +1,40 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminApi } from '@/lib/admin/admin-api';
 
-export function LoginForm() {
+type LoginFormProps = {
+  ssoKey?: string;
+  targetUrl?: string;
+};
+
+export function LoginForm({ ssoKey = '', targetUrl = '' }: LoginFormProps) {
   const router = useRouter();
+  const ssoStarted = useRef(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!ssoKey || ssoStarted.current) return;
+    ssoStarted.current = true;
+    window.history.replaceState(null, '', '/admin/login');
+    setIsSubmitting(true);
+    setError('');
+    void (async () => {
+      try {
+        const result = await AdminApi.ssoLogin(ssoKey, targetUrl);
+        await AdminApi.me();
+        router.replace(result.data?.targetUrl || '/admin');
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '单点登录失败，请重新获取登录链接。');
+        setIsSubmitting(false);
+      }
+    })();
+  }, [router, ssoKey, targetUrl]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,6 +88,7 @@ export function LoginForm() {
         />
       </div>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {ssoKey && isSubmitting ? <p className="login-tip" role="status">正在通过单点登录验证身份...</p> : null}
       <button className="primary-button" type="submit" disabled={isSubmitting}>
         {isSubmitting ? '正在登录...' : '登录'}
       </button>

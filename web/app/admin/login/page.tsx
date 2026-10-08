@@ -5,7 +5,14 @@ export const metadata: Metadata = {
   title: '登录 - 甘孜建设投资集团官网内容管理后台',
 };
 
-export default function AdminLoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ key?: string | string[]; targetUrl?: string | string[] }>;
+};
+
+const firstSearchValue = (value?: string | string[]) => Array.isArray(value) ? value[0] || '' : value || '';
+
+export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
+  const query = await searchParams;
   return (
     <main className="admin-login-page">
       <div className="login-shell" aria-labelledby="login-title">
@@ -16,7 +23,7 @@ export default function AdminLoginPage() {
             <p className="login-desc">用于新闻上传与内容管理，请使用分配的 Directus 内容账号登录。</p>
           </div>
 
-          <LoginForm />
+          <LoginForm ssoKey={firstSearchValue(query.key)} targetUrl={firstSearchValue(query.targetUrl)} />
 
           <p className="login-tip">登录遇到问题，请联系系统管理员，不要在聊天工具或邮件中发送密码。</p>
         </section>

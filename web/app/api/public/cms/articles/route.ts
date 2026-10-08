@@ -9,7 +9,8 @@ export async function GET(request: Request) {
 
   try {
     return NextResponse.json(await getPublicArticles(searchParams));
-  } catch {
+  } catch (error) {
+    console.error('CMS articles request failed:', error);
     if ((searchParams.get('type') || searchParams.get('scope')) === 'notice') {
       const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
       const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '10', 10) || 10));
