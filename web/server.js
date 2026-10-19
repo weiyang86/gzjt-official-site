@@ -286,14 +286,17 @@ const getPublicChannels = async (scope = '') => {
 };
 
 const mapPublicArticleSummary = (item, channelMap = new Map()) => {
-    const rawChannel = item.main_channel;
-    const rawChannelId = rawChannel && typeof rawChannel === 'object'
-        ? (rawChannel.id ?? '')
-        : (rawChannel ?? '');
-    const channelId = rawChannelId !== undefined && rawChannelId !== null && rawChannelId !== ''
-        ? String(rawChannelId)
-        : '';
-    const fallbackChannel = channelId ? channelMap.get(channelId) : null;
+    const rawChannels = Array.isArray(item.main_channel) ? item.main_channel : item.main_channel ? [item.main_channel] : [];
+    const mainChannels = rawChannels.map((rawChannel) => {
+        const rawChannelId = rawChannel && typeof rawChannel === 'object' ? (rawChannel.id ?? '') : (rawChannel ?? '');
+        const channelId = rawChannelId !== undefined && rawChannelId !== null && rawChannelId !== '' ? String(rawChannelId) : '';
+        const fallbackChannel = channelId ? channelMap.get(channelId) : null;
+        return channelId ? {
+            id: channelId,
+            name: (rawChannel && typeof rawChannel === 'object' ? rawChannel.name : '') || fallbackChannel?.name || '',
+            slug: (rawChannel && typeof rawChannel === 'object' ? rawChannel.slug : '') || fallbackChannel?.slug || ''
+        } : null;
+    }).filter(Boolean);
     return {
         id: String(item.id),
         title: item.title || '',
@@ -309,13 +312,8 @@ const mapPublicArticleSummary = (item, channelMap = new Map()) => {
         isHomeRecommend: item.is_home_recommend === true,
         sort: Number(item.sort) || 0,
         newsSubcategory: item.news_subcategory || '',
-        mainChannel: channelId
-            ? {
-                id: channelId,
-                name: (rawChannel && typeof rawChannel === 'object' ? rawChannel.name : '') || fallbackChannel?.name || '',
-                slug: (rawChannel && typeof rawChannel === 'object' ? rawChannel.slug : '') || fallbackChannel?.slug || ''
-            }
-            : null
+        mainChannel: mainChannels[0] || null,
+        mainChannels
     };
 };
 
@@ -796,6 +794,13 @@ const getArticleDetailPath = (id) => buildDirectusPath(`/items/articles/${encode
     fields: 'id,title,subtitle,summary,content,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend'
 });
 
+const normalizeAdminArticleChannels = (article) => {
+    if (!article || typeof article !== 'object') return article;
+    const channels = (Array.isArray(article.main_channel) ? article.main_channel : article.main_channel ? [article.main_channel] : [])
+        .filter((channel) => channel && typeof channel === 'object');
+    return { ...article, main_channel: channels[0] || null, main_channels: channels };
+};
+
 const normalizeArticleInput = (body, fallbackStatus) => {
     const title = typeof body.title === 'string' ? body.title.trim() : '';
     const mainChannel = body.main_channel || body.channel || null;
@@ -1217,7 +1222,7 @@ const handleAdminApi = async (req, res, normalizedPath) => {
             }
 
             const articles = await directusJsonRequest(buildDirectusPath('/items/articles', params), session.accessToken);
-            return sendJson(res, 200, { data: articles?.data || [], meta: articles?.meta || null });
+            return sendJson(res, 200, { data: (articles?.data || []).map(normalizeAdminArticleChannels), meta: articles?.meta || null });
         }
 
         if (normalizedPath === '/admin-api/articles' && req.method === 'POST') {
@@ -1236,7 +1241,7 @@ const handleAdminApi = async (req, res, normalizedPath) => {
 
             if (!articleRoute.action && req.method === 'GET') {
                 const article = await directusJsonRequest(getArticleDetailPath(articleRoute.id), session.accessToken);
-                return sendJson(res, 200, { data: article?.data || null });
+                return sendJson(res, 200, { data: normalizeAdminArticleChannels(article?.data || null) });
             }
 
             if (!articleRoute.action && req.method === 'PATCH') {

@@ -11,6 +11,7 @@ export type ArticleRow = {
   title?: string;
   cover?: string | { id?: string };
   main_channel?: Channel;
+  main_channels?: Channel[];
   status?: 'draft' | 'published' | 'archived' | string;
   publish_at?: string;
 };

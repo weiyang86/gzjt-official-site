@@ -75,20 +75,21 @@ const normalizeRichTextAssetUrls = (html: string) => {
 };
 
 const mapPublicArticleSummary = (item: Record<string, unknown>, channelMap = new Map<string, Channel>()): Article => {
-  const rawChannel = item.main_channel;
-  const rawChannelObject = rawChannel && typeof rawChannel === 'object' ? rawChannel as Record<string, unknown> : null;
-  const rawChannelId = rawChannelObject ? rawChannelObject.id : rawChannel;
-  const channelId = rawChannelId !== undefined && rawChannelId !== null && rawChannelId !== '' ? String(rawChannelId) : '';
-  const fallbackChannel = channelId ? channelMap.get(channelId) : null;
-  const mainChannel = channelId
-    ? {
-        id: channelId,
-        name: toText(rawChannelObject?.name) || fallbackChannel?.name || '',
-        slug: toText(rawChannelObject?.slug) || fallbackChannel?.slug || '',
-        type: toText(rawChannelObject?.type) || fallbackChannel?.type || '',
-        path: toText(rawChannelObject?.path) || fallbackChannel?.path || '',
-      }
-    : null;
+  const rawChannels = Array.isArray(item.main_channel) ? item.main_channel : item.main_channel ? [item.main_channel] : [];
+  const mainChannels = rawChannels.flatMap<Channel>((rawChannel) => {
+    const rawChannelObject = rawChannel && typeof rawChannel === 'object' ? rawChannel as Record<string, unknown> : null;
+    const rawChannelId = rawChannelObject ? rawChannelObject.id : rawChannel;
+    const channelId = rawChannelId !== undefined && rawChannelId !== null && rawChannelId !== '' ? String(rawChannelId) : '';
+    const fallbackChannel = channelId ? channelMap.get(channelId) : null;
+    return channelId ? [{
+      id: channelId,
+      name: toText(rawChannelObject?.name) || fallbackChannel?.name || '',
+      slug: toText(rawChannelObject?.slug) || fallbackChannel?.slug || '',
+      type: toText(rawChannelObject?.type) || fallbackChannel?.type || '',
+      path: toText(rawChannelObject?.path) || fallbackChannel?.path || '',
+    }] : [];
+  });
+  const mainChannel = mainChannels[0] || null;
 
   return {
     id: String(item.id ?? ''),
@@ -107,6 +108,8 @@ const mapPublicArticleSummary = (item: Record<string, unknown>, channelMap = new
     newsSubcategory: toText(item.news_subcategory),
     mainChannel,
     main_channel: mainChannel || undefined,
+    mainChannels,
+    main_channels: mainChannels,
   };
 };
 

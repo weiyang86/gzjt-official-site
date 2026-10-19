@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageModule, PageModuleGroup } from './types';
+import { getMergedNewsAdminHref } from './merged-news-channel';
 
 const devStatusText: Record<string, string> = { developing: '正在开发中', enabled: '已启用', disabled: '已停用' };
 const statusText: Record<string, string> = { enabled: '启用', disabled: '停用' };
@@ -92,6 +93,11 @@ export function PageModulesManagerPage() {
   };
 
   const enterModule = (module: PageModule) => {
+    const mergedNewsHref = getMergedNewsAdminHref(module);
+    if (mergedNewsHref) {
+      window.location.href = mergedNewsHref;
+      return;
+    }
     if (module.dev_status === 'developing') {
       setMessage({ text: `“${module.module_title}”该模块正在开发中。`, type: 'error' });
       window.alert('该模块正在开发中');

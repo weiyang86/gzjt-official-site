@@ -18,6 +18,7 @@ type ArticleEditorRow = {
   subtitle?: string;
   summary?: string;
   main_channel?: Channel | string | null;
+  main_channels?: Array<Channel | string>;
   status?: ArticleStatus | string;
   source?: string;
   author?: string;
@@ -130,6 +131,7 @@ const emptyArticle = (): ArticleEditorRow => ({
   subtitle: '',
   summary: '',
   main_channel: '',
+  main_channels: [],
   status: 'draft',
   source: '',
   author: '',
@@ -173,8 +175,30 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     attachmentHelp: isNotice ? '支持上传 PDF、Word、Excel 作为公告附件，前台详情页可下载查看。' : '支持上传 PDF、Word、Excel 作为新闻附件，前台详情页可下载查看。',
   }), [isNotice]);
 
+  const selectedChannelIds = useMemo(() => (form.main_channels || [])
+    .map((channel) => typeof channel === 'object' ? channel.id : channel)
+    .filter(Boolean), [form.main_channels]);
+
+  const selectedChannels = useMemo(() => selectedChannelIds.map((channelId) => (
+    channels.find((channel) => String(channel.id) === String(channelId))
+    || { id: channelId, name: channelId }
+  )), [channels, selectedChannelIds]);
+
   const setField = (field: keyof ArticleEditorRow, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setChannelIds = (channelIds: string[]) => {
+    setForm((prev) => ({ ...prev, main_channel: channelIds[0] || '', main_channels: channelIds }));
+  };
+
+  const addChannelId = (channelId: string) => {
+    if (!channelId || selectedChannelIds.includes(channelId)) return;
+    setChannelIds([...selectedChannelIds, channelId]);
+  };
+
+  const removeChannelId = (channelId: string) => {
+    setChannelIds(selectedChannelIds.filter((item) => item !== channelId));
   };
 
   const getEditorContent = () => {
@@ -236,22 +260,20 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           const articleResult = await AdminApi.article(nextArticleId, { scope });
           const article = (articleResult.data || null) as ArticleEditorRow | null;
           if (!isMounted || !article) return;
-          const channelId = typeof article.main_channel === 'object' && article.main_channel
-            ? article.main_channel.id
-            : typeof article.main_channel === 'string'
-              ? article.main_channel
-              : '';
-          const inactiveChannel = typeof article.main_channel === 'object' && article.main_channel?.id
-            && !channelRows.some((item) => String(item.id) === String(article.main_channel && typeof article.main_channel === 'object' ? article.main_channel.id : ''))
-            ? article.main_channel
-            : null;
-          if (inactiveChannel) setChannels([...channelRows, { ...inactiveChannel, name: `${inactiveChannel.name || '已停用分类'}（已停用）` }]);
+          const articleChannels = article.main_channels?.length ? article.main_channels : article.main_channel ? [article.main_channel] : [];
+          const channelIds = articleChannels.map((channel) => typeof channel === 'object' ? channel.id : channel).filter(Boolean);
+          const inactiveChannels = articleChannels
+            .filter((channel): channel is Channel => typeof channel === 'object' && Boolean(channel?.id))
+            .filter((channel) => !channelRows.some((item) => String(item.id) === String(channel.id)))
+            .map((channel) => ({ ...channel, name: `${channel.name || '已停用分类'}（已停用）` }));
+          if (inactiveChannels.length) setChannels([...channelRows, ...inactiveChannels]);
 
           const coverId = getCoverId(article.cover);
           setForm({
             ...emptyArticle(),
             ...article,
-            main_channel: channelId,
+            main_channel: channelIds[0] || '',
+            main_channels: channelIds,
             status: article.status || 'draft',
             publish_at: toLocalDateTime(article.publish_at),
             cover: coverId,
@@ -421,7 +443,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     title: String(form.title || '').trim(),
     subtitle: String(form.subtitle || '').trim(),
     summary: String(form.summary || '').trim(),
-    main_channel: typeof form.main_channel === 'string' ? form.main_channel : '',
+    main_channel: Array.isArray(form.main_channels) ? form.main_channels.map((channel) => typeof channel === 'object' ? channel.id : channel).filter(Boolean) : [],
     status: normalizeStatus(statusOverride),
     source: String(form.source || '').trim(),
     author: String(form.author || '').trim(),
@@ -433,7 +455,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
 
   const validatePayload = (payload: ReturnType<typeof buildPayload>) => {
     if (!payload.title) return '请输入标题。';
-    if (!payload.main_channel) return '请选择栏目。';
+    if (!payload.main_channel.length) return '请至少选择一个栏目。';
     if (!payload.content.trim()) return '请输入正文。';
     if (/<img[^>]+src=["']data:image\//i.test(payload.content)) {
       return '正文包含未上传的粘贴图片（base64）。请使用“图片上传”或“上传附件并插入正文”功能重新插入图片后再保存。';
@@ -510,14 +532,31 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           <label className="span-2">摘要
             <textarea rows={3} maxLength={500} value={form.summary || ''} onChange={(event) => setField('summary', event.target.value)} />
           </label>
-          <label>栏目 <span className="required">*</span>
-            <select required value={typeof form.main_channel === 'string' ? form.main_channel : ''} onChange={(event) => setField('main_channel', event.target.value)}>
-              <option value="">{isLoading ? '正在加载栏目...' : '请选择栏目'}</option>
+          <div className="channel-multi-field">
+            <label htmlFor="article-channel-select">栏目 <span className="required">*</span></label>
+            <div className={`channel-selection-box${selectedChannels.length ? '' : ' is-empty'}`}>
+              {selectedChannels.length ? selectedChannels.map((channel) => (
+                <span className="channel-selection-tag" key={channel.id}>
+                  <span>{channel.name || channel.slug || channel.id}</span>
+                  <button type="button" aria-label={`移除栏目 ${channel.name || channel.slug || channel.id}`} onClick={() => removeChannelId(String(channel.id))}>×</button>
+                </span>
+              )) : <span className="channel-selection-placeholder">暂未选择栏目</span>}
+            </div>
+            <select
+              id="article-channel-select"
+              value=""
+              onChange={(event) => addChannelId(event.target.value)}
+              disabled={isLoading}
+            >
+              <option value="">{isLoading ? '正在加载栏目...' : '请选择要添加的栏目'}</option>
               {channels.map((channel) => (
-                <option value={channel.id} key={channel.id}>{channel.name || channel.slug || channel.id}</option>
+                <option value={channel.id} key={channel.id} disabled={selectedChannelIds.includes(String(channel.id))}>
+                  {channel.name || channel.slug || channel.id}{selectedChannelIds.includes(String(channel.id)) ? '（已选择）' : ''}
+                </option>
               ))}
             </select>
-          </label>
+            <span className="field-help">从下拉框逐项添加栏目；需要取消时，点击已选栏目右上角的“×”。</span>
+          </div>
           <label>当前状态
             <select value={String(form.status || 'draft')} onChange={(event) => setField('status', event.target.value)}>
               <option value="draft">草稿</option>

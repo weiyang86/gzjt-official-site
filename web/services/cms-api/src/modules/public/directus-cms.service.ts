@@ -383,7 +383,13 @@ export class DirectusCmsService {
     return channel ? { ...channel } : { id, name: '', slug: '', type: '', path: '' }
   }
 
+  private normalizeChannels(value: any, channelMap: Map<string, any>) {
+    const values = Array.isArray(value) ? value : value ? [value] : []
+    return values.map(channel => this.normalizeChannel(channel, channelMap)).filter(Boolean)
+  }
+
   private mapArticleSummary(item: any, channelMap: Map<string, any>) {
+    const mainChannels = this.normalizeChannels(item.main_channel, channelMap)
     return {
       id: String(item.id),
       title: item.title || '',
@@ -398,7 +404,8 @@ export class DirectusCmsService {
       isHomeRecommend: Boolean(item.is_home_recommend),
       sort: item.sort ?? 0,
       newsSubcategory: item.news_subcategory || '',
-      mainChannel: this.normalizeChannel(item.main_channel, channelMap),
+      mainChannel: mainChannels[0] || null,
+      mainChannels,
       relatedCompany: item.related_company ? {
         id: String(item.related_company.id),
         name: item.related_company.name || '',

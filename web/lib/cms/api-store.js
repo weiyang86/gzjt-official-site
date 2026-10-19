@@ -37,7 +37,7 @@ async function allRows(table) {
 
 const booleanFields = new Set(['visible', 'is_news_category', 'is_top', 'is_home_recommend', 'admin_enabled', 'email_notifications']);
 const numericFields = new Set(['sort', 'limit', 'filesize', 'width', 'height', 'duration']);
-const jsonFields = new Set(['attachments', 'extra_json', 'menu_keys', 'tags', 'metadata', 'data', 'delta', 'theme_light_overrides', 'theme_dark_overrides']);
+const jsonFields = new Set(['attachments', 'extra_json', 'menu_keys', 'tags', 'metadata', 'data', 'delta', 'theme_light_overrides', 'theme_dark_overrides', 'main_channel']);
 function decodeValue(key, value) {
   if (value === '' || value === undefined) return value;
   if (booleanFields.has(key)) return value === true || value === 'true' || value === '1';
@@ -81,6 +81,8 @@ function filterTree(params) {
   return root;
 }
 function equal(left, right) {
+  if (Array.isArray(left)) return left.some(value => equal(value, right));
+  if (Array.isArray(right)) return right.some(value => equal(left, value));
   if (typeof left === 'boolean') return left === (right === 'true' || right === '1');
   return String(left ?? '') === String(right ?? '');
 }
@@ -92,8 +94,8 @@ function matchFilter(row, tree, relations = {}) {
     if (node && typeof node === 'object') {
       const nested = Object.keys(node).filter(key => !key.startsWith('_'));
       if (nested.length) {
-        value = relations[field]?.get(String(value)) || {};
-        return matchFilter(value, node, relations);
+        const values = Array.isArray(value) ? value : [value];
+        return values.some(item => matchFilter(relations[field]?.get(String(item)) || {}, node, relations));
       }
     }
     return Object.entries(node).every(([op, expected]) => {
@@ -136,11 +138,24 @@ function project(row, fields, relations) {
   for (const field of selected) {
     const [parent, child] = field.split('.');
     if (child) {
-      const related = relations[parent]?.get(String(row[parent]));
-      if (typeof result[parent] !== 'object' || result[parent] === null) result[parent] = {};
-      if (related) result[parent][child] = related[child];
-      else if (row[parent]) result[parent].id = row[parent];
-    } else result[field] = row[field];
+      const relationIds = Array.isArray(row[parent]) ? row[parent] : [row[parent]];
+      const relatedItems = relationIds.filter(Boolean).map(value => {
+        const related = relations[parent]?.get(String(value));
+        return related ? { id: String(value), [child]: related[child] } : { id: String(value) };
+      });
+      if (Array.isArray(row[parent])) {
+        const existing = Array.isArray(result[parent])
+          ? result[parent].map(item => (item && typeof item === 'object' ? { ...item } : { id: String(item) }))
+          : [];
+        relatedItems.forEach((related, index) => {
+          existing[index] = { ...(existing[index] || {}), ...related };
+        });
+        result[parent] = existing;
+      } else {
+        if (typeof result[parent] !== 'object' || result[parent] === null) result[parent] = {};
+        if (relatedItems[0]) Object.assign(result[parent], relatedItems[0]);
+      }
+    } else result[field] = Array.isArray(row[field]) ? [...row[field]] : row[field];
   }
   return result;
 }

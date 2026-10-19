@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
+import { getMergedNewsAdminHref } from './merged-news-channel';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -418,7 +419,15 @@ export function ContentManagerPage() {
     setSelectedModule(null);
     try {
       const result = await AdminApi.contentModule(moduleCode);
-      setSelectedModule((result.data || null) as PageModule | null);
+      const module = (result.data || null) as PageModule | null;
+      if (module) {
+        const mergedNewsHref = getMergedNewsAdminHref(module);
+        if (mergedNewsHref) {
+          window.location.href = mergedNewsHref;
+          return;
+        }
+      }
+      setSelectedModule(module);
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : '页面模块加载失败。', type: 'error' });
     }
