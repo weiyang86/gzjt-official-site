@@ -10,9 +10,11 @@ const navItems: Array<{ key: NavKey; href: string; label: string }> = [
   { key: 'about', href: '/about', label: '集团概况' },
   { key: 'disclosure', href: '/disclosure', label: '公示公告' },
   { key: 'news', href: '/news', label: '新闻中心' },
-  { key: 'businessDynamics', href: '/business-dynamics', label: '业务动态' },
+  // 临时栏目归并：业务动态、党建群团暂统一进入新闻中心的对应栏目。
+  // 恢复独立页时，将 href 分别改回 /business-dynamics 和 /party-masses，并移除对应页面的 redirect。
+  { key: 'businessDynamics', href: '/news?channel=business-news', label: '业务动态' },
   { key: 'businessDev', href: '/business-dev', label: '业务发展' },
-  { key: 'partyMasses', href: '/party-masses', label: '党建群团' },
+  { key: 'partyMasses', href: '/news?channel=party-mass', label: '党建群团' },
   { key: 'cleanGov', href: '/clean-gov', label: '廉洁建投' },
   { key: 'responsibility', href: '/social-responsibility', label: '社会责任' },
   { key: 'contact', href: '/contact-us', label: '联系我们' },

@@ -45,6 +45,8 @@ export interface Article {
   newsSubcategory?: string;
   main_channel?: Channel;
   mainChannel?: Channel | null;
+  main_channels?: Channel[];
+  mainChannels?: Channel[];
 }
 
 export interface ArticleAttachment {

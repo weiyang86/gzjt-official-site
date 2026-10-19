@@ -142,12 +142,19 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
   const activeChannel = getFirst(rawSearchParams.channel) || 'all';
   const keyword = getFirst(rawSearchParams.keyword) || '';
   const { channels, payload } = await loadNews(params);
+  // 临时栏目归并期间，进入对应新闻栏目后仍高亮原顶级导航。
+  // 恢复独立页时，删除该映射并将 Header/Drawer 的 active 恢复为 "news"。
+  const activeNav = activeChannel === 'party-mass'
+    ? 'partyMasses'
+    : activeChannel === 'business-news'
+      ? 'businessDynamics'
+      : 'news';
 
   return (
     <>
       <NewsAssets />
-      <Header active="news" newsChannels={channels} />
-      <Drawer active="news" newsChannels={channels} />
+      <Header active={activeNav} newsChannels={channels} />
+      <Drawer active={activeNav} newsChannels={channels} />
 
       <div className="breadcrumb" aria-label="面包屑导航">
         <div className="content">

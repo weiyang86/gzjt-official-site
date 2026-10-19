@@ -6,6 +6,10 @@ import type { AdminScope, ArticleRow, Channel, MessageState } from './types';
 import { formatPreviewDate, getCoverId, normalizePreviewArticle, type PreviewArticle } from './article-preview';
 
 const statusText: Record<string, string> = { draft: '草稿', published: '已发布', archived: '已归档' };
+const channelNames = (channels?: Channel[], fallback?: Channel) => {
+  const values = channels?.length ? channels : fallback ? [fallback] : [];
+  return values.map((channel) => channel.name || channel.slug || channel.id).filter(Boolean).join('、') || '-';
+};
 
 export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const isNotice = scope === 'notice';
@@ -52,14 +56,14 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
     setChannels((result.data || []) as Channel[]);
   };
 
-  const loadArticles = async (nextPage = page) => {
+  const loadArticles = async (nextPage = page, nextChannel = channel) => {
     setIsLoading(true);
     setMessage(null);
     try {
       const result = await AdminApi.articles({
         scope,
         keyword: keyword.trim(),
-        channel,
+        channel: nextChannel,
         status,
         page: nextPage,
         limit,
@@ -79,8 +83,12 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   };
 
   useEffect(() => {
+    // 支持从页面模块管理跳转后直接选中新闻栏目。
+    // 若以后恢复党建群团、业务动态独立页，仍可保留这项通用的 URL 筛选能力。
+    const initialChannel = new URLSearchParams(window.location.search).get('channel') || '';
+    setChannel(initialChannel);
     loadChannels()
-      .then(() => loadArticles(1))
+      .then(() => loadArticles(1, initialChannel))
       .catch((err) => setMessage({ text: err instanceof Error ? err.message : '页面初始化失败', type: 'error' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope]);
@@ -213,7 +221,7 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
                         {previewLoadingId === item.id ? copy.previewLoading : item.title || (isNotice ? '未命名公示公告' : '未命名新闻')}
                       </button>
                     </td>
-                    <td>{item.main_channel?.name || '-'}</td>
+                    <td>{channelNames(item.main_channels, item.main_channel)}</td>
                     <td><span className={`status-badge status-${item.status || 'draft'}`}>{statusText[item.status || ''] || item.status || '-'}</span></td>
                     <td>{formatPreviewDate(item.publish_at)}</td>
                     <td>
@@ -269,7 +277,7 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
             </div>
 
             <div className="preview-meta-grid">
-              <div><span>栏目</span><strong>{previewItem.main_channel?.name || '-'}</strong></div>
+              <div><span>栏目</span><strong>{channelNames(previewItem.main_channels, previewItem.main_channel)}</strong></div>
               <div><span>状态</span><strong>{statusText[previewItem.status || ''] || previewItem.status || '-'}</strong></div>
               <div><span>发布时间</span><strong>{formatPreviewDate(previewItem.publish_at)}</strong></div>
               <div><span>作者/来源</span><strong>{[previewItem.author, previewItem.source].filter(Boolean).join(' / ') || '-'}</strong></div>

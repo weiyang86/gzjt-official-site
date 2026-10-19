@@ -451,6 +451,12 @@ const getNoticeChannels = async (token: string) => {
   return Array.isArray(result.data) ? result.data : [];
 };
 
+const getNewsChannels = async (token: string) => {
+  const serviceToken = await getServiceDirectusToken(token);
+  const result = await directusJsonRequest<{ data?: Array<{ id?: string; slug?: string; name?: string }> }>(getChannelsPath('news'), serviceToken);
+  return Array.isArray(result.data) ? result.data : [];
+};
+
 const buildCategoryListPath = (request: NextRequest) => {
   const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim();
   const status = (request.nextUrl.searchParams.get('status') || '').trim();
@@ -776,12 +782,36 @@ const scopedArticleNotFoundMessage = (scope: 'news' | 'notice') => (
   scope === 'notice' ? '未找到该公告或当前账号无权限查看。' : '未找到该新闻或当前账号无权限查看。'
 );
 
-type ArticleChannelValue = string | number | { id?: string | number; name?: string; slug?: string; type?: string; path?: string } | null | undefined;
+type ArticleChannel = { id?: string | number; name?: string; slug?: string; type?: string; path?: string };
+type ArticleChannelValue = string | number | ArticleChannel | Array<string | number | ArticleChannel> | null | undefined;
 
-const getArticleChannelId = (channel: ArticleChannelValue) => {
-  if (!channel) return '';
-  if (typeof channel === 'object') return channel.id !== undefined && channel.id !== null ? String(channel.id) : '';
-  return String(channel);
+const getArticleChannelValues = (channel: ArticleChannelValue): Array<string | number | ArticleChannel> => {
+  if (!channel) return [];
+  if (Array.isArray(channel)) return channel;
+  if (typeof channel === 'string' && channel.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(channel);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return [channel];
+    }
+  }
+  return [channel];
+};
+
+const getArticleChannelIds = (channel: ArticleChannelValue) => getArticleChannelValues(channel)
+  .map((item) => (typeof item === 'object' ? item.id : item))
+  .filter((item): item is string | number => item !== undefined && item !== null && item !== '')
+  .map(String);
+
+const normalizeArticleChannelOutput = (article: Record<string, unknown>) => {
+  const channels = getArticleChannelValues(article.main_channel as ArticleChannelValue)
+    .filter((item): item is ArticleChannel => typeof item === 'object' && item !== null);
+  return {
+    ...article,
+    main_channel: channels[0] || null,
+    main_channels: channels,
+  };
 };
 
 const getChannelDetail = async (id: string, token: string) => {
@@ -810,16 +840,16 @@ const getScopedArticleDetail = async (id: string, scope: 'news' | 'notice', toke
 
   const noticeChannels = await getNoticeChannels(token);
   const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
-  const mainChannelId = getArticleChannelId(current.main_channel);
-  const isNoticeArticle = mainChannelId ? noticeChannelIds.has(mainChannelId) : false;
+  const mainChannelIds = getArticleChannelIds(current.main_channel);
+  const isNoticeArticle = mainChannelIds.some((channelId) => noticeChannelIds.has(channelId));
   if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
     throw Object.assign(new Error(scopedArticleNotFoundMessage(scope)), { status: 404 });
   }
 
-  if (mainChannelId && (!current.main_channel || typeof current.main_channel !== 'object')) {
-    const channel = await getChannelDetail(mainChannelId, token);
-    if (channel) current = { ...current, main_channel: { ...channel, id: String(channel.id || mainChannelId) } };
-  }
+  const channelDetails = (await Promise.all(mainChannelIds.map((channelId) => getChannelDetail(channelId, token))))
+    .filter((channel): channel is ArticleChannel => Boolean(channel))
+    .map((channel, index) => ({ ...channel, id: String(channel.id || mainChannelIds[index]) }));
+  current = normalizeArticleChannelOutput({ ...current, main_channel: channelDetails });
 
   return { article: current, isNoticeArticle };
 };
@@ -841,7 +871,7 @@ const normalizeAttachmentsInput = (value: unknown) => {
 const normalizeArticleInput = async (request: NextRequest) => {
   const body = await request.json() as Record<string, unknown>;
   const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const mainChannel = typeof body.main_channel === 'string' ? body.main_channel.trim() : '';
+  const mainChannels = getArticleChannelIds(body.main_channels as ArticleChannelValue || body.main_channel as ArticleChannelValue);
   const content = typeof body.content === 'string' ? body.content : '';
   const status = typeof body.status === 'string' && articleStatuses.has(body.status) ? body.status : 'draft';
   const publishAt = typeof body.publish_at === 'string' && body.publish_at.trim()
@@ -849,14 +879,14 @@ const normalizeArticleInput = async (request: NextRequest) => {
     : new Date().toISOString();
 
   if (!title) throw Object.assign(new Error('title is required'), { status: 400 });
-  if (!mainChannel) throw Object.assign(new Error('main_channel is required'), { status: 400 });
+  if (!mainChannels.length) throw Object.assign(new Error('main_channel is required'), { status: 400 });
   if (!content.trim()) throw Object.assign(new Error('content is required'), { status: 400 });
 
   return {
     title,
     subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
     summary: typeof body.summary === 'string' ? body.summary.trim() : '',
-    main_channel: mainChannel,
+    main_channel: mainChannels.length === 1 ? mainChannels[0] : mainChannels,
     status,
     source: typeof body.source === 'string' ? body.source.trim() : '',
     author: typeof body.author === 'string' ? body.author.trim() : '',
@@ -1050,11 +1080,18 @@ const handleLocalArticleList = async (request: NextRequest) => {
     }
   } else {
     if (noticeChannelIds.length) params['filter[main_channel][_nin]'] = noticeChannelIds.join(',');
-    if (channel) params['filter[main_channel][slug][_eq]'] = channel;
+    if (channel) {
+      // 本地数据 API 的 main_channel 可能是多选 JSON 数组，先用 slug 解析栏目 ID 再过滤。
+      // 恢复单栏目关系字段后，仍可保留此查询方式，不影响兼容性。
+      const newsChannels = await getNewsChannels(serviceToken);
+      const found = newsChannels.find((item) => String(item.slug || '') === channel);
+      if (!found?.id) return NextResponse.json({ data: [], meta: { filter_count: 0 } });
+      params['filter[main_channel][_eq]'] = String(found.id);
+    }
   }
 
-  const result = await directusJsonRequest<{ data?: unknown[]; meta?: unknown }>(buildDirectusPath('/items/articles', params), serviceToken);
-  return NextResponse.json({ data: result.data || [], meta: result.meta || null });
+  const result = await directusJsonRequest<{ data?: Array<Record<string, unknown>>; meta?: unknown }>(buildDirectusPath('/items/articles', params), serviceToken);
+  return NextResponse.json({ data: (result.data || []).map(normalizeArticleChannelOutput), meta: result.meta || null });
 };
 
 const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => {

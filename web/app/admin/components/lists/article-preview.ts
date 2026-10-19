@@ -14,6 +14,7 @@ export type PreviewArticle = {
   summary?: string;
   cover?: string | { id?: string };
   main_channel?: Channel;
+  main_channels?: Channel[];
   status?: 'draft' | 'published' | 'archived' | string;
   publish_at?: string;
   source?: string;
@@ -47,6 +48,7 @@ export const normalizePreviewArticle = (value: unknown): PreviewArticle | null =
     summary: typeof item.summary === 'string' ? item.summary : '',
     cover: (typeof item.cover === 'string' || (item.cover && typeof item.cover === 'object')) ? item.cover as PreviewArticle['cover'] : '',
     main_channel: item.main_channel && typeof item.main_channel === 'object' ? item.main_channel as Channel : undefined,
+    main_channels: Array.isArray(item.main_channels) ? item.main_channels.filter((channel): channel is Channel => Boolean(channel) && typeof channel === 'object') : [],
     status: typeof item.status === 'string' ? item.status : 'draft',
     publish_at: typeof item.publish_at === 'string' ? item.publish_at : '',
     source: typeof item.source === 'string' ? item.source : '',
