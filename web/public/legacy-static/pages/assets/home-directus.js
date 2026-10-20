@@ -44,8 +44,21 @@
   }
 
   const renderBanner = async () => {
-    const banners = await fetchJson('/api/public/cms/banners?position=home')
-    if (!Array.isArray(banners) || !banners.length) return
+    const payload = await fetchJson('/api/public/cms/articles?limit=5&fallback=none')
+    const articles = Array.isArray(payload?.items) ? payload.items.slice(0, 5) : []
+    if (!articles.length) return
+    const banners = articles.map((article) => {
+      const channelName = String(article.mainChannel?.name || '').trim()
+      const publishDate = String(article.publishDate || '').trim()
+      return {
+        image: String(article.cover || '').trim() || '/img/index_bg.png',
+        title: String(article.title || '最新文章').trim(),
+        subtitle: String(article.subtitle || '').trim()
+          || String(article.summary || '').trim()
+          || [channelName, publishDate].filter(Boolean).join(' · '),
+        linkUrl: detailUrl(article.id),
+      }
+    })
     const hero = document.querySelector('[data-home-banners]')
     const link = document.querySelector('[data-banner-link]')
     const dots = document.querySelector('[data-home-banner-dots]')
@@ -55,8 +68,20 @@
       if (!banner) return
       activeIndex = index
       if (hero && banner.image) hero.style.setProperty('--home-hero-img', `url('${String(banner.image).replace(/[\\"']/g, '')}')`)
-      setText('[data-banner-title]', banner.title, 36)
-      setText('[data-banner-subtitle]', banner.subtitle, 96)
+      const title = document.querySelector('[data-banner-title]')
+      const subtitle = document.querySelector('[data-banner-subtitle]')
+      if (title) {
+        title.hidden = false
+        setText('[data-banner-title]', banner.title, 48)
+        title.style.fontSize = 'clamp(32px, 5vw, 60px)'
+        title.style.letterSpacing = '2px'
+      }
+      if (subtitle) {
+        subtitle.hidden = false
+        setText('[data-banner-subtitle]', banner.subtitle, 100)
+        subtitle.style.letterSpacing = '1px'
+        subtitle.style.lineHeight = '1.6'
+      }
       const bannerHref = String(banner.linkUrl || '').trim()
       if (link) link.setAttribute('href', bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '#news')
       dots?.querySelectorAll('button').forEach((button, buttonIndex) => button.setAttribute('aria-current', buttonIndex === index ? 'true' : 'false'))
