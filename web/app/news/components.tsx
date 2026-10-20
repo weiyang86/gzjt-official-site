@@ -56,7 +56,7 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
                 <span>GANZI CONSTRUCTION INVESTMENT GROUP</span>
               </span>
             </a>
-            <nav className="nav" aria-label="一级导航">
+            <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
               <a href="/" data-no-transition>首页</a>
               {navigation.roots.map((item) => {
                 const dropdownItems = navigation.descendants(item.id);

@@ -348,6 +348,7 @@
             position:absolute;
             inset:0;
             background-image:url('/img/index_bg.png');
+            background-image:var(--home-hero-img, url('/img/index_bg.png'));
             background-size:cover;
             background-position:center 56%;
             background-repeat:no-repeat;
@@ -355,6 +356,9 @@
             filter:saturate(1.08) contrast(1.02) brightness(.82);
             z-index:0;
         }
+        .home-banner-dots { position:absolute; z-index:5; bottom:34px; left:50%; display:flex; gap:10px; transform:translateX(-50%); }
+        .home-banner-dot { width:9px; height:9px; border:1px solid rgba(255,255,255,.8); border-radius:50%; padding:0; background:transparent; cursor:pointer; }
+        .home-banner-dot[aria-current="true"] { width:26px; border-radius:8px; background:#fff; }
 
         /* Snow Mountain Layers via CSS Gradients */
         .hero-mountains {
@@ -1316,6 +1320,15 @@
             position: relative;
             z-index: 2;
         }
+        .home-topic-links { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin-top:32px; }
+        .home-topic-links a { color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:12px 22px; background:rgba(255,255,255,.08); transition:background .2s ease, transform .2s ease; }
+        .home-topic-links a:hover { background:rgba(255,255,255,.18); transform:translateY(-2px); }
+        .news-empty { color:var(--muted-text, #687386); padding:24px; text-align:center; grid-column:1/-1; }
+        .footer-qrs { display:flex; flex-wrap:wrap; gap:24px; justify-content:center; padding:12px 0 36px; }
+        .footer-qr-card { width:148px; text-align:center; color:rgba(255,255,255,.8); font-size:13px; }
+        .footer-qr-card img { display:block; width:120px; height:120px; object-fit:contain; background:#fff; margin:0 auto 10px; padding:6px; border-radius:8px; }
+        .footer-qr-placeholder { display:flex; width:120px; height:120px; align-items:center; justify-content:center; margin:0 auto 10px; padding:12px; box-sizing:border-box; border:1px dashed rgba(255,255,255,.45); border-radius:8px; color:rgba(255,255,255,.72); }
+        .footer-mailbox { color:inherit; }
         .party-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1685,9 +1698,10 @@
         </h1>
         <p class="hero-subtitle" data-banner-subtitle>甘孜州建设投资集团有限公司</p>
         <div class="hero-actions">
-            <a href="pages/about/index.html" class="btn-primary" data-banner-link>点击进入 <span class="btn-arrow" aria-hidden="true">→</span></a>
+            <a href="#news" class="btn-primary" data-banner-link>浏览新闻 <span class="btn-arrow" aria-hidden="true">→</span></a>
         </div>
     </div>
+    <div class="home-banner-dots" data-home-banner-dots aria-label="首页轮播切换"></div>
 
 </section>
 
@@ -1933,107 +1947,23 @@
         </div>
         <div class="news-layout" data-home-news-layout>
             <!-- Featured news -->
-            <div class="news-featured reveal" data-home-news-featured>
-                <div class="news-featured-bg" style="--news-featured-img: url('img/雅砻江大桥.jpg');"></div>
-                <div class="news-featured-pattern"></div>
-                <div class="news-featured-content">
-                    <span class="news-tag">头条要闻</span>
-                    <h3 class="news-featured-title">雅砻江大桥关键节点顺利贯通，区域通行能力持续提升</h3>
-                    <p class="news-featured-excerpt">集团统筹推进重点交通工程建设，强化安全、质量与工期协同管理，持续提升区域路网韧性与民生出行保障能力（示意）。</p>
-                    <span class="news-date">2025年6月8日</span>
-                </div>
-            </div>
+            <div class="news-featured reveal" data-home-news-featured hidden></div>
             <!-- News list -->
-            <div class="news-list" data-home-news-list>
-                <div class="news-item reveal" style="--news-img: url('img/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg');">
-                    <div class="news-item-date">
-                        <div class="nid-day">05</div>
-                        <div class="nid-month">Jun</div>
-                    </div>
-                    <div class="news-item-body">
-                        <h4 class="news-item-title">国道318线康定市过境段434互通工程施工组织优化，关键节点推进（示意）</h4>
-                        <div class="news-item-meta">
-                            <span class="news-cat">项目建设</span>
-                            <span>阅读 1.2k</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成前1.jpeg');">
-                    <div class="news-item-date">
-                        <div class="nid-day">02</div>
-                        <div class="nid-month">Jun</div>
-                    </div>
-                    <div class="news-item-body">
-                        <h4 class="news-item-title">雀儿山隧道工程关键工序安全管控到位，施工组织稳步推进（示意）</h4>
-                        <div class="news-item-meta">
-                            <span class="news-cat">交通工程</span>
-                            <span>阅读 2.8k</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成前2.jpeg');">
-                    <div class="news-item-date">
-                        <div class="nid-day">28</div>
-                        <div class="nid-month">May</div>
-                    </div>
-                    <div class="news-item-body">
-                        <h4 class="news-item-title">雀儿山隧道建成前阶段性成果汇总，现场标准化持续提升（示意）</h4>
-                        <div class="news-item-meta">
-                            <span class="news-cat">交通工程</span>
-                            <span>阅读 1.9k</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="news-item reveal" style="--news-img: url('img/雀儿山隧道建成后.jpeg');">
-                    <div class="news-item-date">
-                        <div class="nid-day">20</div>
-                        <div class="nid-month">May</div>
-                    </div>
-                    <div class="news-item-body">
-                        <h4 class="news-item-title">雀儿山隧道建成后运行态势良好，通行条件显著改善（示意）</h4>
-                        <div class="news-item-meta">
-                            <span class="news-cat">交通工程</span>
-                            <span>阅读 1.5k</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="news-list" data-home-news-list></div>
         </div>
     </div>
 </section>
 
 <!-- ==================== PARTY BUILDING SECTION ==================== -->
-<section class="party-section" id="party">
+<section class="party-section" id="culture-topics">
     <div class="container">
         <div class="section-header reveal">
-            <div class="section-label">PARTY BUILDING</div>
-            <h2 class="section-title font-serif">党建文化</h2>
-            <p class="section-subtitle">坚持党建引领，凝聚奋进力量，推动企业高质量发展</p>
+            <div class="section-label">CULTURE & TOPICS</div>
+            <h2 class="section-title font-serif">企业文化、专题专栏</h2>
+            <p class="section-subtitle">企业文化与专题内容</p>
         </div>
         <div class="party-content">
-            <div class="party-grid">
-                <div class="party-card reveal">
-                    <div class="party-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                    </div>
-                    <h4 class="party-card-title">思想建设</h4>
-                    <p class="party-card-desc">深入学习贯彻习近平新时代中国特色社会主义思想，筑牢信仰之基</p>
-                </div>
-                <div class="party-card reveal">
-                    <div class="party-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                    </div>
-                    <h4 class="party-card-title">组织建设</h4>
-                    <p class="party-card-desc">健全基层党组织体系，发挥战斗堡垒作用和党员先锋模范作用</p>
-                </div>
-                <div class="party-card reveal">
-                    <div class="party-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                    </div>
-                    <h4 class="party-card-title">廉政建设</h4>
-                    <p class="party-card-desc">持之以恒正风肃纪，营造风清气正的良好政治生态和企业环境</p>
-                </div>
-            </div>
+            <div class="home-topic-links" data-home-topic-links></div>
             <div class="party-slogan reveal">
                 <p class="slogan-text font-serif">党建引领 · 融合发展</p>
                 <p class="slogan-sub">BUILDING THE FUTURE WITH PARTY GUIDANCE</p>
@@ -2087,6 +2017,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
                         0836-2876659
                     </li>
+                    <li><span class="footer-mailbox">董事长信箱（邮箱待配置）</span></li>
                     <li>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                         <a href="https://www.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州人民政府</a><br>
@@ -2096,6 +2027,7 @@
                 </ul>
             </div>
         </div>
+        <div class="footer-qrs" data-home-public-qrs aria-label="微信公众号二维码与集团官网二维码"></div>
         <div class="footer-bottom">
             <span>甘孜州建设投资集团有限公司 2026 版权所有</span>
             <span><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">蜀ICP备2022013144号-2</a> &nbsp;|&nbsp; <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51332102000065" target="_blank" rel="noopener noreferrer">川公网安备 51332102000065号</a></span>

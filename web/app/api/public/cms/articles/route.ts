@@ -16,6 +16,11 @@ export async function GET(request: Request) {
       const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '10', 10) || 10));
       return NextResponse.json({ page, pageSize, total: 0, items: [] });
     }
+    if (searchParams.get('fallback') === 'none') {
+      const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '10', 10) || 10));
+      return NextResponse.json({ page, pageSize, total: 0, items: [] });
+    }
     return NextResponse.json(getFallbackNewsPayload(searchParams));
   }
 }

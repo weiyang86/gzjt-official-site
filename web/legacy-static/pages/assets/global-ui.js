@@ -84,7 +84,8 @@
       .filter(x => !x.hidden)
       .map(x => ({ title: x.title, path: x.path }))
 
-    if (navEl?.querySelector('[data-cms-dropdown="server"]')) return
+    // Next.js 服务端导航已从 API 栏目树生成，禁止旧版静态 SITE_NAV 再覆盖它。
+    if (navEl?.dataset.navTreeSource === 'api' || navEl?.querySelector('[data-cms-dropdown="server"]')) return
 
     if (navEl && items.length) {
       navEl.innerHTML = items.map(i => `<a href="${i.path}">${i.title}</a>`).join('')
@@ -122,7 +123,8 @@
     wrap.className = 'global-float'
     const phone = '0836-2876659'
     const contactHref = '/pages/contact/index.html#form'
-    const qrImage = '/img/public-platform-qr.png'
+    // 后台未配置或接口不可用时，继续使用原静态二维码，便于随时回退。
+    const fallbackQrItems = [{ title: '公众平台二维码', image: '/img/public-platform-qr.png' }]
     wrap.innerHTML = `
       <div class="gfloat-item" data-action="top" aria-label="返回顶部">
         <div class="gfloat-ico">↑</div>
@@ -133,12 +135,10 @@
       </div>
       <div class="gfloat-item" aria-label="微信二维码">
         <div class="gfloat-ico">⌁</div>
-        <div class="gfloat-pop">
-          <b>公众平台二维码</b>
+        <div class="gfloat-pop gfloat-qr-pop">
+          <b class="gfloat-pop-title">公众平台二维码</b>
           <span>扫码关注公众平台</span>
-          <div class="gfloat-qr" aria-hidden="true">
-            <img src="${qrImage}" alt="甘孜建投公众平台二维码" loading="lazy" />
-          </div>
+          <div class="gfloat-qr-list" aria-label="公众平台二维码列表"></div>
         </div>
       </div>
       <a class="gfloat-item" href="${contactHref}" aria-label="在线留言">
@@ -147,6 +147,37 @@
       </a>
     `
     document.body.appendChild(wrap)
+    const renderQrItems = (items) => {
+      const list = wrap.querySelector('.gfloat-qr-list')
+      if (!list) return
+      list.innerHTML = ''
+      items.forEach((item) => {
+        const card = document.createElement('div')
+        card.className = 'gfloat-qr-card'
+        const imageWrap = document.createElement('div')
+        imageWrap.className = 'gfloat-qr'
+        const image = document.createElement('img')
+        image.src = item.image
+        image.alt = item.title || '公众平台二维码'
+        image.loading = 'lazy'
+        const title = document.createElement('strong')
+        title.textContent = item.title || '公众平台二维码'
+        imageWrap.appendChild(image)
+        card.appendChild(imageWrap)
+        card.appendChild(title)
+        list.appendChild(card)
+      })
+    }
+    renderQrItems(fallbackQrItems)
+    fetch('/api/public/cms/public-platform-qrs', { headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : [])
+      .then((items) => {
+        const validItems = Array.isArray(items)
+          ? items.filter((item) => item && typeof item.image === 'string' && item.image)
+          : []
+        if (validItems.length) renderQrItems(validItems)
+      })
+      .catch(() => {})
     wrap.querySelector('[data-action="top"]')?.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     })

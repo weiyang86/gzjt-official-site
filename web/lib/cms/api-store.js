@@ -40,7 +40,7 @@ const numericFields = new Set(['sort', 'limit', 'filesize', 'width', 'height', '
 const jsonFields = new Set(['attachments', 'extra_json', 'menu_keys', 'tags', 'metadata', 'data', 'delta', 'theme_light_overrides', 'theme_dark_overrides', 'main_channel']);
 function decodeValue(key, value) {
   if (value === '' || value === undefined) return value;
-  if (booleanFields.has(key)) return value === true || value === 'true' || value === '1';
+  if (booleanFields.has(key)) return value === true || ['true', '1'].includes(String(value).trim().toLowerCase());
   if (numericFields.has(key) && value !== null) return Number(value);
   if (jsonFields.has(key) && typeof value === 'string') {
     try { return JSON.parse(value); } catch { return value; }

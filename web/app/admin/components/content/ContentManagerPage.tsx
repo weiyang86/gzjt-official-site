@@ -18,6 +18,20 @@ const itemStatusOptions = [
 
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const maxImageBytes = 50 * 1024 * 1024;
+const publicPlatformQrModuleCode = 'global-public-platform-qr';
+
+const publicPlatformQrModule: PageModule = {
+  id: publicPlatformQrModuleCode,
+  parent_title: '全站配置',
+  parent_code: 'global-settings',
+  module_title: '公众平台二维码',
+  module_code: publicPlatformQrModuleCode,
+  content_type: 'image_list',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 1,
+};
 
 const emptyPageContent = (moduleCode = ''): PageContent => ({
   module_code: moduleCode,
@@ -341,6 +355,144 @@ function TimelineManager({ module }: { module: PageModule }) {
   );
 }
 
+function PublicPlatformQrManager() {
+  const emptyItem = (): PageContentItem => ({
+    id: '',
+    module_code: publicPlatformQrModuleCode,
+    item_type: 'image',
+    title: '',
+    image: null,
+    sort: 0,
+    status: 'enabled',
+    extra_json: {},
+  });
+  const [items, setItems] = useState<PageContentItem[]>([]);
+  const [form, setForm] = useState<PageContentItem>(emptyItem);
+  const [message, setMessage] = useState<MessageState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const loadItems = async () => {
+    setIsLoading(true);
+    try {
+      const result = await AdminApi.pageContentItems({ module_code: publicPlatformQrModuleCode, item_type: 'image' });
+      setItems((result.data || []) as PageContentItem[]);
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '二维码配置加载失败。', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const error = validateImage(file);
+    if (error) {
+      setMessage({ text: error, type: 'error' });
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file as File);
+      const result = await AdminApi.uploadFile(formData);
+      const uploaded = (result.data || {}) as UploadPayload;
+      if (!uploaded.id) throw new Error('上传成功但未返回文件 ID。');
+      setForm((prev) => ({ ...prev, image: uploaded.id }));
+      setMessage({ text: '图片上传成功，保存配置后生效。', type: 'success' });
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '图片上传失败。', type: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const saveItem = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!form.image) {
+      setMessage({ text: '请先上传二维码图片。', type: 'error' });
+      return;
+    }
+    setIsSaving(true);
+    setMessage(null);
+    const payload = {
+      module_code: publicPlatformQrModuleCode,
+      item_type: 'image',
+      title: String(form.title || '').trim(),
+      image: form.image,
+      sort: Number(form.sort) || 0,
+      status: form.status || 'enabled',
+      extra_json: form.extra_json || {},
+    };
+    try {
+      if (form.id) await AdminApi.updatePageContentItem(form.id, payload);
+      else await AdminApi.createPageContentItem(payload);
+      setForm(emptyItem());
+      setMessage({ text: '二维码配置保存成功。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '二维码配置保存失败。', type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const disableItem = async (id: string) => {
+    try {
+      await AdminApi.disablePageContentItem(id);
+      if (form.id === id) setForm(emptyItem());
+      setMessage({ text: '二维码配置已停用。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '停用失败。', type: 'error' });
+    }
+  };
+
+  return (
+    <div className="content-editor-root">
+      <form className="editor-card content-form-card" onSubmit={saveItem}>
+        <div className="section-title-row">
+          <div><p className="eyebrow">全站配置 · {publicPlatformQrModuleCode}</p><h2>公众平台二维码</h2></div>
+          <span className="status-badge status-published">多图配置</span>
+        </div>
+        <p className="form-help-text">可添加多个公众平台二维码；前台浮动工具栏按排序值从小到大横向展示所有启用项。</p>
+        {message ? <div className={`inline-message ${message.type || ''}`.trim()}>{message.text}</div> : null}
+        <div className="editor-grid">
+          <label>标题<input type="text" required value={form.title || ''} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} /></label>
+          <label>排序<input type="number" value={String(form.sort ?? 0)} onChange={(event) => setForm((prev) => ({ ...prev, sort: Number(event.target.value) || 0 }))} /></label>
+          <div className="cover-field span-2">
+            <label>二维码图片</label>
+            <p className="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 50MB。</p>
+            <div className="cover-upload-row"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={isUploading} /></div>
+            {form.image ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.image)}`} alt="二维码预览" /> : null}
+          </div>
+          <label>状态<select value={form.status || 'enabled'} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}>{itemStatusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+        </div>
+        <div className="form-actions">
+          <button className="primary-link-button" type="submit" disabled={isSaving || isUploading}>{isSaving ? '正在保存...' : form.id ? '保存修改' : '添加二维码'}</button>
+          {form.id ? <button type="button" className="secondary-button" onClick={() => setForm(emptyItem())}>取消编辑</button> : null}
+        </div>
+      </form>
+      <section className="editor-card">
+        <div className="section-title-row"><div><p className="eyebrow">已配置项目</p><h2>二维码列表</h2></div></div>
+        {isLoading ? <p>正在加载...</p> : items.length ? (
+          <div className="timeline-list">{items.map((item) => (
+            <article className="timeline-item-card" key={item.id}>
+              <div>{item.image ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(item.image)}`} alt={item.title || '二维码'} /> : null}<h3>{item.title}</h3><p>排序：{item.sort ?? 0} · 状态：{item.status === 'enabled' ? '启用' : '停用'}</p></div>
+              <div className="table-actions"><button type="button" className="text-button" onClick={() => setForm({ ...emptyItem(), ...item })}>编辑</button>{item.status === 'enabled' ? <button type="button" className="text-button" onClick={() => disableItem(item.id)}>停用</button> : null}</div>
+            </article>
+          ))}</div>
+        ) : <p>尚未配置二维码，前台继续使用现有静态二维码。</p>}
+      </section>
+    </div>
+  );
+}
+
 function ContentModuleEditor({ module }: { module: PageModule | null }) {
   if (!module) {
     return (
@@ -351,6 +503,8 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
       </section>
     );
   }
+
+  if (module.module_code === publicPlatformQrModuleCode) return <PublicPlatformQrManager />;
 
   if (!module.admin_enabled) {
     return (
@@ -417,6 +571,10 @@ export function ContentManagerPage() {
     setSelectedCode(moduleCode);
     setMessage(null);
     setSelectedModule(null);
+    if (moduleCode === publicPlatformQrModuleCode) {
+      setSelectedModule(publicPlatformQrModule);
+      return;
+    }
     try {
       const result = await AdminApi.contentModule(moduleCode);
       const module = (result.data || null) as PageModule | null;
@@ -439,7 +597,11 @@ export function ContentManagerPage() {
       .then((result) => {
         if (!isMounted) return;
         const rows = (result.data || []) as PageModuleGroup[];
-        setTree(rows);
+        setTree([...rows, {
+          parent_title: '全站配置',
+          parent_code: 'global-settings',
+          children: [publicPlatformQrModule],
+        }]);
         const moduleCode = new URLSearchParams(window.location.search).get('module') || '';
         if (moduleCode) selectModule(moduleCode);
       })

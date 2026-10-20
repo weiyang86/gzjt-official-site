@@ -61,3 +61,21 @@ export async function getPublicSiteSettings() {
     logo: buildDirectusAssetUrl(toText(item.logo)),
   };
 }
+
+export async function getPublicPlatformQrs() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    fields: 'id,title,image,sort,status',
+    sort: 'sort,id',
+    limit: 50,
+    'filter[module_code][_eq]': 'global-public-platform-qr',
+    'filter[item_type][_eq]': 'image',
+    'filter[status][_eq]': 'enabled',
+  }));
+
+  return (response.data || []).map((item) => ({
+    id: String(item.id ?? ''),
+    title: toText(item.title),
+    image: buildDirectusAssetUrl(toText(item.image)),
+    sort: Number(item.sort) || 0,
+  })).filter((item) => item.image);
+}
