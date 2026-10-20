@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/components';
 import {
+  getPublicArticles,
   getPublicBusinessSectors,
   getPublicCompanies,
   getPublicCompanyBySlug,
@@ -495,6 +496,7 @@ export async function CompanyDetailPage({ slug }: { slug: string }) {
   const title = companyDisplayName(company);
   const label = companyDisplayLabel(company);
   const intro = companyDisplayIntro(company);
+  const companyArticles = await getPublicArticles(new URLSearchParams({ page: '1', pageSize: '20' }), company.id).catch(() => ({ page: 1, pageSize: 20, total: 0, items: [] }));
 
   return (
     <Shell active="about" actionHref="/org" actionLabel="返回公司列表">
@@ -519,6 +521,7 @@ export async function CompanyDetailPage({ slug }: { slug: string }) {
             </div>
           </div>
         </section>
+        {companyArticles.items.length > 0 && <section className="section" aria-label="公司动态"><div className="content"><div className="section-head"><div><div className="kicker"><i aria-hidden="true" /><span>COMPANY NEWS</span></div><h2 className="h2">公司动态</h2></div></div><div className="news-list">{companyArticles.items.map((article) => <a className="news-row" href={`/news/${encodeURIComponent(article.id)}`} key={article.id}><span>{article.title}</span><time>{article.publishDate}</time></a>)}</div></div></section>}
       </main>
     </Shell>
   );

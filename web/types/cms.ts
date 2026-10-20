@@ -16,6 +16,7 @@ export interface Channel {
   id: string;
   name: string;
   slug: string;
+  parent?: string;
   type?: string;
   path?: string;
   sort?: number;

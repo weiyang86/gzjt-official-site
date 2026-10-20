@@ -32,7 +32,7 @@ export async function getChannels(type?: PublicScope | string) {
 
 export async function getPublicChannels(scope: PublicScope = '') {
   const channels = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/channels', {
-    fields: 'id,name,slug,type,path,sort,status,visible,is_news_category',
+    fields: 'id,name,slug,parent.id,type,path,sort,status,visible,is_news_category',
     limit: -1,
     sort: 'sort,id',
     'filter[status][_eq]': 'enabled',
@@ -43,6 +43,7 @@ export async function getPublicChannels(scope: PublicScope = '') {
     id: String(item.id ?? ''),
     name: String(item.name ?? ''),
     slug: String(item.slug ?? ''),
+    parent: item.parent && typeof item.parent === 'object' ? String((item.parent as Record<string, unknown>).id ?? '') : '',
     type: String(item.type ?? ''),
     path: String(item.path ?? ''),
     sort: Number(item.sort) || 0,

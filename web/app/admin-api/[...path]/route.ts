@@ -398,6 +398,8 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
     return scope === 'notice' ? ['noticeArticles', 'noticeEdit'] : ['articles', 'articleEdit'];
   }
   if (root === 'categories') return scope === 'notice' ? ['noticeCategories'] : ['categories'];
+  if (root === 'navigation') return ['navigation'];
+  if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
   if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
@@ -1036,6 +1038,90 @@ const handleLocalChannels = async (request: NextRequest) => {
   return NextResponse.json({ data: result.data || [] });
 };
 
+const handleLocalNavigation = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const fields = 'id,name,slug,parent.id,parent.name,type,path,sort,visible,status,is_news_category,description';
+  if (!id && request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/channels', { fields, sort: 'sort,id', limit: -1 }), token);
+    return NextResponse.json({ data: result.data || [] });
+  }
+  if (!id && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeNavigationInput(body, true);
+    const result = await directusJsonRequest<{ data?: unknown }>('/items/channels', token, 'POST', payload);
+    return NextResponse.json({ data: result.data || null }, { status: 201 });
+  }
+  if (id && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeNavigationInput(body, false);
+    const all = await directusJsonRequest<{ data?: Array<Record<string, unknown>> }>(buildDirectusPath('/items/channels', { fields: 'id,parent.id', limit: -1 }), token);
+    const parents = new Map((all.data || []).map((row) => [String(row.id), row.parent && typeof row.parent === 'object' ? String((row.parent as Record<string, unknown>).id || '') : '']));
+    let ancestor = typeof body.parent === 'string' ? body.parent : '';
+    const visited = new Set<string>();
+    while (ancestor && !visited.has(ancestor)) {
+      if (ancestor === id) throw Object.assign(new Error('不能将栏目移动到自身或自身的下级栏目中'), { status: 400 });
+      visited.add(ancestor);
+      ancestor = parents.get(ancestor) || '';
+    }
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/channels/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+  if (id && request.method === 'DELETE') {
+    const children = await directusJsonRequest<{ meta?: { filter_count?: number } }>(buildDirectusPath('/items/channels', { fields: 'id', limit: 1, 'filter[parent][_eq]': id }), token);
+    const articles = await directusJsonRequest<{ meta?: { filter_count?: number } }>(buildDirectusPath('/items/articles', { fields: 'id', limit: 1, 'filter[main_channel][_eq]': id }), token);
+    if (Number(children.meta?.filter_count || 0) || Number(articles.meta?.filter_count || 0)) {
+      return NextResponse.json({ error: { code: 'NAVIGATION_IN_USE', message: '该栏目仍有子栏目或文章关联，请先停用，不要删除。' } }, { status: 409 });
+    }
+    await directusJsonRequest(`/items/channels/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+  return null;
+};
+
+const normalizeNavigationInput = (body: Record<string, unknown>, isCreate: boolean) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!name || !slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw Object.assign(new Error('请填写名称及小写英文、数字或中横线组成的 slug'), { status: 400 });
+  const type = typeof body.type === 'string' && categoryTypes.has(body.type) ? body.type : 'list';
+  const status = body.status === 'disabled' ? 'disabled' : 'enabled';
+  const payload: Record<string, unknown> = {
+    name, slug, type,
+    path: typeof body.path === 'string' && body.path.trim() ? body.path.trim() : `/${slug}`,
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status,
+    visible: typeof body.visible === 'boolean' ? body.visible : status === 'enabled',
+    is_news_category: body.is_news_category === true,
+    description: typeof body.description === 'string' ? body.description.trim() : '',
+  };
+  if (body.parent !== undefined) payload.parent = body.parent || null;
+  else if (isCreate) payload.parent = null;
+  return payload;
+};
+
+const handleLocalArticleOwnership = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  if (!id && request.method === 'GET') {
+    const [articles, companies] = await Promise.all([
+      directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/articles', { fields: 'id,title,status,publish_at,main_channel.id,main_channel.name,related_company.id,related_company.name', sort: '-publish_at,-id', limit: -1 }), token),
+      directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/companies', { fields: 'id,name,slug', sort: 'sort,id', limit: -1 }), token),
+    ]);
+    return NextResponse.json({ data: { articles: articles.data || [], companies: companies.data || [] } });
+  }
+  if (id && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const company = typeof body.related_company === 'string' && body.related_company ? body.related_company : null;
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/articles/${encodeURIComponent(id)}`, token, 'PATCH', { related_company: company });
+    return NextResponse.json({ data: result.data || null });
+  }
+  return null;
+};
+
 const handleLocalArticleList = async (request: NextRequest) => {
   const { session, response } = requireSession(request);
   if (!session) return response;
@@ -1604,6 +1690,8 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'permissions') return await handleLocalPermissions(request, path);
     if (route === 'dashboard/stats') return await handleLocalDashboardStats(request);
     if (route === 'channels' && request.method === 'GET') return await handleLocalChannels(request);
+    if (path[0] === 'navigation') return await handleLocalNavigation(request, path);
+    if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);
     if (path[0] === 'articles') return await handleLocalArticleRoute(request, path);
     if (route === 'files') return await handleLocalFileUpload(request);
