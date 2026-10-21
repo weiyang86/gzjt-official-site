@@ -43,7 +43,7 @@
   const monthText = (value) => {
     const date = value ? new Date(value) : null
     if (!date || Number.isNaN(date.getTime())) return ''
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]
+    return `${date.getMonth() + 1}月`
   }
   const dayText = (value) => {
     const date = value ? new Date(value) : null
@@ -74,7 +74,7 @@
     date: item.date || '',
     dateText: item.dateText || longDate(item.date) || item.date || '',
     day: item.day || dayText(item.date),
-    month: item.month || monthText(item.date),
+    month: monthText(item.date),
     views: item.views || '',
     img: resolveCover(item.cover || ''),
     excerpt: item.summary || '',

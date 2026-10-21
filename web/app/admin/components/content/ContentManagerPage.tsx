@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
-import { defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
+import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -31,6 +31,19 @@ const homepageLayoutModule: PageModule = {
   dev_status: 'enabled',
   status: 'enabled',
   sort: 0,
+};
+
+const contactInfoModule: PageModule = {
+  id: contactInfoModuleCode,
+  parent_title: '全站配置',
+  parent_code: 'global-settings',
+  module_title: '联系我们配置',
+  module_code: contactInfoModuleCode,
+  content_type: 'contact_info',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 2,
 };
 
 const publicPlatformQrModule: PageModule = {
@@ -548,6 +561,92 @@ const importLatestHomepageArticles = async (): Promise<HomepageBannerSlide[]> =>
     }));
 };
 
+function ContactInfoManager() {
+  const [contactInfo, setContactInfo] = useState<ContactInfoConfig>(defaultContactInfo);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasSavedConfig, setHasSavedConfig] = useState(false);
+  const [message, setMessage] = useState<MessageState | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const result = await AdminApi.pageContent(contactInfoModuleCode);
+        const content = (result.data || {}) as PageContent;
+        const extra = content.extra_json && typeof content.extra_json === 'object' ? content.extra_json : {};
+        const saved = extra.contactInfo && typeof extra.contactInfo === 'object'
+          ? extra.contactInfo as Partial<ContactInfoConfig>
+          : null;
+        if (saved) {
+          if (mounted) {
+            setContactInfo({
+              email: typeof saved.email === 'string' ? saved.email : defaultContactInfo.email,
+              phone: typeof saved.phone === 'string' ? saved.phone : defaultContactInfo.phone,
+              address: typeof saved.address === 'string' ? saved.address : defaultContactInfo.address,
+            });
+            setHasSavedConfig(Boolean(content.id));
+          }
+          return;
+        }
+
+        const homepageResult = await AdminApi.pageContent(homepageLayoutModuleCode);
+        const homepageContent = (homepageResult.data || {}) as PageContent;
+        const homepageExtra = homepageContent.extra_json && typeof homepageContent.extra_json === 'object' ? homepageContent.extra_json : {};
+        const storedLayout = 'homepageLayout' in homepageExtra ? homepageExtra.homepageLayout : homepageExtra;
+        const homepage = normalizeHomepageLayout(storedLayout);
+        if (mounted) setContactInfo({ ...defaultContactInfo, address: homepage.contactAddress, phone: homepage.contactPhone });
+      } catch (error) {
+        if (mounted) setMessage({ text: error instanceof Error ? error.message : '联系信息加载失败。', type: 'error' });
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      await AdminApi.savePageContent(contactInfoModuleCode, {
+        title: '联系我们配置',
+        subtitle: '官网联系方式',
+        cover: null,
+        summary: '维护官网联系邮箱、联系电话和联系地址。',
+        content: '',
+        extra_json: { contactInfo },
+        status: 'published',
+      });
+      setHasSavedConfig(true);
+      setMessage({ text: '联系信息已保存并发布。', type: 'success' });
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '保存失败，请检查 page_contents 权限。', type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <form className="editor-card content-form-card" onSubmit={save}>
+      <div className="section-title-row"><div><p className="eyebrow">全站配置 · {contactInfoModuleCode}</p><h2>联系我们配置</h2></div><span className="status-badge status-published">复用 page_contents</span></div>
+      <p className="form-help-text">维护前台“联系我们”页面及页脚显示的邮箱、电话和地址；配置保存到现有 page_contents.extra_json，不新增数据表。</p>
+      {message ? <div className={`inline-message ${message.type || ''}`.trim()}>{message.text}</div> : null}
+      {isLoading ? <p>正在读取联系信息...</p> : <>
+        <div className="editor-grid">
+          <label>联系邮箱<input type="email" value={contactInfo.email} onChange={(event) => setContactInfo((current) => ({ ...current, email: event.target.value }))} placeholder="请输入联系邮箱（可留空）" /></label>
+          <label>联系电话<input type="tel" value={contactInfo.phone} onChange={(event) => setContactInfo((current) => ({ ...current, phone: event.target.value }))} placeholder="请输入联系电话" /></label>
+          <label className="span-2">联系地址<input value={contactInfo.address} onChange={(event) => setContactInfo((current) => ({ ...current, address: event.target.value }))} placeholder="请输入联系地址" /></label>
+        </div>
+        {!hasSavedConfig ? <p className="field-tip">当前显示兼容默认值；首次保存后会创建并发布联系我们配置。</p> : null}
+        <div className="form-actions"><button className="primary-link-button" type="submit" disabled={isSaving}>{isSaving ? '正在保存...' : '保存并发布'}</button></div>
+      </>}
+    </form>
+  );
+}
+
 function HomepageLayoutManager() {
   const [activeConfigTab, setActiveConfigTab] = useState<'banner' | 'backgrounds' | 'content' | 'contact' | 'layout'>('banner');
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -738,10 +837,10 @@ function HomepageLayoutManager() {
               <label>新闻条数<input type="number" min={1} max={12} value={config.newsItemCount} onChange={(event) => setConfig((current) => ({ ...current, newsItemCount: Number(event.target.value) || 5 }))} /></label><label>专题条数<input type="number" min={1} max={12} value={config.cultureItemCount} onChange={(event) => setConfig((current) => ({ ...current, cultureItemCount: Number(event.target.value) || 6 }))} /></label><label>业务板块数<input type="number" min={1} max={12} value={config.businessItemCount} onChange={(event) => setConfig((current) => ({ ...current, businessItemCount: Number(event.target.value) || 6 }))} /></label>
             </div></section> : null}
 
-            {activeConfigTab === 'contact' ? <section className="homepage-section-settings homepage-compact-section"><h3>联系与关注信息</h3><div className="editor-grid homepage-compact-grid">
-              <label>联系地址<input value={config.contactAddress} onChange={(event) => setConfig((current) => ({ ...current, contactAddress: event.target.value }))} /></label><label>联系电话<input value={config.contactPhone} onChange={(event) => setConfig((current) => ({ ...current, contactPhone: event.target.value }))} /></label><label className="span-2">网站备案号<input value={config.icpRecordNumber} onChange={(event) => setConfig((current) => ({ ...current, icpRecordNumber: event.target.value }))} /><small>留空则不显示备案链接。</small></label>
+            {activeConfigTab === 'contact' ? <section className="homepage-section-settings homepage-compact-section"><h3>首页联系与关注展示</h3><div className="editor-grid homepage-compact-grid">
+              <label className="span-2">网站备案号<input value={config.icpRecordNumber} onChange={(event) => setConfig((current) => ({ ...current, icpRecordNumber: event.target.value }))} /><small>留空则不显示备案链接。</small></label>
               <label className="homepage-switch"><input type="checkbox" checked={config.showQuickLinks} onChange={(event) => setConfig((current) => ({ ...current, showQuickLinks: event.target.checked }))} />显示友情链接</label><label className="homepage-switch"><input type="checkbox" checked={config.showQrs} onChange={(event) => setConfig((current) => ({ ...current, showQrs: event.target.checked }))} />显示二维码列表</label>
-            </div><p className="field-tip">友情链接与二维码内容仍在“全站配置”维护。</p></section> : null}
+            </div><p className="field-tip">邮箱、电话和地址统一在“全站配置 → 联系我们配置”维护；友情链接与二维码仍在“全站配置”维护。</p></section> : null}
 
             {activeConfigTab === 'layout' ? <section className="homepage-section-settings homepage-compact-section"><h3>分屏顺序与显示</h3>{config.sectionOrder.map((id, index) => <div className="homepage-section-row" key={id}>
               <label><input type="checkbox" checked={!config.hiddenSections.includes(id)} onChange={() => toggleSection(id)} />{homepageSectionOptions.find((item) => item.id === id)?.label}</label><div><button type="button" className="secondary-button" disabled={index === 0} onClick={() => moveSection(id, -1)}>上移</button><button type="button" className="secondary-button" disabled={index === config.sectionOrder.length - 1} onClick={() => moveSection(id, 1)}>下移</button></div>
@@ -769,6 +868,7 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
 
   if (module.module_code === publicPlatformQrModuleCode) return <PublicPlatformQrManager />;
   if (module.module_code === homepageLayoutModuleCode) return <HomepageLayoutManager />;
+  if (module.module_code === contactInfoModuleCode) return <ContactInfoManager />;
 
   if (!module.admin_enabled) {
     return (
@@ -835,8 +935,13 @@ export function ContentManagerPage() {
     setSelectedCode(moduleCode);
     setMessage(null);
     setSelectedModule(null);
-    if (moduleCode === publicPlatformQrModuleCode || moduleCode === homepageLayoutModuleCode) {
-      setSelectedModule(moduleCode === homepageLayoutModuleCode ? homepageLayoutModule : publicPlatformQrModule);
+    if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode].includes(moduleCode)) {
+      const module = moduleCode === homepageLayoutModuleCode
+        ? homepageLayoutModule
+        : moduleCode === contactInfoModuleCode
+          ? contactInfoModule
+          : publicPlatformQrModule;
+      setSelectedModule(module);
       return;
     }
     try {
@@ -868,7 +973,7 @@ export function ContentManagerPage() {
         }, {
           parent_title: '全站配置',
           parent_code: 'global-settings',
-          children: [publicPlatformQrModule],
+          children: [publicPlatformQrModule, contactInfoModule],
         }]);
         const moduleCode = new URLSearchParams(window.location.search).get('module') || '';
         if (moduleCode) selectModule(moduleCode);

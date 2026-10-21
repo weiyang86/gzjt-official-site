@@ -1,6 +1,6 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
 import type { DirectusListResponse } from '@/types/cms';
-import { defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
+import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
 
@@ -104,4 +104,37 @@ export async function getPublicHomepageLayout() {
   } catch {
     return defaultHomepageLayout;
   }
+}
+
+export async function getPublicContactInfo() {
+  try {
+    const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {
+      fields: 'extra_json,status',
+      limit: 1,
+      'filter[module_code][_eq]': contactInfoModuleCode,
+      'filter[status][_eq]': 'published',
+    }), { cache: 'no-store', next: { revalidate: false } });
+    const rawExtra = response.data?.[0]?.extra_json;
+    const extra = typeof rawExtra === 'string' ? JSON.parse(rawExtra) as unknown : rawExtra;
+    const value = extra && typeof extra === 'object' && 'contactInfo' in extra
+      ? (extra as Record<string, unknown>).contactInfo
+      : null;
+    if (value && typeof value === 'object') {
+      const config = value as Partial<typeof defaultContactInfo>;
+      return {
+        email: typeof config.email === 'string' ? config.email : defaultContactInfo.email,
+        phone: typeof config.phone === 'string' ? config.phone : defaultContactInfo.phone,
+        address: typeof config.address === 'string' ? config.address : defaultContactInfo.address,
+      };
+    }
+  } catch {
+    // 新配置尚未发布或 API 暂不可用时，继续使用已有首页联系信息作为兼容回退。
+  }
+
+  const homepage = await getPublicHomepageLayout();
+  return {
+    email: defaultContactInfo.email,
+    phone: homepage.contactPhone || defaultContactInfo.phone,
+    address: homepage.contactAddress || defaultContactInfo.address,
+  };
 }

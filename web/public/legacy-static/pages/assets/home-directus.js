@@ -30,7 +30,7 @@
   const formatMonth = (value) => {
     const date = parseDate(value)
     if (!date) return ''
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]
+    return `${date.getMonth() + 1}月`
   }
   const formatDay = (value) => {
     const date = parseDate(value)
@@ -82,8 +82,7 @@
         subtitle.style.letterSpacing = '1px'
         subtitle.style.lineHeight = '1.6'
       }
-      const bannerHref = String(banner.linkUrl || '').trim()
-      if (link) link.setAttribute('href', bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '#news')
+      if (link) link.setAttribute('href', '/home')
       dots?.querySelectorAll('button').forEach((button, buttonIndex) => button.setAttribute('aria-current', buttonIndex === index ? 'true' : 'false'))
     }
     if (dots && banners.length > 1) {

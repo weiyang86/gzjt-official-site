@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import { sanitizeRichTextHtml } from '@/lib/richtext/sanitize';
 import { CmsRichTextEditor, type CmsRichTextEditorHandle } from './CmsRichTextEditor';
@@ -48,6 +48,65 @@ type AttachmentItem = {
   url: string;
 };
 
+type ChannelTreeNode = { channel: Channel; selectable: boolean; children: ChannelTreeNode[] };
+
+const getSelectableBranchIds = (node: ChannelTreeNode): string[] => [
+  ...(node.selectable ? [String(node.channel.id)] : []),
+  ...node.children.flatMap((child) => getSelectableBranchIds(child)),
+];
+
+const renderChannelTreeNode = (
+  node: ChannelTreeNode,
+  selectedChannelIds: string[],
+  expandedChannelIds: Set<string>,
+  disabled: boolean,
+  onToggle: (node: ChannelTreeNode, checked: boolean) => void,
+  onToggleExpanded: (channelId: string) => void,
+): ReactNode => {
+  const channelId = String(node.channel.id);
+  const branchIds = getSelectableBranchIds(node);
+  const selectedCount = branchIds.filter((id) => selectedChannelIds.includes(id)).length;
+  const checked = branchIds.length > 0 && selectedCount === branchIds.length;
+  const indeterminate = selectedCount > 0 && selectedCount < branchIds.length;
+  const expanded = expandedChannelIds.has(channelId);
+  const label = node.channel.name || node.channel.slug || channelId;
+  return (
+    <li className={`channel-tree-node${node.selectable ? '' : ' is-structural'}`} key={channelId}>
+      <div className="channel-tree-row">
+        {node.children.length ? (
+          <button
+            className="channel-tree-expand"
+            type="button"
+            aria-label={`${expanded ? '折叠' : '展开'}${label}`}
+            aria-expanded={expanded}
+            disabled={disabled}
+            onClick={() => onToggleExpanded(channelId)}
+          >
+            {expanded ? '−' : '+'}
+          </button>
+        ) : <span className="channel-tree-expand-placeholder" aria-hidden="true" />}
+        <label className="channel-tree-option">
+          <span className="channel-tree-label">{label}</span>
+          <input
+            type="checkbox"
+            checked={checked}
+            ref={(element) => {
+              if (element) element.indeterminate = indeterminate;
+            }}
+            disabled={disabled || (!node.selectable && !node.children.length)}
+            onChange={(event) => onToggle(node, event.target.checked)}
+          />
+        </label>
+      </div>
+      {node.children.length && expanded ? (
+        <ul className="channel-tree-list">
+          {node.children.map((child) => renderChannelTreeNode(child, selectedChannelIds, expandedChannelIds, disabled, onToggle, onToggleExpanded))}
+        </ul>
+      ) : null}
+    </li>
+  );
+};
+
 type EditorApi = CmsRichTextEditorHandle;
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const allowedAttachmentTypes = [
@@ -59,6 +118,7 @@ const allowedAttachmentTypes = [
 ];
 const allowedAttachmentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx'];
 const maxUploadBytes = 50 * 1024 * 1024;
+const channelParentId = (channel: Channel) => typeof channel.parent === 'string' ? channel.parent : channel.parent?.id || '';
 
 const getCoverId = (cover: ArticleEditorRow['cover']) => {
   if (!cover) return '';
@@ -145,10 +205,13 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const [articleId, setArticleId] = useState('');
   const [form, setForm] = useState<ArticleEditorRow>(() => emptyArticle());
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [navigationChannels, setNavigationChannels] = useState<Channel[]>([]);
   const [coverPreview, setCoverPreview] = useState('');
   const [message, setMessage] = useState<MessageState | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChannelPickerOpen, setIsChannelPickerOpen] = useState(false);
+  const [expandedChannelIds, setExpandedChannelIds] = useState<Set<string>>(() => new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [editorFallback, setEditorFallback] = useState(false);
@@ -156,6 +219,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const [draggingAttachmentId, setDraggingAttachmentId] = useState('');
   const [dragOverAttachmentId, setDragOverAttachmentId] = useState('');
   const editorRef = useRef<EditorApi | null>(null);
+  const channelPickerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef('');
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -184,21 +248,87 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     || { id: channelId, name: channelId }
   )), [channels, selectedChannelIds]);
 
+  const channelTree = useMemo(() => {
+    const rowsById = new Map<string, Channel>();
+    navigationChannels.forEach((channel) => rowsById.set(String(channel.id), channel));
+    channels.forEach((channel) => {
+      if (!rowsById.has(String(channel.id))) rowsById.set(String(channel.id), channel);
+    });
+    const rows = [...rowsById.values()];
+    const selectableIds = new Set(channels.map((channel) => String(channel.id)));
+    const visibleIds = new Set(selectableIds);
+    selectableIds.forEach((id) => {
+      let cursor = rowsById.get(id);
+      const visited = new Set([id]);
+      while (cursor) {
+        const parent = channelParentId(cursor);
+        if (!parent || visited.has(parent)) break;
+        visited.add(parent);
+        visibleIds.add(parent);
+        cursor = rowsById.get(parent);
+      }
+    });
+    const childrenByParent = new Map<string, Channel[]>();
+    rows.forEach((channel) => {
+      const parent = channelParentId(channel);
+      const siblings = childrenByParent.get(parent) || [];
+      siblings.push(channel);
+      childrenByParent.set(parent, siblings);
+    });
+    const visited = new Set<string>();
+    const buildNode = (channel: Channel): ChannelTreeNode | null => {
+      const id = String(channel.id);
+      if (visited.has(id) || !visibleIds.has(id)) return null;
+      visited.add(id);
+      return {
+        channel,
+        selectable: selectableIds.has(id),
+        children: (childrenByParent.get(id) || []).flatMap((child) => {
+          const node = buildNode(child);
+          return node ? [node] : [];
+        }),
+      };
+    };
+    const roots = rows.filter((channel) => {
+      const parent = channelParentId(channel);
+      return !parent || !rowsById.has(parent);
+    });
+    const tree = roots.flatMap((channel) => {
+      const node = buildNode(channel);
+      return node ? [node] : [];
+    });
+    rows.filter((channel) => visibleIds.has(String(channel.id))).forEach((channel) => {
+      const node = buildNode(channel);
+      if (node) tree.push(node);
+    });
+    return tree;
+  }, [channels, navigationChannels]);
+
   const setField = (field: keyof ArticleEditorRow, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const setChannelIds = (channelIds: string[]) => {
-    setForm((prev) => ({ ...prev, main_channel: channelIds[0] || '', main_channels: channelIds }));
+    const uniqueChannelIds = [...new Set(channelIds)];
+    setForm((prev) => ({ ...prev, main_channel: uniqueChannelIds[0] || '', main_channels: uniqueChannelIds }));
   };
 
-  const addChannelId = (channelId: string) => {
-    if (!channelId || selectedChannelIds.includes(channelId)) return;
-    setChannelIds([...selectedChannelIds, channelId]);
+  const toggleChannelBranch = (node: ChannelTreeNode, checked: boolean) => {
+    const branchIds = getSelectableBranchIds(node);
+    if (!branchIds.length) return;
+    const branchIdSet = new Set(branchIds);
+    setChannelIds(checked
+      ? [...selectedChannelIds, ...branchIds]
+      : selectedChannelIds.filter((id) => !branchIdSet.has(id)));
   };
 
-  const removeChannelId = (channelId: string) => {
-    setChannelIds(selectedChannelIds.filter((item) => item !== channelId));
+  const toggleChannelExpanded = (channelId: string) => {
+    setExpandedChannelIds((current) => {
+      const next = new Set(current);
+      if (next.has(channelId)) next.delete(channelId);
+      else next.add(channelId);
+      return next;
+    });
   };
 
   const getEditorContent = () => {
@@ -241,6 +371,24 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   }, []);
 
   useEffect(() => {
+    if (!isChannelPickerOpen) return undefined;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (event.target instanceof Node && !channelPickerRef.current?.contains(event.target)) {
+        setIsChannelPickerOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsChannelPickerOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isChannelPickerOpen]);
+
+  useEffect(() => {
     let isMounted = true;
     const params = new URLSearchParams(window.location.search);
     const nextArticleId = params.get('id') || '';
@@ -255,6 +403,13 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
         const channelRows = (channelResult.data || []) as Channel[];
         if (!isMounted) return;
         setChannels(channelRows);
+        try {
+          const navigationResult = await AdminApi.navigation();
+          if (!isMounted) return;
+          setNavigationChannels(((navigationResult.data || []) as Channel[]));
+        } catch {
+          setNavigationChannels(channelRows);
+        }
 
         if (nextArticleId) {
           const articleResult = await AdminApi.article(nextArticleId, { scope });
@@ -533,29 +688,34 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
             <textarea rows={3} maxLength={500} value={form.summary || ''} onChange={(event) => setField('summary', event.target.value)} />
           </label>
           <div className="channel-multi-field">
-            <label htmlFor="article-channel-select">栏目 <span className="required">*</span></label>
-            <div className={`channel-selection-box${selectedChannels.length ? '' : ' is-empty'}`}>
-              {selectedChannels.length ? selectedChannels.map((channel) => (
-                <span className="channel-selection-tag" key={channel.id}>
-                  <span>{channel.name || channel.slug || channel.id}</span>
-                  <button type="button" aria-label={`移除栏目 ${channel.name || channel.slug || channel.id}`} onClick={() => removeChannelId(String(channel.id))}>×</button>
+            <span>栏目 <span className="required">*</span></span>
+            <div className="channel-dropdown" ref={channelPickerRef}>
+              <button
+                className={`channel-dropdown-trigger${selectedChannels.length ? '' : ' is-empty'}`}
+                type="button"
+                aria-haspopup="true"
+                aria-expanded={isChannelPickerOpen}
+                disabled={isLoading}
+                onClick={() => setIsChannelPickerOpen((open) => !open)}
+              >
+                <span className="channel-dropdown-summary">
+                  {selectedChannels.length
+                    ? `已选择 ${selectedChannels.length} 个栏目：${selectedChannels.map((channel) => channel.name || channel.slug || channel.id).join('、')}`
+                    : isLoading ? '正在加载栏目...' : '请选择栏目'}
                 </span>
-              )) : <span className="channel-selection-placeholder">暂未选择栏目</span>}
+                <span className="channel-dropdown-arrow" aria-hidden="true">▾</span>
+              </button>
+              {isChannelPickerOpen ? (
+                <div className="channel-tree-picker" role="group" aria-label="栏目树形多选列表" aria-busy={isLoading}>
+                  {channelTree.length ? (
+                    <ul className="channel-tree-list">
+                      {channelTree.map((node) => renderChannelTreeNode(node, selectedChannelIds, expandedChannelIds, isLoading, toggleChannelBranch, toggleChannelExpanded))}
+                    </ul>
+                  ) : <span className="field-help">暂无可选栏目。</span>}
+                </div>
+              ) : null}
             </div>
-            <select
-              id="article-channel-select"
-              value=""
-              onChange={(event) => addChannelId(event.target.value)}
-              disabled={isLoading}
-            >
-              <option value="">{isLoading ? '正在加载栏目...' : '请选择要添加的栏目'}</option>
-              {channels.map((channel) => (
-                <option value={channel.id} key={channel.id} disabled={selectedChannelIds.includes(String(channel.id))}>
-                  {channel.name || channel.slug || channel.id}{selectedChannelIds.includes(String(channel.id)) ? '（已选择）' : ''}
-                </option>
-              ))}
-            </select>
-            <span className="field-help">从下拉框逐项添加栏目；需要取消时，点击已选栏目右上角的“×”。</span>
+            <span className="field-help">按导航层级展开显示；勾选父级会同时选择全部可选子级，取消父级则一并取消，部分子级已选时点击父级会补全选择。</span>
           </div>
           <label>当前状态
             <select value={String(form.status || 'draft')} onChange={(event) => setField('status', event.target.value)}>

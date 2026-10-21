@@ -1,10 +1,13 @@
 import type { Article, Channel, PublicArticleListPayload } from '@/types/cms';
 
 export const fallbackNewsChannels: Channel[] = [
-  { id: 'gov-briefs', slug: 'gov-briefs', name: '政务简讯', type: 'news', isNewsCategory: true },
-  { id: 'group-news', slug: 'group-news', name: '集团要闻', type: 'news', isNewsCategory: true },
-  { id: 'industry-news', slug: 'industry-news', name: '行业聚焦', type: 'news', isNewsCategory: true },
-  { id: 'media-focus', slug: 'media-focus', name: '媒体聚焦', type: 'news', isNewsCategory: true },
+  { id: 'news-center', slug: 'news-center', name: '新闻中心', path: '/news', type: 'module', status: 'enabled', visible: true },
+  { id: 'gov-briefs', slug: 'gov-briefs', name: '政务简讯', parent: 'news-center', type: 'news', isNewsCategory: true },
+  { id: 'group-news', slug: 'group-news', name: '集团要闻', parent: 'news-center', type: 'news', isNewsCategory: true },
+  { id: 'industry-news', slug: 'industry-news', name: '行业聚焦', parent: 'news-center', type: 'news', isNewsCategory: true },
+  { id: 'media-focus', slug: 'media-focus', name: '媒体聚焦', parent: 'news-center', type: 'news', isNewsCategory: true },
+  { id: 'provincial-gov', slug: 'provincial-gov', name: '省委、省政府', parent: 'gov-briefs', type: 'news', isNewsCategory: true },
+  { id: 'prefecture-gov', slug: 'prefecture-gov', name: '州委、州政府', parent: 'gov-briefs', type: 'news', isNewsCategory: true },
   { id: 'announcements', slug: 'announcements', name: '通知公告', type: 'notice' },
 ];
 
@@ -40,7 +43,7 @@ export const fallbackNewsArticles: Article[] = [
     publishDate: '2025-06-02',
     status: 'published',
     newsSubcategory: '省委、省政府',
-    mainChannel: { id: 'gov-briefs', slug: 'gov-briefs', name: '政务简讯' },
+    mainChannel: { id: 'provincial-gov', slug: 'provincial-gov', name: '省委、省政府' },
     content: '<p>施工现场严格落实安全生产要求，关键工序推进平稳有序。</p>',
   },
   {
@@ -52,7 +55,7 @@ export const fallbackNewsArticles: Article[] = [
     publishDate: '2025-05-28',
     status: 'published',
     newsSubcategory: '州委、州政府',
-    mainChannel: { id: 'gov-briefs', slug: 'gov-briefs', name: '政务简讯' },
+    mainChannel: { id: 'prefecture-gov', slug: 'prefecture-gov', name: '州委、州政府' },
     content: '<p>项目建设围绕标准化、精细化要求持续推进，阶段性成果逐步显现。</p>',
   },
   {
@@ -72,9 +75,21 @@ export const getFallbackNewsPayload = (searchParams: URLSearchParams): PublicArt
   const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '10', 10) || 10));
   const channel = searchParams.get('channelSlug') || searchParams.get('channel') || 'all';
+  const includeChildren = searchParams.get('includeChildren') === 'true';
   const keyword = (searchParams.get('keyword') || '').trim().toLowerCase();
+  const includedSlugs = new Set([channel]);
+  if (includeChildren) {
+    const visit = (parentSlug: string) => fallbackNewsChannels
+      .filter((item) => item.parent === fallbackNewsChannels.find((channelItem) => channelItem.slug === parentSlug)?.id)
+      .forEach((child) => {
+        if (includedSlugs.has(child.slug)) return;
+        includedSlugs.add(child.slug);
+        visit(child.slug);
+      });
+    visit(channel);
+  }
   const filtered = fallbackNewsArticles
-    .filter((item) => channel === 'all' || !channel ? true : item.mainChannel?.slug === channel)
+    .filter((item) => channel === 'all' || !channel ? true : includedSlugs.has(item.mainChannel?.slug || ''))
     .filter((item) => !keyword ? true : `${item.title} ${item.summary || ''} ${item.source || ''}`.toLowerCase().includes(keyword));
 
   return {

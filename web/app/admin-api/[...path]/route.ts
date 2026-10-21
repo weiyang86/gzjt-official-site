@@ -463,10 +463,14 @@ const buildCategoryListPath = (request: NextRequest) => {
   const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim();
   const status = (request.nextUrl.searchParams.get('status') || '').trim();
   const scope = getAdminScope(request);
+  const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get('limit') || '100', 10);
+  const requestedPage = Number.parseInt(request.nextUrl.searchParams.get('page') || '1', 10);
   const params: Record<string, string | number | boolean> = {
     fields: 'id,name,slug,type,path,sort,visible,status,is_news_category,description,parent.id,parent.name',
     sort: 'sort,name',
-    limit: 100,
+    limit: Math.min(100, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 100)),
+    page: Math.max(1, Number.isFinite(requestedPage) ? requestedPage : 1),
+    meta: 'filter_count',
   };
 
   if (scope === 'notice') {
@@ -529,7 +533,7 @@ const normalizeCategoryInput = (body: Record<string, unknown>, isCreate = false,
         is_news_category: true,
         description: typeof body.description === 'string' ? body.description.trim() : '',
       };
-  if (body.parent) payload.parent = body.parent;
+  if (Object.hasOwn(body, 'parent')) payload.parent = body.parent ? String(body.parent) : null;
   if (isCreate) {
     payload.visible = typeof body.visible === 'boolean' ? body.visible : true;
     payload.status = status;
@@ -1289,8 +1293,8 @@ const handleLocalCategoryList = async (request: NextRequest) => {
   if (!session) return response;
   if (request.method === 'GET') {
     const serviceToken = await getServiceDirectusToken(session.accessToken);
-    const result = await directusJsonRequest<{ data?: unknown[] }>(buildCategoryListPath(request), serviceToken);
-    return NextResponse.json({ data: result.data || [] });
+    const result = await directusJsonRequest<{ data?: unknown[]; meta?: { filter_count?: number; total_count?: number } }>(buildCategoryListPath(request), serviceToken);
+    return NextResponse.json({ data: result.data || [], meta: result.meta || {} });
   }
   if (request.method === 'POST') {
     const body = await request.json() as Record<string, unknown>;
@@ -1318,6 +1322,21 @@ const handleLocalCategoryRoute = async (request: NextRequest, path: string[]) =>
   if (!action && request.method === 'PATCH') {
     const body = await request.json() as Record<string, unknown>;
     const payload = normalizeCategoryInput(body, false, getAdminScope(request));
+    const parent = typeof body.parent === 'string' ? body.parent : '';
+    if (parent) {
+      const channels = await directusJsonRequest<{ data?: Array<{ id?: string; parent?: { id?: string } | string | null }> }>(
+        buildDirectusPath('/items/channels', { fields: 'id,parent.id', limit: -1 }),
+        session.accessToken,
+      );
+      const byId = new Map((channels.data || []).map((row) => [String(row.id || ''), typeof row.parent === 'string' ? row.parent : row.parent?.id || '']));
+      let ancestor = parent;
+      const visited = new Set<string>();
+      while (ancestor && !visited.has(ancestor)) {
+        if (ancestor === id) throw Object.assign(new Error('不能将分类移动到自身或自身的下级栏目中。'), { status: 400 });
+        visited.add(ancestor);
+        ancestor = byId.get(ancestor) || '';
+      }
+    }
     const serviceToken = await getServiceDirectusToken(session.accessToken);
     const result = await directusJsonRequest<{ data?: unknown }>(`/items/channels/${encodeURIComponent(id)}`, serviceToken, 'PATCH', payload);
     return NextResponse.json({ data: result.data || null });

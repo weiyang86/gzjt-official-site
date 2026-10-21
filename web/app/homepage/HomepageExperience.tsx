@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Article, BusinessSector } from '@/types/cms';
-import type { HomepageLayoutConfig, HomepageSectionId } from '@/lib/cms/homepage-layout';
+import type { ContactInfoConfig, HomepageLayoutConfig, HomepageSectionId } from '@/lib/cms/homepage-layout';
 
 type Props = {
   children: ReactNode;
@@ -13,13 +13,14 @@ type Props = {
   quickLinks: Array<{ id: string; title: string; url: string; linkUrl: string }>;
   siteSettings: { siteName: string; footerText: string; logo: string };
   layout: HomepageLayoutConfig;
+  contactInfo: ContactInfoConfig;
 };
 
 const articleHref = (article: Article) => `/news/${encodeURIComponent(article.id)}`;
 const safeHomepageLink = (value: string) => /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value.trim()) ? value.trim() : '#';
 const isExternalHomepageLink = (value: string) => /^https?:\/\//i.test(value.trim());
 
-export default function HomepageExperience({ children, articles, cultureArticles, sectors, qrs, quickLinks, siteSettings, layout }: Props) {
+export default function HomepageExperience({ children, articles, cultureArticles, sectors, qrs, quickLinks, siteSettings, layout, contactInfo }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeIndexRef = useRef(0);
   const lockedRef = useRef(false);
@@ -121,7 +122,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
       <section className="home-screen home-screen--contact" id="contact" key="contact" style={backgroundStyle('contact')}>
         <div className="home-screen-inner home-contact-inner">
           <header className="home-section-heading"><span>{sectionContent.contact.eyebrow}</span><h2>{sectionContent.contact.title}</h2><p>{sectionContent.contact.subtitle}</p></header>
-          <div className="home-contact-content"><div className="home-contact-card"><h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3><p>地址：{layout.contactAddress}</p><p>电话：{layout.contactPhone}</p>{layout.showQuickLinks ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}</div>
+          <div className="home-contact-content"><div className="home-contact-card"><h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3><p>地址：{contactInfo.address}</p><p>电话：{contactInfo.phone}</p>{contactInfo.email ? <p>邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></p> : null}{layout.showQuickLinks ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}</div>
             {layout.showQrs ? <div className="home-qr-list">{qrs.map((qr) => <figure key={qr.id}><img src={qr.image} alt={qr.title || '集团公众平台二维码'} /><figcaption>{qr.title || '公众平台'}</figcaption></figure>)}</div> : null}
           </div>
           <footer className="home-legal"><span>{siteSettings.footerText || siteSettings.siteName || '甘孜州建设投资集团有限公司'} 版权所有</span>{layout.icpRecordNumber ? <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{layout.icpRecordNumber}</a> : null}</footer>

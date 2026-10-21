@@ -35,7 +35,7 @@ const dayText = (value?: string) => {
 const monthText = (value?: string) => {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return '';
-  return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()];
+  return `${date.getMonth() + 1}月`;
 };
 
 const buildHref = (params: { channel?: string; keyword?: string; page?: number }) => {
@@ -147,7 +147,7 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
       <div className="breadcrumb" aria-label="面包屑导航">
         <div className="content">
           <div className="crumb-inner">
-            <a href="/" data-no-transition>首页</a>
+            <a href="/home" data-no-transition>首页</a>
             <span className="crumb-sep">›</span>
             <span>{activeCategoryName}</span>
           </div>

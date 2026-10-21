@@ -7,6 +7,19 @@ import { AdminApi } from '@/lib/admin/admin-api';
 type NavigationRow = { id: string; name: string; slug: string; parent?: { id?: string } | string | null; type: string; path: string; sort: number; visible: boolean; status: string; is_news_category: boolean; description: string };
 const empty: NavigationRow = { id: '', name: '', slug: '', parent: null, type: 'list', path: '', sort: 0, visible: true, status: 'enabled', is_news_category: false, description: '' };
 const parentId = (row: NavigationRow) => typeof row.parent === 'string' ? row.parent : row.parent?.id || '';
+const navigationPath = (row: NavigationRow, rows: NavigationRow[]) => {
+  const names = [row.name || row.slug || row.id];
+  const visited = new Set([row.id]);
+  let cursor: NavigationRow | undefined = row;
+  while (cursor) {
+    const id = parentId(cursor);
+    if (!id || visited.has(id)) break;
+    visited.add(id);
+    cursor = rows.find((item) => item.id === id);
+    if (cursor) names.unshift(cursor.name || cursor.slug || cursor.id);
+  }
+  return names.join(' / ');
+};
 
 export function NavigationManagerPage() {
   const [rows, setRows] = useState<NavigationRow[]>([]);
@@ -48,7 +61,7 @@ export function NavigationManagerPage() {
   const render = (parent = '', depth = 0): ReactNode => rows.filter((r) => parentId(r) === parent).map((row) => (
     <div key={row.id} style={{ marginLeft: depth * 20 }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <strong style={{ flex: 1 }}>{row.name}<small style={{ marginLeft: 10, color: '#64748b' }}>{row.path} · {row.status === 'enabled' ? '启用' : '停用'}</small></strong>
+        <strong style={{ flex: 1 }}>{row.name}<small style={{ marginLeft: 10, color: '#64748b' }}>{row.path} · {row.status === 'enabled' ? '启用' : '停用'}</small>{parentId(row) ? <small style={{ display: 'block', marginTop: 4, color: '#64748b', fontWeight: 400 }}>导航层级：{navigationPath(row, rows)}</small> : null}</strong>
         <button type="button" onClick={() => setForm({ ...row, parent: parentId(row) })}>编辑</button>
         <button type="button" onClick={() => void remove(row)}>删除</button>
       </div>
@@ -63,7 +76,7 @@ export function NavigationManagerPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
         <label>栏目名称<input value={form.name} onChange={(e) => set('name', e.target.value)} /></label>
         <label>Slug<input value={form.slug} onChange={(e) => set('slug', e.target.value)} /></label>
-        <label>父级栏目<select value={parentId(form)} onChange={(e) => set('parent', e.target.value)}><option value="">无（顶级）</option>{choices.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+        <label>父级栏目<select value={parentId(form)} onChange={(e) => set('parent', e.target.value)}><option value="">无（顶级）</option>{choices.map((r) => <option key={r.id} value={r.id}>{navigationPath(r, rows)}</option>)}</select></label>
         <label>类型<select value={form.type} onChange={(e) => set('type', e.target.value)}>{['list','page','link','module','news','notice'].map((v) => <option key={v}>{v}</option>)}</select></label>
         <label>访问路径<input value={form.path} onChange={(e) => set('path', e.target.value)} placeholder="例如 /news/company" /></label>
         <label>排序<input type="number" value={form.sort} onChange={(e) => set('sort', Number(e.target.value))} /></label>

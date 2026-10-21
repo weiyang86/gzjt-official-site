@@ -7,12 +7,39 @@ export const isNoticeChannel = (item: Channel) => Boolean(item) && (
   || (typeof item.path === 'string' && item.path.startsWith('/disclosure'))
 );
 
-export const isNewsChannel = (item: Channel) => Boolean(item) && (
-  !isNoticeChannel(item) && (
-    item.type === 'news'
-    || item.isNewsCategory === true
-  )
-);
+export const isNewsChannel = (item: Channel, channels: Channel[] = []) => {
+  if (!item || isNoticeChannel(item)) return false;
+  if (item.type === 'news' || item.isNewsCategory === true) return true;
+  if (item.path?.startsWith('/news?channel=')) return true;
+
+  const byId = new Map(channels.map((channel) => [channel.id, channel]));
+  const visited = new Set<string>();
+  let parentId = item.parent || '';
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = byId.get(parentId);
+    if (!parent || isNoticeChannel(parent)) return false;
+    if (parent.type === 'news' || parent.isNewsCategory === true || parent.name === '新闻中心' || parent.slug === 'news-center') return true;
+    parentId = parent.parent || '';
+  }
+  if (item.name === '新闻中心' || item.slug === 'news-center' || item.path === '/news' || item.path === '/news-center') return true;
+
+  // 顶级栏目可能本身不是资讯类型，但其子树含资讯栏目（例如业务动态、党建群团）。
+  const isDescendantOfItem = (candidate: Channel) => {
+    const visited = new Set<string>();
+    let parentId = candidate.parent || '';
+    while (parentId && !visited.has(parentId)) {
+      if (parentId === item.id) return true;
+      visited.add(parentId);
+      parentId = byId.get(parentId)?.parent || '';
+    }
+    return false;
+  };
+
+  return channels.some((candidate) => isDescendantOfItem(candidate)
+    && !isNoticeChannel(candidate)
+    && (candidate.type === 'news' || candidate.isNewsCategory === true));
+};
 
 export type PublicScope = '' | 'news' | 'notice';
 
@@ -53,6 +80,6 @@ export async function getPublicChannels(scope: PublicScope = '') {
   }));
 
   if (scope === 'notice') return items.filter(isNoticeChannel);
-  if (scope === 'news') return items.filter(isNewsChannel);
+  if (scope === 'news') return items.filter((item) => isNewsChannel(item, items));
   return items;
 }

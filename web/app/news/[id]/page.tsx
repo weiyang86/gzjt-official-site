@@ -67,7 +67,7 @@ export default async function NewsDetailPage({ params }: DetailPageProps) {
       <div className="breadcrumb" aria-label="面包屑导航">
         <div className="content">
           <div className="crumb-inner">
-            <a href="/" data-no-transition>首页</a>
+            <a href="/home" data-no-transition>首页</a>
             <span className="crumb-sep">›</span>
             <a href={listHref}>{sectionLabel}</a>
             {scope === 'news' ? (

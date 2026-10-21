@@ -126,21 +126,42 @@ export async function getPublicArticles(searchParams: URLSearchParams, companyId
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '10', 10) || 10));
   const scope = getScope(searchParams);
   const channelSlug = (searchParams.get('channelSlug') || searchParams.get('channel') || '').trim();
+  const channelRootSlug = (searchParams.get('channelRoot') || '').trim();
+  const includeChildren = scope === 'news' && searchParams.get('includeChildren') === 'true';
   const keyword = (searchParams.get('keyword') || '').trim();
 
   const allChannels = await getPublicChannels();
   const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
   const noticeChannels = allChannels.filter(isNoticeChannel);
-  const newsChannels = allChannels.filter(isNewsChannel);
+  const newsChannels = allChannels.filter((channel) => isNewsChannel(channel, allChannels));
   const noticeChannelIds = noticeChannels.map((item) => item.id).filter(Boolean);
   const newsChannelIds = newsChannels.map((item) => item.id).filter(Boolean);
   const selectedChannel = channelSlug && channelSlug !== 'all'
     ? allChannels.find((item) => item.slug === channelSlug)
     : null;
+  const selectedRoot = channelRootSlug ? allChannels.find((item) => item.slug === channelRootSlug) : null;
+  const collectNewsTreeIds = (rootId: string) => {
+    const ids = new Set([rootId]);
+    const visit = (parentId: string) => allChannels
+      .filter((channel) => channel.parent === parentId && isNewsChannel(channel, allChannels))
+      .forEach((channel) => {
+        if (ids.has(channel.id)) return;
+        ids.add(channel.id);
+        visit(channel.id);
+      });
+    visit(rootId);
+    return Array.from(ids);
+  };
+  const selectedRootIds = selectedRoot && isNewsChannel(selectedRoot, allChannels)
+    ? collectNewsTreeIds(selectedRoot.id)
+    : [];
+  const selectedInRoot = Boolean(selectedChannel && selectedRootIds.includes(selectedChannel.id));
 
   if (channelSlug && channelSlug !== 'all' && !selectedChannel) return { page, pageSize, total: 0, items: [] };
+  if (channelRootSlug && !selectedRootIds.length) return { page, pageSize, total: 0, items: [] };
+  if (selectedRoot && channelSlug && channelSlug !== 'all' && !selectedInRoot) return { page, pageSize, total: 0, items: [] };
   if (scope === 'notice' && selectedChannel && !isNoticeChannel(selectedChannel)) return { page, pageSize, total: 0, items: [] };
-  if (scope === 'news' && selectedChannel && !isNewsChannel(selectedChannel)) return { page, pageSize, total: 0, items: [] };
+  if (scope === 'news' && selectedChannel && !isNewsChannel(selectedChannel, allChannels)) return { page, pageSize, total: 0, items: [] };
   if (scope === 'notice' && !selectedChannel && !noticeChannelIds.length) return { page, pageSize, total: 0, items: [] };
   if (scope === 'news' && !selectedChannel && !newsChannelIds.length) return { page, pageSize, total: 0, items: [] };
 
@@ -154,8 +175,12 @@ export async function getPublicArticles(searchParams: URLSearchParams, companyId
   };
   if (companyId) {
     params['filter[related_company][_eq]'] = companyId;
+  } else if (selectedChannel && includeChildren) {
+    params['filter[main_channel][_in]'] = collectNewsTreeIds(selectedChannel.id).join(',');
   } else if (selectedChannel) {
     params['filter[main_channel][_eq]'] = selectedChannel.id;
+  } else if (selectedRootIds.length) {
+    params['filter[main_channel][_in]'] = selectedRootIds.join(',');
   } else if (scope === 'notice') {
     params['filter[main_channel][_in]'] = noticeChannelIds.join(',');
   } else if (scope === 'news') {

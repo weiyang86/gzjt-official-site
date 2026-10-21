@@ -135,7 +135,7 @@
       date: item.date || '',
       dateText: item.dateText || item.date || '',
       day: item.day || dayText(item.date),
-      month: item.month || monthText(item.date)
+      month: monthText(item.date)
     }
   }
 

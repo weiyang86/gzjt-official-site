@@ -88,6 +88,7 @@
   })
 
   const enhanceTopNavDropdown = ({ matcher, items, hrefBuilder }) => {
+    if (document.querySelector('.nav')?.dataset.navTreeSource === 'api') return
     if (!items.length) return
     const nav = document.querySelector('.nav')
     const topLinks = nav ? Array.from(nav.querySelectorAll(':scope > a, :scope > .nav-item > a')) : []
@@ -194,6 +195,7 @@
     }
   }
   const enhanceDisclosureNav = async () => {
+    if (document.querySelector('.nav')?.dataset.navTreeSource === 'api') return
     const channels = await fetchJson('/api/public/cms/channels?type=notice')
     const items = Array.isArray(channels)
       ? channels.filter(item => item && item.slug && item.name)
@@ -201,6 +203,7 @@
     enhanceTopNavDropdown({ matcher: isDisclosureLink, items, hrefBuilder: buildDisclosureHref })
   }
   const enhanceNewsNav = async () => {
+    if (document.querySelector('.nav')?.dataset.navTreeSource === 'api') return
     const channels = await fetchJson('/api/public/cms/channels?type=news')
     const items = (Array.isArray(channels) && channels.length
       ? channels.filter(item => item && item.slug && item.name)

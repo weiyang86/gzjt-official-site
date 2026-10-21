@@ -8,12 +8,29 @@ const emptyForm = (scope: AdminScope): CategoryRow => ({
   id: '',
   name: '',
   slug: '',
+  parent: null,
   type: scope === 'notice' ? 'notice' : 'list',
   path: '',
   sort: 0,
   status: 'enabled',
   description: '',
 });
+
+type NavigationOption = { id: string; name?: string; slug?: string; parent?: string | { id?: string } | null };
+const parentId = (value: CategoryRow['parent'] | NavigationOption['parent']) => typeof value === 'string' ? value : value?.id || '';
+const navigationPath = (row: NavigationOption, rows: NavigationOption[]) => {
+  const names = [row.name || row.slug || row.id];
+  const visited = new Set([row.id]);
+  let cursor: NavigationOption | undefined = row;
+  while (cursor) {
+    const id = parentId(cursor.parent);
+    if (!id || visited.has(id)) break;
+    visited.add(id);
+    cursor = rows.find((item) => item.id === id);
+    if (cursor) names.unshift(cursor.name || cursor.slug || cursor.id);
+  }
+  return names.join(' / ');
+};
 
 const validate = (form: CategoryRow, scope: AdminScope) => {
   if (!form.name?.trim()) return scope === 'notice' ? '请输入公示公告分类名称。' : '请输入分类名称。';
@@ -27,10 +44,15 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
   const [items, setItems] = useState<CategoryRow[]>([]);
+  const [navigationItems, setNavigationItems] = useState<NavigationOption[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [usage, setUsage] = useState<Record<string, number | string>>({});
   const [form, setForm] = useState<CategoryRow>(() => emptyForm(scope));
   const [message, setMessage] = useState<MessageState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const copy = useMemo(() => ({
     title: isNotice ? '公示公告分类' : '新闻分类',
@@ -58,6 +80,31 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
     });
   };
 
+  const loadNavigationItems = async () => {
+    try {
+      const result = await AdminApi.navigation() as { data?: NavigationOption[] };
+      setNavigationItems(result.data || []);
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '父级栏目加载失败。', type: 'error' });
+      setNavigationItems([]);
+    }
+  };
+
+  const parentChoices = useMemo(() => {
+    if (!form.id) return navigationItems;
+    const byId = new Map(navigationItems.map((item) => [item.id, item]));
+    return navigationItems.filter((item) => {
+      const visited = new Set<string>();
+      let cursor: NavigationOption | undefined = item;
+      while (cursor && !visited.has(cursor.id)) {
+        if (cursor.id === form.id) return false;
+        visited.add(cursor.id);
+        cursor = byId.get(parentId(cursor.parent));
+      }
+      return true;
+    });
+  }, [navigationItems, form.id]);
+
   const resetForm = () => {
     setForm(emptyForm(scope));
     setMessage(null);
@@ -76,16 +123,27 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
     setUsage(Object.fromEntries(pairs));
   };
 
-  const loadCategories = async () => {
+  const loadCategories = async (nextPage = page) => {
     setIsLoading(true);
     try {
-      const result = await AdminApi.categories({ scope, keyword: keyword.trim(), status });
-      const rows = ((result as { data?: CategoryRow[] }).data || []);
+      const requestPage = (targetPage: number) => AdminApi.categories({ scope, keyword: keyword.trim(), status, ...(isNotice ? {} : { page: targetPage, limit: pageSize }) });
+      let payload = await requestPage(nextPage) as { data?: CategoryRow[]; meta?: { filter_count?: number; total_count?: number } };
+      let rows = payload.data || [];
+      let nextTotal = Number(payload.meta?.filter_count ?? payload.meta?.total_count ?? rows.length);
+      const effectivePage = isNotice ? 1 : Math.min(nextPage, Math.max(1, Math.ceil(nextTotal / pageSize)));
+      if (!isNotice && effectivePage !== nextPage) {
+        payload = await requestPage(effectivePage) as { data?: CategoryRow[]; meta?: { filter_count?: number; total_count?: number } };
+        rows = payload.data || [];
+        nextTotal = Number(payload.meta?.filter_count ?? payload.meta?.total_count ?? rows.length);
+      }
       setItems(rows);
+      setTotal(nextTotal);
+      setPage(effectivePage);
       await loadUsage(rows);
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : '分类加载失败。', type: 'error' });
       setItems([]);
+      setTotal(0);
       setUsage({});
     } finally {
       setIsLoading(false);
@@ -94,12 +152,14 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
 
   useEffect(() => {
     loadCategories();
+    loadNavigationItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope]);
 
   const handleSearch = (event: FormEvent) => {
     event.preventDefault();
-    loadCategories();
+    setPage(1);
+    loadCategories(1);
   };
 
   const handleSave = async (event: FormEvent) => {
@@ -114,6 +174,7 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
       slug: form.slug?.trim(),
       type: isNotice ? 'notice' : form.type || 'list',
       path: form.path?.trim(),
+      parent: parentId(form.parent) || null,
       sort: Number(form.sort || 0),
       status: form.status || 'enabled',
       visible: form.status !== 'disabled',
@@ -128,7 +189,8 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
         setMessage({ text: '分类已新增。', type: 'success' });
         setForm(emptyForm(scope));
       }
-      await loadCategories();
+      await loadCategories(page);
+      await loadNavigationItems();
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : '保存分类失败。', type: 'error' });
     }
@@ -155,7 +217,7 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
     try {
       await AdminApi.setCategoryEnabled(row.id, enable, { scope });
       setMessage({ text: `分类已${enable ? '启用' : '停用'}。`, type: 'success' });
-      await loadCategories();
+      await loadCategories(page);
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : '分类操作失败。', type: 'error' });
     }
@@ -172,7 +234,7 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
       await AdminApi.deleteCategory(row.id, { scope });
       if (form.id === row.id) resetForm();
       setMessage({ text: '分类已删除。', type: 'success' });
-      await loadCategories();
+      await loadCategories(!isNotice && items.length === 1 && page > 1 ? page - 1 : page);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '分类操作失败。';
       if (msg.startsWith('Cannot delete category that has ')) {
@@ -214,6 +276,12 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
                 </select>
               </label>
             ) : null}
+            <label>父级栏目
+              <select value={parentId(form.parent)} onChange={(event) => setField('parent', event.target.value)}>
+                <option value="">无（顶级栏目）</option>
+                {parentChoices.map((item) => <option key={item.id} value={item.id}>{navigationPath(item, navigationItems)}</option>)}
+              </select>
+            </label>
             <label>前台路径<input type="text" maxLength={128} placeholder={isNotice ? '/disclosure/bid-notice' : '/channels/group-news'} value={form.path || ''} onChange={(event) => setField('path', event.target.value)} /></label>
             <label>排序<input type="number" step="1" value={String(form.sort ?? 0)} onChange={(event) => setField('sort', Number(event.target.value || 0))} /></label>
             <label>状态
@@ -271,6 +339,11 @@ export function CategoryManagerPage({ scope }: { scope: AdminScope }) {
                 </tbody>
               </table>
             </div>
+            {!isNotice ? <div className="pagination-bar">
+              <button className="secondary-button" type="button" disabled={page <= 1 || isLoading} onClick={() => void loadCategories(Math.max(1, page - 1))}>上一页</button>
+              <span>第 {page} / {totalPages} 页，共 {total} 条</span>
+              <button className="secondary-button" type="button" disabled={page >= totalPages || isLoading} onClick={() => void loadCategories(Math.min(totalPages, page + 1))}>下一页</button>
+            </div> : null}
           </section>
         </div>
       </div>

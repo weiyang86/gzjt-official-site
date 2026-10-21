@@ -6,6 +6,7 @@ import {
   getPublicBusinessSectors,
   getPublicCompanies,
   getPublicCompanyBySlug,
+  getPublicContactInfo,
   getPublicPageBySlug,
 } from '@/lib/cms';
 import {
@@ -243,7 +244,7 @@ function Breadcrumb({ title }: { title: string }) {
     <div className="breadcrumb" aria-label="面包屑导航">
       <div className="content">
         <div className="crumb-inner">
-          <a href="/" data-no-transition>首页</a>
+          <a href="/home" data-no-transition>首页</a>
           <span className="crumb-sep">›</span>
           <span>{title}</span>
         </div>
@@ -264,6 +265,26 @@ function ContentSection({ page }: { page: PageContent }) {
         </div>
         <div className="detail reveal is-visible">
           <div className="body" dangerouslySetInnerHTML={{ __html: page.content || '<p>暂无内容。</p>' }} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ContactInfoSection({ contactInfo }: { contactInfo: Awaited<ReturnType<typeof getPublicContactInfo>> }) {
+  return (
+    <section className="section" id="contact-info" aria-label="联系信息">
+      <div className="content">
+        <div className="section-head reveal is-visible">
+          <div>
+            <div className="kicker"><i aria-hidden="true" /><span>CONTACT INFORMATION</span></div>
+            <div className="h2">联系信息</div>
+          </div>
+        </div>
+        <div className="grid">
+          <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系地址</div><p>{contactInfo.address}</p></div></article>
+          <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系电话</div><p><a href={`tel:${contactInfo.phone}`}>{contactInfo.phone}</a></p></div></article>
+          {contactInfo.email ? <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系邮箱</div><p><a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></p></div></article> : null}
         </div>
       </div>
     </section>
@@ -330,6 +351,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   const page = await loadPage(slug);
   const meta = pageMeta[slug];
   if (!page) notFound();
+  const contactInfo = slug === 'contact' ? await getPublicContactInfo() : null;
 
   if (slug === 'about') {
     return <AboutPage cover={page.cover} />;
@@ -340,6 +362,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
       <Breadcrumb title={page.title || meta.title} />
       <main className="page" aria-label="主要内容">
         <Hero title={page.title || meta.title} kicker={meta.kicker} subtitle={meta.subtitle} cover={page.cover} ctaLabel={meta.cta || '查看内容'} />
+        {contactInfo ? <ContactInfoSection contactInfo={contactInfo} /> : null}
         <ContentSection page={page} />
         {slug === 'projects' ? <ProjectMap /> : null}
       </main>
@@ -490,13 +513,38 @@ export async function OrgListPage() {
   );
 }
 
-export async function CompanyDetailPage({ slug }: { slug: string }) {
+function CompanyNewsPager({ slug, page, pageSize, total }: { slug: string; page: number; pageSize: number; total: number }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+
+  const current = Math.min(page, pages);
+  const visible = Array.from({ length: pages }, (_, index) => index + 1)
+    .filter((item) => pages <= 7 || item === 1 || item === pages || Math.abs(item - current) <= 1);
+  const href = (targetPage: number) => targetPage <= 1 ? `/org/${encodeURIComponent(slug)}` : `/org/${encodeURIComponent(slug)}?page=${targetPage}`;
+
+  return (
+    <nav className="pagination company-news-pagination" style={{ marginTop: 24 }} aria-label="公司动态分页">
+      <a className={`page-btn page-btn--nav${current <= 1 ? ' is-disabled' : ''}`} href={href(Math.max(1, current - 1))} aria-disabled={current <= 1 ? 'true' : undefined}><span aria-hidden="true">‹</span> 上一页</a>
+      <span className="page-count">第 {current} / {pages} 页，共 {total} 条</span>
+      {visible.map((item, index) => (
+        <span key={item}>
+          {index > 0 && item - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>…</span> : null}
+          <a className={`page-btn${item === current ? ' is-active' : ''}`} href={href(item)} aria-current={item === current ? 'page' : undefined}>{item}</a>
+        </span>
+      ))}
+      <a className={`page-btn page-btn--nav${current >= pages ? ' is-disabled' : ''}`} href={href(Math.min(pages, current + 1))} aria-disabled={current >= pages ? 'true' : undefined}>下一页 <span aria-hidden="true">›</span></a>
+    </nav>
+  );
+}
+
+export async function CompanyDetailPage({ slug, page = 1 }: { slug: string; page?: number }) {
   const company = await loadCompany(slug);
   if (!company) notFound();
   const title = companyDisplayName(company);
   const label = companyDisplayLabel(company);
   const intro = companyDisplayIntro(company);
-  const companyArticles = await getPublicArticles(new URLSearchParams({ page: '1', pageSize: '20' }), company.id).catch(() => ({ page: 1, pageSize: 20, total: 0, items: [] }));
+  const companyNewsPageSize = 10;
+  const companyArticles = await getPublicArticles(new URLSearchParams({ page: String(page), pageSize: String(companyNewsPageSize) }), company.id).catch(() => ({ page, pageSize: companyNewsPageSize, total: 0, items: [] }));
 
   return (
     <Shell active="about" actionHref="/org" actionLabel="返回公司列表">
@@ -521,7 +569,7 @@ export async function CompanyDetailPage({ slug }: { slug: string }) {
             </div>
           </div>
         </section>
-        {companyArticles.items.length > 0 && <section className="section" aria-label="公司动态"><div className="content"><div className="section-head"><div><div className="kicker"><i aria-hidden="true" /><span>COMPANY NEWS</span></div><h2 className="h2">公司动态</h2></div></div><div className="news-list">{companyArticles.items.map((article) => <a className="news-row" href={`/news/${encodeURIComponent(article.id)}`} key={article.id}><span>{article.title}</span><time>{article.publishDate}</time></a>)}</div></div></section>}
+        {companyArticles.total > 0 && <section className="section" aria-label="公司动态"><div className="content"><div className="section-head"><div><div className="kicker"><i aria-hidden="true" /><span>COMPANY NEWS</span></div><h2 className="h2">公司动态</h2></div></div><div className="news-list">{companyArticles.items.map((article) => <a className="news-row" href={`/news/${encodeURIComponent(article.id)}`} key={article.id}><span>{article.title}</span><time>{article.publishDate}</time></a>)}</div><CompanyNewsPager slug={slug} page={page} pageSize={companyArticles.pageSize} total={companyArticles.total} /></div></section>}
       </main>
     </Shell>
   );

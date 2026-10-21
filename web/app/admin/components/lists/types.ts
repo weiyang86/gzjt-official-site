@@ -4,6 +4,9 @@ export type Channel = {
   id: string;
   name?: string;
   slug?: string;
+  parent?: string | { id?: string; name?: string } | null;
+  status?: string;
+  sort?: number;
 };
 
 export type ArticleRow = {
@@ -20,6 +23,7 @@ export type CategoryRow = {
   id: string;
   name?: string;
   slug?: string;
+  parent?: string | { id?: string; name?: string } | null;
   type?: string;
   path?: string;
   sort?: number;

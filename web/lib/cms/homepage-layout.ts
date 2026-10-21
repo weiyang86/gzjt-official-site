@@ -1,4 +1,17 @@
 export const homepageLayoutModuleCode = 'homepage-layout';
+export const contactInfoModuleCode = 'contact-info';
+
+export type ContactInfoConfig = {
+  email: string;
+  phone: string;
+  address: string;
+};
+
+export const defaultContactInfo: ContactInfoConfig = {
+  email: '',
+  phone: '',
+  address: '',
+};
 
 export type HomepageSectionId = 'news' | 'culture' | 'business' | 'contact';
 export type HomepageScreenId = 'hero' | HomepageSectionId;

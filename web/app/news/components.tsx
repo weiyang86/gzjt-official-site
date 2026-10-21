@@ -1,14 +1,31 @@
 import Script from 'next/script';
 import { Fragment } from 'react';
-import { getPublicChannels } from '@/lib/cms';
+import { getPublicChannels, getPublicContactInfo } from '@/lib/cms';
 import type { Channel } from '@/types/cms';
+import NavigationActiveState from './NavigationActiveState';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
 
-const channelHref = (channel: Channel) => {
-  if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') return channel.path || `/${channel.slug}`;
-  if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) return `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
-  return `/news?channel=${encodeURIComponent(channel.slug)}`;
+const channelHref = (channel: Channel, includeChildren = false) => {
+  let href = '';
+  if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') href = channel.path || `/${channel.slug}`;
+  else if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) href = `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
+  else href = `/news?channel=${encodeURIComponent(channel.slug)}`;
+  return includeChildren && href.startsWith('/news?') ? `${href}&includeChildren=true` : href;
+};
+
+const navKeyByChannelName: Record<string, NavKey> = {
+  '集团概况': 'about',
+  '公示公告': 'disclosure',
+  '信息公开': 'disclosure',
+  '新闻中心': 'news',
+  '业务动态': 'businessDynamics',
+  '业务发展': 'businessDev',
+  '党建群团': 'partyMasses',
+  '廉洁建设': 'cleanGov',
+  '廉洁建投': 'cleanGov',
+  '社会责任': 'responsibility',
+  '联系我们': 'contact',
 };
 
 const getDynamicNavigation = async () => {
@@ -16,28 +33,30 @@ const getDynamicNavigation = async () => {
     const channels = (await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false);
     const ids = new Set(channels.map((channel) => channel.id));
     const roots = channels.filter((channel) => !channel.parent || !ids.has(channel.parent));
-    const descendants = (rootId: string) => {
-      const output: Array<{ channel: Channel; depth: number }> = [];
+    const children = (parentId: string) => channels.filter((channel) => channel.parent === parentId);
+    const descendantSlugs = (rootId: string) => {
+      const output: string[] = [];
       const visited = new Set([rootId]);
-      const visit = (id: string, depth: number) => channels.filter((item) => item.parent === id).forEach((item) => {
+      const visit = (id: string) => children(id).forEach((item) => {
         if (visited.has(item.id)) return;
         visited.add(item.id);
-        output.push({ channel: item, depth });
-        visit(item.id, depth + 1);
+        output.push(item.slug);
+        visit(item.id);
       });
-      visit(rootId, 1);
+      visit(rootId);
       return output;
     };
-    return { roots, descendants };
+    return { roots, children, descendantSlugs };
   } catch {
-    return { roots: [] as Channel[], descendants: (_id: string) => [] as Array<{ channel: Channel; depth: number }> };
+    return { roots: [] as Channel[], children: (_id: string) => [] as Channel[], descendantSlugs: (_id: string) => [] as string[] };
   }
 };
 
-export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云' }: {
+export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云', homeHref = '/home', active }: {
   active?: NavKey;
   actionHref?: string;
   actionLabel?: string;
+  homeHref?: string;
   noticeChannels?: Channel[];
   newsChannels?: Channel[];
 }) {
@@ -49,7 +68,7 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
       <header className="site-header" aria-label="顶部导航">
         <div className="container">
           <div className="header-inner">
-            <a className="brand" href="/" data-no-transition>
+            <a className="brand" href={homeHref} data-no-transition>
               <span className="brand-mark" aria-hidden="true" />
               <span className="brand-text">
                 <b>甘孜州建设投资集团</b>
@@ -57,18 +76,20 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
               </span>
             </a>
             <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
-              <a href="/" data-no-transition>首页</a>
+              <a href={homeHref} className={active === 'home' ? 'is-active' : undefined} aria-current={active === 'home' ? 'page' : undefined} data-nav-key="home" data-no-transition>首页</a>
               {navigation.roots.map((item) => {
-                const dropdownItems = navigation.descendants(item.id);
+                const dropdownItems = item.slug === 'contact-us-nav' ? [] : navigation.children(item.id);
+                const itemNavKey = navKeyByChannelName[item.name];
+                const descendantSlugs = navigation.descendantSlugs(item.id).join(',');
                 if (dropdownItems.length) {
                   return (
                     <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.id}>
-                      <a href={channelHref(item)} aria-haspopup="true" aria-expanded="false">
+                      <a href={channelHref(item, dropdownItems.length > 0)} className={active === itemNavKey ? 'is-active' : undefined} data-nav-key={itemNavKey} data-channel-slug={item.slug} data-descendant-slugs={descendantSlugs} aria-haspopup="true" aria-expanded="false">
                         {item.name}
                       </a>
                       <div className="nav-dropdown" role="menu" data-source="server">
-                        {dropdownItems.map(({ channel, depth }) => (
-                          <a href={channelHref(channel)} role="menuitem" key={channel.id} style={{ paddingLeft: 14 + (depth - 1) * 10 }}>
+                        {dropdownItems.map((channel) => (
+                          <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} role="menuitem" key={channel.id}>
                             {channel.name}
                           </a>
                         ))}
@@ -77,7 +98,7 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
                   );
                 }
                 return (
-                  <a href={channelHref(item)} key={item.id}>
+                  <a href={channelHref(item)} className={active === itemNavKey ? 'is-active' : undefined} data-nav-key={itemNavKey} data-channel-slug={item.slug} data-descendant-slugs={descendantSlugs} key={item.id}>
                     {item.name}
                   </a>
                 );
@@ -97,11 +118,12 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
           </div>
         </div>
       </header>
+      <NavigationActiveState active={active} />
     </>
   );
 }
 
-export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel[]; newsChannels?: Channel[] } = {}) {
+export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel[]; newsChannels?: Channel[]; homeHref?: string } = {}) {
   const navigation = await getDynamicNavigation();
 
   return (
@@ -113,18 +135,18 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
           <button className="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
-          <a href="/" data-no-transition>首页</a>
+          <a href={_props.homeHref || '/home'} className={_props.active === 'home' ? 'is-active' : undefined} aria-current={_props.active === 'home' ? 'page' : undefined} data-nav-key="home" data-no-transition>首页</a>
           {navigation.roots.map((item) => {
-            const dropdownItems = navigation.descendants(item.id);
+            const dropdownItems = item.slug === 'contact-us-nav' ? [] : navigation.children(item.id);
             return (
               <Fragment key={item.id}>
-                <a href={channelHref(item)}>
+                <a href={channelHref(item, dropdownItems.length > 0)} className={_props.active === navKeyByChannelName[item.name] ? 'is-active' : undefined} data-nav-key={navKeyByChannelName[item.name]} data-channel-slug={item.slug} data-descendant-slugs={navigation.descendantSlugs(item.id).join(',')}>
                   {item.name}
                 </a>
                 {dropdownItems.length ? (
                   <div className="drawer-submenu" data-source="server">
-                    {dropdownItems.map(({ channel, depth }) => (
-                      <a href={channelHref(channel)} key={channel.id} style={{ paddingLeft: 16 + (depth - 1) * 10 }}>{channel.name}</a>
+                    {dropdownItems.map((channel) => (
+                      <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} key={channel.id}>{channel.name}</a>
                     ))}
                   </div>
                 ) : null}
@@ -137,14 +159,15 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
   );
 }
 
-export function Footer() {
+export async function Footer() {
+  const contactInfo = await getPublicContactInfo();
   return (
     <footer className="footer" aria-label="页脚信息">
       <div className="content">
         <div className="footer-inner">
           <div>
             <h3>甘孜州建设投资集团有限公司</h3>
-            <p>地址：四川省康定市榆林街道榆磨路60号<br />电话：0836-2876659</p>
+            <p>地址：{contactInfo.address}<br />电话：{contactInfo.phone}{contactInfo.email ? <><br />邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></> : null}</p>
           </div>
           <div>
             <dl>
