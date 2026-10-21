@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
+import { defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -19,6 +20,18 @@ const itemStatusOptions = [
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const maxImageBytes = 50 * 1024 * 1024;
 const publicPlatformQrModuleCode = 'global-public-platform-qr';
+const homepageLayoutModule: PageModule = {
+  id: homepageLayoutModuleCode,
+  parent_title: '首页配置',
+  parent_code: 'homepage-settings',
+  module_title: '首页界面配置',
+  module_code: homepageLayoutModuleCode,
+  content_type: 'homepage_layout',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 0,
+};
 
 const publicPlatformQrModule: PageModule = {
   id: publicPlatformQrModuleCode,
@@ -493,6 +506,256 @@ function PublicPlatformQrManager() {
   );
 }
 
+const homepageSectionOptions: Array<{ id: HomepageSectionId; label: string }> = [
+  { id: 'news', label: '新闻中心' },
+  { id: 'culture', label: '企业文化、专题专栏' },
+  { id: 'business', label: '业务板块' },
+  { id: 'contact', label: '联系与关注' },
+];
+
+const homepageScreenOptions: Array<{ id: HomepageScreenId; label: string }> = [
+  { id: 'hero', label: '首页顶部 Banner' },
+  { id: 'news', label: '新闻中心分屏' },
+  { id: 'culture', label: '企业文化、专题专栏分屏' },
+  { id: 'business', label: '业务板块分屏' },
+  { id: 'contact', label: '联系与关注分屏' },
+];
+
+const homepageSectionContentOptions: Array<{ id: HomepageSectionId; label: string }> = [
+  { id: 'news', label: '新闻中心' },
+  { id: 'culture', label: '企业文化、专题专栏' },
+  { id: 'business', label: '业务板块' },
+  { id: 'contact', label: '联系与关注' },
+];
+
+const homepageImagePreviewUrl = (image: string) => /^(https?:)?\/\//i.test(image) || image.startsWith('/')
+  ? image
+  : `/admin-api/assets/${encodeURIComponent(image)}`;
+
+const importLatestHomepageArticles = async (): Promise<HomepageBannerSlide[]> => {
+  const response = await fetch('/api/public/cms/articles?page=1&pageSize=5', { cache: 'no-store' });
+  if (!response.ok) throw new Error('读取最新文章失败');
+  const payload = await response.json() as { items?: Array<{ id?: string | number; title?: string; subtitle?: string; summary?: string; cover?: string; publish_at?: string; publishDate?: string }> };
+  return (Array.isArray(payload.items) ? payload.items : [])
+    .filter((article) => article.id !== undefined && article.id !== null)
+    .slice(0, 5)
+    .map((article, index) => ({
+      id: `article-${String(article.id)}`,
+      image: article.cover?.trim() || '/img/index_bg.png',
+      title: article.title?.trim() || `首页推荐 ${index + 1}`,
+      subtitle: article.subtitle?.trim() || article.summary?.trim() || article.publishDate?.trim() || article.publish_at?.slice(0, 10) || '',
+      linkUrl: `/news/${encodeURIComponent(String(article.id))}`,
+    }));
+};
+
+function HomepageLayoutManager() {
+  const [activeConfigTab, setActiveConfigTab] = useState<'banner' | 'backgrounds' | 'content' | 'contact' | 'layout'>('banner');
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [previewBackgroundScreen, setPreviewBackgroundScreen] = useState<HomepageScreenId>('hero');
+  const [config, setConfig] = useState<HomepageLayoutConfig>(defaultHomepageLayout);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<MessageState | null>(null);
+  const [hasSavedConfig, setHasSavedConfig] = useState(false);
+  const [uploadingTarget, setUploadingTarget] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    AdminApi.pageContent(homepageLayoutModuleCode).then((result) => {
+      if (!mounted) return;
+      const content = (result.data || {}) as PageContent;
+      const extra = content.extra_json && typeof content.extra_json === 'object' ? content.extra_json : {};
+      const stored = 'homepageLayout' in extra ? extra.homepageLayout : null;
+      if (stored) {
+        const normalized = normalizeHomepageLayout(stored);
+        setConfig(normalized);
+        setHasSavedConfig(true);
+        if (!stored || typeof stored !== 'object' || !('bannerSlides' in stored)) {
+          importLatestHomepageArticles().then((importedSlides) => {
+            if (!mounted || normalized.bannerSlides.length || !importedSlides.length) return;
+            setConfig((current) => ({ ...current, bannerSlides: importedSlides }));
+            setMessage({ text: `已将当前最新 ${importedSlides.length} 篇文章导入首页 Banner 初始配置；请检查后点击“保存并发布配置”写入配置。之后轮播将按已保存的 Banner 列表展示，不会自动替换。`, type: 'success' });
+          }).catch(() => {
+            if (mounted) setMessage({ text: '旧配置中没有 Banner 列表，但未能读取最新文章；可手动添加 Banner。', type: 'error' });
+          });
+        }
+      } else {
+        importLatestHomepageArticles().then((importedSlides) => {
+          if (!mounted || !importedSlides.length) return;
+          setConfig((current) => current.bannerSlides.length ? current : { ...current, bannerSlides: importedSlides });
+          setMessage({ text: `已将当前最新 ${importedSlides.length} 篇文章导入首页 Banner 初始配置；请检查后点击“写入初始配置并发布”。之后轮播将按已保存的 Banner 列表展示，不会自动替换。`, type: 'success' });
+        }).catch(() => {
+          if (mounted) setMessage({ text: '未能读取最新文章；可手动添加 Banner。', type: 'error' });
+        });
+      }
+    }).catch((error) => {
+      if (mounted) setMessage({ text: error instanceof Error ? error.message : '首页配置加载失败。', type: 'error' });
+    }).finally(() => { if (mounted) setIsLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (config.bannerSlides.some((slide) => !slide.image)) {
+      setMessage({ text: '请为每张新增的 Banner 上传图片，或移除未完成的项目后再保存。', type: 'error' });
+      return;
+    }
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      await AdminApi.savePageContent(homepageLayoutModuleCode, {
+        title: '首页界面配置', subtitle: '首页分屏布局与展示选项', cover: null,
+        summary: '管理首页首屏轮播标语、分屏顺序及展示状态。', content: '',
+        extra_json: { homepageLayout: normalizeHomepageLayout(config) }, status: 'published',
+      });
+      setConfig(normalizeHomepageLayout(config));
+      setHasSavedConfig(true);
+      setMessage({ text: '首页界面配置已保存并发布。', type: 'success' });
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '保存失败，请检查 page_contents 权限。', type: 'error' });
+    } finally { setIsSaving(false); }
+  };
+
+  const moveSection = (id: HomepageSectionId, direction: -1 | 1) => {
+    const index = config.sectionOrder.indexOf(id);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= config.sectionOrder.length) return;
+    const sectionOrder = [...config.sectionOrder];
+    [sectionOrder[index], sectionOrder[nextIndex]] = [sectionOrder[nextIndex], sectionOrder[index]];
+    setConfig((current) => ({ ...current, sectionOrder }));
+  };
+
+  const toggleSection = (id: HomepageSectionId) => {
+    setConfig((current) => ({ ...current, hiddenSections: current.hiddenSections.includes(id)
+      ? current.hiddenSections.filter((item) => item !== id)
+      : [...current.hiddenSections, id] }));
+  };
+
+  const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>, target: string, onUploaded: (id: string) => void) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    const validationMessage = validateImage(file);
+    if (validationMessage) {
+      setMessage({ text: validationMessage, type: 'error' });
+      return;
+    }
+    setUploadingTarget(target);
+    setMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file as File);
+      const result = await AdminApi.uploadFile(formData);
+      const uploaded = (result.data || {}) as UploadPayload;
+      if (!uploaded.id) throw new Error('上传成功但未返回文件 ID。');
+      onUploaded(uploaded.id);
+      setMessage({ text: '图片已上传；保存首页配置后才会在前台生效。', type: 'success' });
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '图片上传失败，请确认文件服务可用。', type: 'error' });
+    } finally {
+      setUploadingTarget('');
+    }
+  };
+
+  const updateSlide = (id: string, patch: Partial<HomepageBannerSlide>) => {
+    setConfig((current) => ({ ...current, bannerSlides: current.bannerSlides.map((slide) => slide.id === id ? { ...slide, ...patch } : slide) }));
+  };
+
+  const moveSlide = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= config.bannerSlides.length) return;
+    const bannerSlides = [...config.bannerSlides];
+    [bannerSlides[index], bannerSlides[targetIndex]] = [bannerSlides[targetIndex], bannerSlides[index]];
+    setConfig((current) => ({ ...current, bannerSlides }));
+  };
+
+  const updateSectionContent = (id: HomepageSectionId, patch: Partial<HomepageLayoutConfig['sectionContent'][HomepageSectionId]>) => {
+    setConfig((current) => ({ ...current, sectionContent: { ...current.sectionContent, [id]: { ...current.sectionContent[id], ...patch } } }));
+  };
+
+  const selectedBannerIndex = Math.min(activeBannerIndex, Math.max(0, config.bannerSlides.length - 1));
+  const selectedBanner = config.bannerSlides[selectedBannerIndex];
+  const previewImage = activeConfigTab === 'backgrounds'
+    ? config.backgrounds[previewBackgroundScreen]
+    : selectedBanner?.image || config.backgrounds.hero;
+  const previewTitle = activeConfigTab === 'backgrounds'
+    ? homepageScreenOptions.find((screen) => screen.id === previewBackgroundScreen)?.label || '首页预览'
+    : selectedBanner?.title || config.heroTitle;
+  const previewSubtitle = activeConfigTab === 'backgrounds'
+    ? '背景图预览'
+    : selectedBanner?.subtitle || config.heroSubtitle;
+
+  return (
+    <form className="editor-card content-form-card homepage-config-form" onSubmit={save}>
+      <div className="section-title-row homepage-config-heading"><div><p className="eyebrow">首页配置 · {homepageLayoutModuleCode}</p><h2>首页界面配置</h2></div><span className="status-badge status-published">复用 page_contents</span></div>
+      <p className="form-help-text">首页配置已分区收纳；编辑内容会同步显示在右侧小窗，保存发布后生效。{!hasSavedConfig ? ' 当前尚无已保存配置，下面显示可直接保存的初始配置。' : ''}</p>
+      {message ? <div className={`inline-message ${message.type || ''}`.trim()}>{message.text}</div> : null}
+      {isLoading ? <p>正在读取配置...</p> : <>
+        <nav className="homepage-config-tabs" aria-label="首页配置分区">
+          {([
+            ['banner', '首屏 Banner'], ['backgrounds', '分屏背景'], ['content', '文字与数量'], ['contact', '联系与关注'], ['layout', '分屏布局'],
+          ] as const).map(([id, label]) => <button type="button" key={id} className={activeConfigTab === id ? 'is-active' : ''} onClick={() => setActiveConfigTab(id)}>{label}</button>)}
+        </nav>
+        <div className="homepage-admin-layout">
+          <div className="homepage-admin-editor">
+            {activeConfigTab === 'banner' ? <>
+              <section className="homepage-section-settings homepage-compact-section">
+                <div className="section-title-row"><div><h3>首页顶部 Banner 与跳转</h3><p className="field-tip">保存后按此列表轮播，不会随新文章自动替换。</p></div>
+                  <button className="secondary-button" type="button" onClick={() => { setConfig((current) => ({ ...current, bannerSlides: [...current.bannerSlides, { id: `banner-${Date.now()}-${current.bannerSlides.length}`, image: '', title: '', subtitle: '', linkUrl: '' }] })); setActiveBannerIndex(config.bannerSlides.length); }}>添加</button>
+                </div>
+                {config.bannerSlides.length ? <>
+                  <div className="homepage-banner-picker" role="tablist" aria-label="选择 Banner">{config.bannerSlides.map((slide, index) => <button type="button" role="tab" aria-selected={selectedBannerIndex === index} className={selectedBannerIndex === index ? 'is-active' : ''} key={slide.id} onClick={() => setActiveBannerIndex(index)}><span>{index + 1}</span>{slide.title || '未命名 Banner'}</button>)}</div>
+                  {selectedBanner ? <article className="homepage-banner-editor homepage-selected-banner">
+                    <div className="homepage-banner-order"><strong>Banner {selectedBannerIndex + 1}</strong><button className="secondary-button" type="button" disabled={selectedBannerIndex === 0} onClick={() => moveSlide(selectedBannerIndex, -1)}>上移</button><button className="secondary-button" type="button" disabled={selectedBannerIndex === config.bannerSlides.length - 1} onClick={() => moveSlide(selectedBannerIndex, 1)}>下移</button><button className="text-button" type="button" onClick={() => { setConfig((current) => ({ ...current, bannerSlides: current.bannerSlides.filter((item) => item.id !== selectedBanner.id) })); setActiveBannerIndex(Math.max(0, selectedBannerIndex - 1)); }}>移除</button></div>
+                    <div className="homepage-banner-fields">
+                      <div className="homepage-banner-image">{selectedBanner.image ? <img src={homepageImagePreviewUrl(selectedBanner.image)} alt="Banner 预览" /> : <div className="homepage-background-empty">请上传图片</div>}
+                        <label className="secondary-button">{uploadingTarget === `banner:${selectedBanner.id}` ? '正在上传…' : selectedBanner.image ? '更换图片' : '上传图片'}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={Boolean(uploadingTarget)} onChange={(event) => uploadImage(event, `banner:${selectedBanner.id}`, (id) => updateSlide(selectedBanner.id, { image: id }))} /></label>
+                      </div>
+                      <div className="editor-grid"><label>标题<input value={selectedBanner.title} onChange={(event) => updateSlide(selectedBanner.id, { title: event.target.value })} /></label><label>副标题<input value={selectedBanner.subtitle} onChange={(event) => updateSlide(selectedBanner.id, { subtitle: event.target.value })} /></label><label className="span-2">跳转地址<input type="text" placeholder="/news/文章ID 或 https://example.com" value={selectedBanner.linkUrl} onChange={(event) => updateSlide(selectedBanner.id, { linkUrl: event.target.value })} /><small>支持站内路径或 http/https 链接。</small></label></div>
+                    </div>
+                  </article> : null}
+                </> : <p className="home-empty">暂无 Banner。首次进入配置时如能读取到最新文章，会先预填在这里。</p>}
+              </section>
+              <section className="homepage-section-settings homepage-compact-section"><h3>首屏文案与轮播</h3><div className="editor-grid homepage-compact-grid">
+                <label>英文标识<input value={config.heroEyebrow} onChange={(event) => setConfig((current) => ({ ...current, heroEyebrow: event.target.value }))} /></label>
+                <label>轮播间隔（毫秒）<input type="number" min={2000} max={20000} step={500} value={config.carouselInterval} onChange={(event) => setConfig((current) => ({ ...current, carouselInterval: Number(event.target.value) || 6000 }))} /></label>
+                <label>首屏主标题<input value={config.heroTitle} onChange={(event) => setConfig((current) => ({ ...current, heroTitle: event.target.value }))} /></label>
+                <label>首屏副标题<input value={config.heroSubtitle} onChange={(event) => setConfig((current) => ({ ...current, heroSubtitle: event.target.value }))} /></label>
+              </div></section>
+            </> : null}
+
+            {activeConfigTab === 'backgrounds' ? <section className="homepage-section-settings homepage-compact-section"><h3>各分屏背景图片</h3><p className="field-tip">选择一项可在右侧预览；上传后保存配置即可生效。</p><div className="homepage-background-grid homepage-background-grid--compact">{homepageScreenOptions.map((screen) => {
+              const imageId = config.backgrounds[screen.id];
+              const target = `background:${screen.id}`;
+              return <article className={`homepage-background-card${previewBackgroundScreen === screen.id ? ' is-selected' : ''}`} key={screen.id}>
+                <button type="button" className="homepage-background-select" onClick={() => setPreviewBackgroundScreen(screen.id)}>{imageId ? <img src={homepageImagePreviewUrl(imageId)} alt="" /> : <span className="homepage-background-empty">未设置</span>}<strong>{screen.label}</strong></button>
+                <div className="homepage-background-actions"><label className="secondary-button">{uploadingTarget === target ? '上传中…' : imageId ? '更换' : '上传'}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={Boolean(uploadingTarget)} onChange={(event) => uploadImage(event, target, (id) => setConfig((current) => ({ ...current, backgrounds: { ...current.backgrounds, [screen.id]: id } })))} /></label>{imageId ? <button className="text-button" type="button" onClick={() => setConfig((current) => ({ ...current, backgrounds: { ...current.backgrounds, [screen.id]: '' } }))}>清除</button> : null}</div>
+              </article>;
+            })}</div></section> : null}
+
+            {activeConfigTab === 'content' ? <section className="homepage-section-settings homepage-compact-section"><h3>首页分屏文字与展示数量</h3><p className="field-tip">文案应用到对应分屏；文章和板块仍由现有 API 提供。</p><div className="homepage-copy-settings homepage-copy-settings--compact">{homepageSectionContentOptions.map((section) => <article className="homepage-banner-editor" key={section.id}>
+              <strong>{section.label}</strong><div className="homepage-copy-fields"><label>英文标识<input value={config.sectionContent[section.id].eyebrow} onChange={(event) => updateSectionContent(section.id, { eyebrow: event.target.value })} /></label><label>标题<input value={config.sectionContent[section.id].title} onChange={(event) => updateSectionContent(section.id, { title: event.target.value })} /></label><label className="span-2">副标题<input value={config.sectionContent[section.id].subtitle} onChange={(event) => updateSectionContent(section.id, { subtitle: event.target.value })} /></label></div>
+            </article>)}</div><div className="editor-grid homepage-display-counts homepage-compact-grid">
+              <label>新闻条数<input type="number" min={1} max={12} value={config.newsItemCount} onChange={(event) => setConfig((current) => ({ ...current, newsItemCount: Number(event.target.value) || 5 }))} /></label><label>专题条数<input type="number" min={1} max={12} value={config.cultureItemCount} onChange={(event) => setConfig((current) => ({ ...current, cultureItemCount: Number(event.target.value) || 6 }))} /></label><label>业务板块数<input type="number" min={1} max={12} value={config.businessItemCount} onChange={(event) => setConfig((current) => ({ ...current, businessItemCount: Number(event.target.value) || 6 }))} /></label>
+            </div></section> : null}
+
+            {activeConfigTab === 'contact' ? <section className="homepage-section-settings homepage-compact-section"><h3>联系与关注信息</h3><div className="editor-grid homepage-compact-grid">
+              <label>联系地址<input value={config.contactAddress} onChange={(event) => setConfig((current) => ({ ...current, contactAddress: event.target.value }))} /></label><label>联系电话<input value={config.contactPhone} onChange={(event) => setConfig((current) => ({ ...current, contactPhone: event.target.value }))} /></label><label className="span-2">网站备案号<input value={config.icpRecordNumber} onChange={(event) => setConfig((current) => ({ ...current, icpRecordNumber: event.target.value }))} /><small>留空则不显示备案链接。</small></label>
+              <label className="homepage-switch"><input type="checkbox" checked={config.showQuickLinks} onChange={(event) => setConfig((current) => ({ ...current, showQuickLinks: event.target.checked }))} />显示友情链接</label><label className="homepage-switch"><input type="checkbox" checked={config.showQrs} onChange={(event) => setConfig((current) => ({ ...current, showQrs: event.target.checked }))} />显示二维码列表</label>
+            </div><p className="field-tip">友情链接与二维码内容仍在“全站配置”维护。</p></section> : null}
+
+            {activeConfigTab === 'layout' ? <section className="homepage-section-settings homepage-compact-section"><h3>分屏顺序与显示</h3>{config.sectionOrder.map((id, index) => <div className="homepage-section-row" key={id}>
+              <label><input type="checkbox" checked={!config.hiddenSections.includes(id)} onChange={() => toggleSection(id)} />{homepageSectionOptions.find((item) => item.id === id)?.label}</label><div><button type="button" className="secondary-button" disabled={index === 0} onClick={() => moveSection(id, -1)}>上移</button><button type="button" className="secondary-button" disabled={index === config.sectionOrder.length - 1} onClick={() => moveSection(id, 1)}>下移</button></div>
+            </div>)}</section> : null}
+
+            <div className="form-actions homepage-save-actions"><button className="primary-link-button" type="submit" disabled={isSaving || isLoading || Boolean(uploadingTarget)}>{isSaving ? '正在保存...' : hasSavedConfig ? '保存并发布配置' : '写入初始配置并发布'}</button></div>
+          </div>
+          <aside className="homepage-preview-panel"><div className="homepage-preview-heading"><strong>实时小窗预览</strong><span>未保存</span></div><div className="homepage-preview-window" style={previewImage ? { backgroundImage: `linear-gradient(90deg,rgba(3,18,37,.78),rgba(3,18,37,.18)),url("${homepageImagePreviewUrl(previewImage)}")` } : undefined}><span>{activeConfigTab === 'backgrounds' ? previewTitle : config.heroEyebrow}</span><h3>{activeConfigTab === 'backgrounds' ? '背景效果' : previewTitle}</h3><p>{previewSubtitle}</p><b>首页　新闻中心　业务板块　→</b></div><p className="field-tip">预览反映当前编辑值，保存后前台生效。正式比例与滚动效果请在首页查看。</p></aside>
+        </div>
+      </>}
+    </form>
+  );
+}
+
 function ContentModuleEditor({ module }: { module: PageModule | null }) {
   if (!module) {
     return (
@@ -505,6 +768,7 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   }
 
   if (module.module_code === publicPlatformQrModuleCode) return <PublicPlatformQrManager />;
+  if (module.module_code === homepageLayoutModuleCode) return <HomepageLayoutManager />;
 
   if (!module.admin_enabled) {
     return (
@@ -571,8 +835,8 @@ export function ContentManagerPage() {
     setSelectedCode(moduleCode);
     setMessage(null);
     setSelectedModule(null);
-    if (moduleCode === publicPlatformQrModuleCode) {
-      setSelectedModule(publicPlatformQrModule);
+    if (moduleCode === publicPlatformQrModuleCode || moduleCode === homepageLayoutModuleCode) {
+      setSelectedModule(moduleCode === homepageLayoutModuleCode ? homepageLayoutModule : publicPlatformQrModule);
       return;
     }
     try {
@@ -598,6 +862,10 @@ export function ContentManagerPage() {
         if (!isMounted) return;
         const rows = (result.data || []) as PageModuleGroup[];
         setTree([...rows, {
+          parent_title: '首页配置',
+          parent_code: 'homepage-settings',
+          children: [homepageLayoutModule],
+        }, {
           parent_title: '全站配置',
           parent_code: 'global-settings',
           children: [publicPlatformQrModule],
@@ -623,7 +891,7 @@ export function ContentManagerPage() {
         </div>
         <div className="content-sidebar-tree">
           {tree.length ? tree.map((group, index) => (
-            <details className="content-tree-group" open={index === 0} key={group.parent_code || index}>
+            <details className="content-tree-group" open={index === 0 || Boolean(group.children?.some((module) => module.module_code === selectedCode))} key={group.parent_code || index}>
               <summary>{group.parent_title || group.parent_code || '未分组'}</summary>
               <div className="content-tree-children">
                 {(group.children || []).map((module) => (

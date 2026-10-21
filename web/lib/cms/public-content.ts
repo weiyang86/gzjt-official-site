@@ -1,5 +1,6 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
 import type { DirectusListResponse } from '@/types/cms';
+import { defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
 
@@ -78,4 +79,29 @@ export async function getPublicPlatformQrs() {
     image: buildDirectusAssetUrl(toText(item.image)),
     sort: Number(item.sort) || 0,
   })).filter((item) => item.image);
+}
+
+export async function getPublicHomepageLayout() {
+  try {
+    const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {
+      fields: 'module_code,extra_json,status',
+      limit: 1,
+      'filter[module_code][_eq]': homepageLayoutModuleCode,
+      'filter[status][_eq]': 'published',
+    }), { cache: 'no-store', next: { revalidate: false } });
+    const rawValue = response.data?.[0]?.extra_json;
+    const value = typeof rawValue === 'string' ? JSON.parse(rawValue) as unknown : rawValue;
+    const config = value && typeof value === 'object' && 'homepageLayout' in value
+      ? (value as Record<string, unknown>).homepageLayout
+      : value;
+    const normalized = normalizeHomepageLayout(config);
+    const resolveImage = (image: string) => image ? buildDirectusAssetUrl(image) : '';
+    return {
+      ...normalized,
+      backgrounds: Object.fromEntries(Object.entries(normalized.backgrounds).map(([key, image]) => [key, resolveImage(image)])) as typeof normalized.backgrounds,
+      bannerSlides: normalized.bannerSlides.map((slide) => ({ ...slide, image: resolveImage(slide.image) })),
+    };
+  } catch {
+    return defaultHomepageLayout;
+  }
 }
