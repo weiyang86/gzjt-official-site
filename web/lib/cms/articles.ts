@@ -121,7 +121,7 @@ const getScope = (searchParams: URLSearchParams): PublicScope => {
   return '';
 };
 
-export async function getPublicArticles(searchParams: URLSearchParams): Promise<PublicArticleListPayload> {
+export async function getPublicArticles(searchParams: URLSearchParams, companyId = ''): Promise<PublicArticleListPayload> {
   const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '10', 10) || 10));
   const scope = getScope(searchParams);
@@ -152,7 +152,9 @@ export async function getPublicArticles(searchParams: URLSearchParams): Promise<
     meta: 'filter_count',
     'filter[status][_eq]': 'published',
   };
-  if (selectedChannel) {
+  if (companyId) {
+    params['filter[related_company][_eq]'] = companyId;
+  } else if (selectedChannel) {
     params['filter[main_channel][_eq]'] = selectedChannel.id;
   } else if (scope === 'notice') {
     params['filter[main_channel][_in]'] = noticeChannelIds.join(',');

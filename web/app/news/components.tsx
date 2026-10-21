@@ -5,51 +5,43 @@ import type { Channel } from '@/types/cms';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
 
-const navItems: Array<{ key: NavKey; href: string; label: string }> = [
-  { key: 'home', href: '/', label: '首页' },
-  { key: 'about', href: '/about', label: '集团概况' },
-  { key: 'disclosure', href: '/disclosure', label: '公示公告' },
-  { key: 'news', href: '/news', label: '新闻中心' },
-  // 临时栏目归并：业务动态、党建群团暂统一进入新闻中心的对应栏目。
-  // 恢复独立页时，将 href 分别改回 /business-dynamics 和 /party-masses，并移除对应页面的 redirect。
-  { key: 'businessDynamics', href: '/news?channel=business-news', label: '业务动态' },
-  { key: 'businessDev', href: '/business-dev', label: '业务发展' },
-  { key: 'partyMasses', href: '/news?channel=party-mass', label: '党建群团' },
-  { key: 'cleanGov', href: '/clean-gov', label: '廉洁建投' },
-  { key: 'responsibility', href: '/social-responsibility', label: '社会责任' },
-  { key: 'contact', href: '/contact-us', label: '联系我们' },
-];
+const channelHref = (channel: Channel) => {
+  if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') return channel.path || `/${channel.slug}`;
+  if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) return `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
+  return `/news?channel=${encodeURIComponent(channel.slug)}`;
+};
 
-async function getChannelsForNav(scope: 'news' | 'notice', channels?: Channel[]) {
-  if (channels?.length) return channels;
+const getDynamicNavigation = async () => {
   try {
-    return await getPublicChannels(scope);
+    const channels = (await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false);
+    const ids = new Set(channels.map((channel) => channel.id));
+    const roots = channels.filter((channel) => !channel.parent || !ids.has(channel.parent));
+    const descendants = (rootId: string) => {
+      const output: Array<{ channel: Channel; depth: number }> = [];
+      const visited = new Set([rootId]);
+      const visit = (id: string, depth: number) => channels.filter((item) => item.parent === id).forEach((item) => {
+        if (visited.has(item.id)) return;
+        visited.add(item.id);
+        output.push({ channel: item, depth });
+        visit(item.id, depth + 1);
+      });
+      visit(rootId, 1);
+      return output;
+    };
+    return { roots, descendants };
   } catch {
-    return [];
+    return { roots: [] as Channel[], descendants: (_id: string) => [] as Array<{ channel: Channel; depth: number }> };
   }
-}
+};
 
-export async function Header({ active = 'news', actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云', noticeChannels, newsChannels }: {
+export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云' }: {
   active?: NavKey;
   actionHref?: string;
   actionLabel?: string;
   noticeChannels?: Channel[];
   newsChannels?: Channel[];
 }) {
-  const [resolvedNoticeChannels, resolvedNewsChannels] = await Promise.all([
-    getChannelsForNav('notice', noticeChannels),
-    getChannelsForNav('news', newsChannels),
-  ]);
-
-  const dropdownMap: Partial<Record<NavKey, Channel[]>> = {
-    disclosure: resolvedNoticeChannels,
-    news: resolvedNewsChannels,
-  };
-
-  const hrefMap: Partial<Record<NavKey, (slug: string) => string>> = {
-    disclosure: (slug) => `/disclosure?channel=${encodeURIComponent(slug)}`,
-    news: (slug) => `/news?channel=${encodeURIComponent(slug)}`,
-  };
+  const navigation = await getDynamicNavigation();
 
   return (
     <>
@@ -64,19 +56,19 @@ export async function Header({ active = 'news', actionHref = 'https://gjy.gzjtjt
                 <span>GANZI CONSTRUCTION INVESTMENT GROUP</span>
               </span>
             </a>
-            <nav className="nav" aria-label="一级导航">
-              {navItems.map((item) => {
-                const dropdownItems = dropdownMap[item.key] || [];
-                const buildHref = hrefMap[item.key];
-                if (dropdownItems.length && buildHref) {
+            <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
+              <a href="/" data-no-transition>首页</a>
+              {navigation.roots.map((item) => {
+                const dropdownItems = navigation.descendants(item.id);
+                if (dropdownItems.length) {
                   return (
-                    <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.key}>
-                      <a href={item.href} aria-current={active === item.key ? 'page' : undefined} aria-haspopup="true" aria-expanded="false">
-                        {item.label}
+                    <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.id}>
+                      <a href={channelHref(item)} aria-haspopup="true" aria-expanded="false">
+                        {item.name}
                       </a>
                       <div className="nav-dropdown" role="menu" data-source="server">
-                        {dropdownItems.map((channel) => (
-                          <a href={buildHref(channel.slug)} role="menuitem" key={channel.slug}>
+                        {dropdownItems.map(({ channel, depth }) => (
+                          <a href={channelHref(channel)} role="menuitem" key={channel.id} style={{ paddingLeft: 14 + (depth - 1) * 10 }}>
                             {channel.name}
                           </a>
                         ))}
@@ -85,8 +77,8 @@ export async function Header({ active = 'news', actionHref = 'https://gjy.gzjtjt
                   );
                 }
                 return (
-                  <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined} key={item.key}>
-                    {item.label}
+                  <a href={channelHref(item)} key={item.id}>
+                    {item.name}
                   </a>
                 );
               })}
@@ -109,21 +101,8 @@ export async function Header({ active = 'news', actionHref = 'https://gjy.gzjtjt
   );
 }
 
-export async function Drawer({ active = 'news', noticeChannels, newsChannels }: { active?: NavKey; noticeChannels?: Channel[]; newsChannels?: Channel[] }) {
-  const [resolvedNoticeChannels, resolvedNewsChannels] = await Promise.all([
-    getChannelsForNav('notice', noticeChannels),
-    getChannelsForNav('news', newsChannels),
-  ]);
-
-  const dropdownMap: Partial<Record<NavKey, Channel[]>> = {
-    disclosure: resolvedNoticeChannels,
-    news: resolvedNewsChannels,
-  };
-
-  const hrefMap: Partial<Record<NavKey, (slug: string) => string>> = {
-    disclosure: (slug) => `/disclosure?channel=${encodeURIComponent(slug)}`,
-    news: (slug) => `/news?channel=${encodeURIComponent(slug)}`,
-  };
+export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel[]; newsChannels?: Channel[] } = {}) {
+  const navigation = await getDynamicNavigation();
 
   return (
     <div className="drawer" data-drawer aria-hidden="true">
@@ -134,18 +113,18 @@ export async function Drawer({ active = 'news', noticeChannels, newsChannels }: 
           <button className="drawer-close" type="button" aria-label="关闭菜单" data-drawer-close>×</button>
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
-          {navItems.map((item) => {
-            const dropdownItems = dropdownMap[item.key] || [];
-            const buildHref = hrefMap[item.key];
+          <a href="/" data-no-transition>首页</a>
+          {navigation.roots.map((item) => {
+            const dropdownItems = navigation.descendants(item.id);
             return (
-              <Fragment key={item.key}>
-                <a href={item.href} aria-current={active === item.key ? 'page' : undefined} data-no-transition={item.key === 'home' ? true : undefined}>
-                  {item.label}
+              <Fragment key={item.id}>
+                <a href={channelHref(item)}>
+                  {item.name}
                 </a>
-                {dropdownItems.length && buildHref ? (
+                {dropdownItems.length ? (
                   <div className="drawer-submenu" data-source="server">
-                    {dropdownItems.map((channel) => (
-                      <a href={buildHref(channel.slug)} key={channel.slug}>{channel.name}</a>
+                    {dropdownItems.map(({ channel, depth }) => (
+                      <a href={channelHref(channel)} key={channel.id} style={{ paddingLeft: 16 + (depth - 1) * 10 }}>{channel.name}</a>
                     ))}
                   </div>
                 ) : null}

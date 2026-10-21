@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getPublicCompanyBySlug } from '@/lib/cms';
-import { fallbackCompanyBySlug } from '@/lib/cms/fallback-site';
 
 export async function GET(
   _request: Request,
@@ -10,9 +9,8 @@ export async function GET(
   try {
     const company = await getPublicCompanyBySlug(slug);
     if (company) return NextResponse.json(company);
-  } catch {}
-
-  const fallback = fallbackCompanyBySlug(slug);
-  if (!fallback) return NextResponse.json({ error: { code: 'PUBLIC_COMPANY_NOT_FOUND', message: 'Company not found' } }, { status: 404 });
-  return NextResponse.json(fallback);
+  } catch {
+    return NextResponse.json({ error: { code: 'PUBLIC_CMS_UNAVAILABLE', message: 'Company service unavailable' } }, { status: 503 });
+  }
+  return NextResponse.json({ error: { code: 'PUBLIC_COMPANY_NOT_FOUND', message: 'Company not found' } }, { status: 404 });
 }

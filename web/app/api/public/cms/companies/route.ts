@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getPublicCompanies } from '@/lib/cms';
-import { fallbackCompanies } from '@/lib/cms/fallback-site';
 
 export async function GET() {
   try {
     const companies = await getPublicCompanies();
-    return NextResponse.json(companies.length ? companies : fallbackCompanies);
+    return NextResponse.json(companies);
   } catch {
-    return NextResponse.json(fallbackCompanies);
+    return NextResponse.json([], { status: 503 });
   }
 }

@@ -4,6 +4,9 @@
  * Uses Directus REST API only; does not run SQL and does not modify web pages.
  */
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 const DIRECTUS_URL = (process.env.DIRECTUS_URL || 'http://localhost:8055').replace(/\/$/, '');
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -40,6 +43,33 @@ async function request(path, { method = 'GET', token, body, expected = [200, 201
     throw err;
   }
   return data?.data ?? data;
+}
+
+async function uploadSeedImage(token, relativePath, title) {
+  const filename = path.basename(relativePath);
+  const existing = await request(`/files?filter[filename_download][_eq]=${encodeURIComponent(filename)}&limit=1`, { token });
+  const found = Array.isArray(existing) ? existing[0] : existing?.[0];
+  if (found?.id) {
+    log(`Reused seed file: ${filename}`);
+    return found.id;
+  }
+
+  const absolutePath = path.resolve(process.cwd(), relativePath);
+  const form = new FormData();
+  form.append('title', title);
+  form.append('file', new Blob([await readFile(absolutePath)], { type: 'image/png' }), filename);
+  const response = await fetch(`${DIRECTUS_URL}/files`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.data?.id) {
+    const message = data?.errors?.map((error) => error.message).join('; ') || response.statusText;
+    throw new Error(`POST /files failed (${response.status}): ${message}`);
+  }
+  log(`Uploaded seed file: ${filename}`);
+  return data.data.id;
 }
 
 async function login() {
@@ -733,6 +763,22 @@ async function seedData(token) {
     sort: 1,
     status: 'enabled',
     extra_json: { source: 'ADMIN-08R bootstrap' },
+  });
+
+  const publicPlatformQrFileId = await uploadSeedImage(
+    token,
+    'web/public/img/public-platform-qr.png',
+    '甘孜建投公众平台二维码',
+  );
+  await upsertPageContentItem(token, 'global-public-platform-qr', 'image', '公众平台二维码', {
+    subtitle: '',
+    date_label: '',
+    image: publicPlatformQrFileId,
+    content: '',
+    link_url: '',
+    sort: 0,
+    status: 'enabled',
+    extra_json: { source: 'bootstrap default', fallback_path: '/img/public-platform-qr.png' },
   });
 }
 

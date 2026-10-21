@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { fallbackNewsChannels } from '@/lib/cms/fallback-news';
 import { getPublicChannels, type PublicScope } from '@/lib/cms';
 
 export async function GET(request: Request) {
@@ -9,8 +8,6 @@ export async function GET(request: Request) {
   try {
     return NextResponse.json(await getPublicChannels(type));
   } catch {
-    if (type === 'notice') return NextResponse.json([]);
-    if (type === 'news') return NextResponse.json(fallbackNewsChannels.filter((item) => item.type === 'news' || item.isNewsCategory));
-    return NextResponse.json(fallbackNewsChannels);
+    return NextResponse.json([], { status: 503 });
   }
 }

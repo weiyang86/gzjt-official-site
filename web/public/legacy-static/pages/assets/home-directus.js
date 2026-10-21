@@ -44,15 +44,56 @@
   }
 
   const renderBanner = async () => {
-    const banners = await fetchJson('/api/public/cms/banners?position=home')
-    if (!Array.isArray(banners) || !banners.length) return
-    const banner = banners[0]
+    const payload = await fetchJson('/api/public/cms/articles?limit=5&fallback=none')
+    const articles = Array.isArray(payload?.items) ? payload.items.slice(0, 5) : []
+    if (!articles.length) return
+    const banners = articles.map((article) => {
+      const channelName = String(article.mainChannel?.name || '').trim()
+      const publishDate = String(article.publishDate || '').trim()
+      return {
+        image: String(article.cover || '').trim() || '/img/index_bg.png',
+        title: String(article.title || '最新文章').trim(),
+        subtitle: String(article.subtitle || '').trim()
+          || String(article.summary || '').trim()
+          || [channelName, publishDate].filter(Boolean).join(' · '),
+        linkUrl: detailUrl(article.id),
+      }
+    })
     const hero = document.querySelector('[data-home-banners]')
-    if (hero && banner.image) hero.style.setProperty('--home-hero-img', `url('${banner.image}')`)
-    setText('[data-banner-title]', banner.title, 36)
-    setText('[data-banner-subtitle]', banner.subtitle, 96)
     const link = document.querySelector('[data-banner-link]')
-    if (link && banner.linkUrl) link.setAttribute('href', safeHref(banner.linkUrl))
+    const dots = document.querySelector('[data-home-banner-dots]')
+    let activeIndex = 0
+    const showBanner = (index) => {
+      const banner = banners[index]
+      if (!banner) return
+      activeIndex = index
+      if (hero && banner.image) hero.style.setProperty('--home-hero-img', `url('${String(banner.image).replace(/[\\"']/g, '')}')`)
+      const title = document.querySelector('[data-banner-title]')
+      const subtitle = document.querySelector('[data-banner-subtitle]')
+      if (title) {
+        title.hidden = false
+        setText('[data-banner-title]', banner.title, 48)
+        title.style.fontSize = 'clamp(32px, 5vw, 60px)'
+        title.style.letterSpacing = '2px'
+      }
+      if (subtitle) {
+        subtitle.hidden = false
+        setText('[data-banner-subtitle]', banner.subtitle, 100)
+        subtitle.style.letterSpacing = '1px'
+        subtitle.style.lineHeight = '1.6'
+      }
+      const bannerHref = String(banner.linkUrl || '').trim()
+      if (link) link.setAttribute('href', bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '#news')
+      dots?.querySelectorAll('button').forEach((button, buttonIndex) => button.setAttribute('aria-current', buttonIndex === index ? 'true' : 'false'))
+    }
+    if (dots && banners.length > 1) {
+      dots.innerHTML = banners.map((_, index) => `<button class="home-banner-dot" type="button" aria-label="切换到第${index + 1}张轮播图" aria-current="${index === 0}"></button>`).join('')
+      dots.querySelectorAll('button').forEach((button, index) => button.addEventListener('click', () => showBanner(index)))
+    } else if (dots) {
+      dots.remove()
+    }
+    showBanner(0)
+    if (banners.length > 1) window.setInterval(() => showBanner((activeIndex + 1) % banners.length), 6000)
   }
 
   const escapeHtml = (value) => String(value || '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[ch]))
@@ -66,14 +107,20 @@
   const articleSummary = (item, max = 96) => item && item.summary ? escapeHtml(limitText(item.summary, max)) : ''
 
   const renderGroupNews = async () => {
-    const articles = await fetchJson('/api/public/cms/articles/by-channel/group-news?limit=5')
-    if (!Array.isArray(articles) || !articles.length) return
+    const payload = await fetchJson('/api/public/cms/articles?scope=news&channelSlug=group-news&limit=5&fallback=none')
+    const articles = Array.isArray(payload?.items) ? payload.items : []
     const modernFeatured = document.querySelector('[data-home-news-featured]')
     const modernList = document.querySelector('[data-home-news-list]')
     if (modernFeatured && modernList) {
+      if (!articles.length) {
+        modernFeatured.hidden = true
+        modernList.innerHTML = '<p class="news-empty">暂无已发布新闻</p>'
+        return
+      }
       const featured = articles[0]
       const featuredHref = detailUrl(featured.id)
       const featuredBg = featured.cover ? `--news-featured-img: url('${featured.cover}');` : ''
+      modernFeatured.hidden = false
       modernFeatured.innerHTML = `
         <a class="news-featured-bg-link" href="${featuredHref}" aria-label="${articleTitle(featured, 54)}">
           <div class="news-featured-bg" style="${featuredBg}"></div>
@@ -141,16 +188,33 @@
     })
   }
 
-  const renderQuickLinks = async () => {
-    const links = await fetchJson('/api/public/cms/quick-links?position=home')
-    if (!Array.isArray(links) || !links.length) return
-    const card = document.querySelector('[data-quick-links]')
-    const list = card ? card.querySelector('ul') : null
+  const renderTopicArticles = async () => {
+    const payload = await fetchJson('/api/public/cms/articles?scope=news&channelSlug=party-mass&limit=4&fallback=none')
+    const list = document.querySelector('[data-home-topic-links]')
     if (!list) return
-    list.innerHTML = links.slice(0, 6).map(item => {
-      const href = safeHref(item.url || item.linkUrl || '#')
-      return `<li><a href="${escapeHtml(href)}">${escapeHtml(limitText(item.title, 18))}</a></li>`
-    }).join('')
+    const articles = Array.isArray(payload?.items) ? payload.items : []
+    if (!articles.length) {
+      list.innerHTML = '<span class="news-empty">暂无已发布专题内容</span>'
+      return
+    }
+    list.innerHTML = articles.map(item => `<a href="${detailUrl(item.id)}">${articleTitle(item, 48)}</a>`).join('')
+  }
+
+  const renderHomeQrs = async () => {
+    const list = document.querySelector('[data-home-public-qrs]')
+    if (!list) return
+    const items = await fetchJson('/api/public/cms/public-platform-qrs')
+    const validItems = Array.isArray(items) ? items.filter(item => item && item.image) : []
+    const hasGroupQr = validItems.some(item => /集团.*官网|官网.*二维码/.test(String(item.title || '')))
+    list.innerHTML = validItems.map(item => `
+      <div class="footer-qr-card">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title || '微信公众号二维码')}" loading="lazy">
+        <span>${escapeHtml(item.title || '微信公众号二维码')}</span>
+      </div>`).join('') + (hasGroupQr ? '' : `
+      <div class="footer-qr-card">
+        <div class="footer-qr-placeholder">集团官网二维码待上传</div>
+        <span>集团官网二维码</span>
+      </div>`)
   }
 
   const renderSiteSettings = async () => {
@@ -163,14 +227,15 @@
     if (text) footer.textContent = `© ${year} ${limitText(text, 42)} 版权所有`
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  const initializeHomeContent = () => {
     renderBanner()
     renderHomeSections()
     renderGroupNews()
-    renderChannel('business-news')
-    renderChannel('party-mass')
-    renderChannel('announcements')
-    renderQuickLinks()
+    renderTopicArticles()
+    renderHomeQrs()
     renderSiteSettings()
-  })
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeHomeContent, { once: true })
+  else initializeHomeContent()
 })()
