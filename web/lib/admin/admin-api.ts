@@ -28,6 +28,15 @@ export type DashboardStats = {
   notice_categories?: number;
 };
 
+export type HomeStat = {
+  id: string;
+  label: string;
+  value: string;
+  unit: string;
+  sort: number;
+  visible: boolean;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -150,6 +159,20 @@ export const AdminApi = {
   createNavigationItem: (payload: unknown) => adminFetch('/admin-api/navigation', { method: 'POST', body: JSON.stringify(payload) }),
   updateNavigationItem: (id: string, payload: unknown) => adminFetch(`/admin-api/navigation/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteNavigationItem: (id: string) => adminFetch(`/admin-api/navigation/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  quickLinks: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/quick-links', params)),
+  createQuickLink: (payload: unknown) => adminFetch('/admin-api/quick-links', { method: 'POST', body: JSON.stringify(payload) }),
+  updateQuickLink: (id: string, payload: unknown) => adminFetch(`/admin-api/quick-links/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteQuickLink: (id: string) => adminFetch(`/admin-api/quick-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  homeStats: () => adminFetch<HomeStat[]>('/admin-api/home-stats'),
+  friendLinks: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/friend-links', params)),
+  createFriendLink: (payload: unknown) => adminFetch('/admin-api/friend-links', { method: 'POST', body: JSON.stringify(payload) }),
+  updateFriendLink: (id: string, payload: unknown) => adminFetch(`/admin-api/friend-links/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteFriendLink: (id: string) => adminFetch(`/admin-api/friend-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  siteSettings: () => adminFetch('/admin-api/site-settings'),
+  updateSiteSettings: (payload: unknown) => adminFetch('/admin-api/site-settings', { method: 'PATCH', body: JSON.stringify(payload) }),
+  createHomeStat: (payload: Omit<HomeStat, 'id'>) => adminFetch('/admin-api/home-stats', { method: 'POST', body: JSON.stringify(payload) }),
+  updateHomeStat: (id: string, payload: Omit<HomeStat, 'id'>) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteHomeStat: (id: string) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   articleOwnership: () => adminFetch('/admin-api/article-ownership'),
   updateArticleOwnership: (id: string, companyId: string) => adminFetch(`/admin-api/article-ownership/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ related_company: companyId || null }) }),
   articles: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/articles', params)),

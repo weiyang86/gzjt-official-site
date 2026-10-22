@@ -50,6 +50,35 @@ export async function getPublicQuickLinks(position?: string) {
   }));
 }
 
+export async function getPublicHomeStats() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    fields: 'id,title,subtitle,sort,status,extra_json',
+    sort: 'sort,id',
+    limit: -1,
+    'filter[module_code][_eq]': 'homepage-business-metrics',
+    'filter[item_type][_eq]': 'link',
+    'filter[status][_eq]': 'enabled',
+  }));
+
+  return (response.data || []).map((item) => {
+    const extra = item.extra_json && typeof item.extra_json === 'object' && !Array.isArray(item.extra_json)
+      ? item.extra_json as Record<string, unknown>
+      : {};
+    return {
+    id: String(item.id ?? ''),
+    label: toText(item.title),
+    value: toText(item.subtitle),
+    unit: toText(extra.unit),
+    sort: Number(item.sort) || 0,
+    };
+  }).filter((item) => item.label && item.value);
+}
+
+export async function getPublicFriendLinks(position?: string) {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/friend_links', { fields: 'id,title,url,position,sort,status', sort: 'sort,id', limit: -1, 'filter[status][_eq]': 'enabled', ...(position ? { 'filter[position][_eq]': position } : {}) }));
+  return (response.data || []).map((item) => ({ id: String(item.id ?? ''), title: toText(item.title), url: toText(item.url), sort: Number(item.sort) || 0 })).filter((item) => item.title && item.url);
+}
+
 export async function getPublicSiteSettings() {
   const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/site_settings', {
     fields: '*.*',
@@ -60,6 +89,11 @@ export async function getPublicSiteSettings() {
     siteName: toText(item.site_name) || toText(item.siteName),
     footerText: toText(item.footer_text) || toText(item.footerText),
     logo: buildDirectusAssetUrl(toText(item.logo)),
+    address: toText(item.address),
+    phone: toText(item.phone),
+    email: toText(item.email),
+    icp: toText(item.icp),
+    copyright: toText(item.copyright),
   };
 }
 

@@ -11,7 +11,9 @@ type Props = {
   sectors: BusinessSector[];
   qrs: Array<{ id: string; title: string; image: string; sort: number }>;
   quickLinks: Array<{ id: string; title: string; url: string; linkUrl: string }>;
-  siteSettings: { siteName: string; footerText: string; logo: string };
+  friendLinks: Array<{ id: string; title: string; url: string; sort: number }>;
+  homeStats: Array<{ id: string; label: string; value: string; unit: string; sort: number }>;
+  siteSettings: { siteName: string; footerText: string; logo: string; address: string; phone: string; email: string; icp: string; copyright: string };
   layout: HomepageLayoutConfig;
   contactInfo: ContactInfoConfig;
 };
@@ -20,7 +22,7 @@ const articleHref = (article: Article) => `/news/${encodeURIComponent(article.id
 const safeHomepageLink = (value: string) => /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value.trim()) ? value.trim() : '#';
 const isExternalHomepageLink = (value: string) => /^https?:\/\//i.test(value.trim());
 
-export default function HomepageExperience({ children, articles, cultureArticles, sectors, qrs, quickLinks, siteSettings, layout, contactInfo }: Props) {
+export default function HomepageExperience({ children, articles, cultureArticles, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeIndexRef = useRef(0);
   const lockedRef = useRef(false);
@@ -114,6 +116,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
       <section className="home-screen home-screen--business" id="business" key="business" style={backgroundStyle('business')}>
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.business.eyebrow}</span><h2>{sectionContent.business.title}</h2><p>{sectionContent.business.subtitle}</p></header>
+          {homeStats.length ? <section className="home-business-stats" aria-label="集团经营指标"><div className="home-business-stats-heading"><span>经营数据</span><small>首页动态指标</small></div><div className="home-business-stats-grid">{homeStats.slice(0, 4).map((item) => <article key={item.id}><span>{item.label}</span><strong>{item.value}<small>{item.unit}</small></strong></article>)}</div>{homeStats.length > 4 ? <details className="home-business-stats-more"><summary>查看全部经营指标（还有 {homeStats.length - 4} 项）</summary><div className="home-business-stats-grid">{homeStats.slice(4).map((item) => <article key={item.id}><span>{item.label}</span><strong>{item.value}<small>{item.unit}</small></strong></article>)}</div></details> : null}</section> : null}
           <div className="home-sector-grid">{sectors.slice(0, layout.businessItemCount).map((sector) => <a href={`/business?sector=${encodeURIComponent(sector.slug)}`} key={sector.id} style={sector.cover ? { backgroundImage: `linear-gradient(0deg,rgba(8,25,44,.8),rgba(8,25,44,.12)),url("${sector.cover}")` } : undefined}><h3>{sector.name || sector.title}</h3><p>{sector.intro || sector.description}</p></a>)}{!sectors.length ? <p className="home-empty">暂无已启用业务板块</p> : null}</div>
         </div>
       </section>
@@ -122,10 +125,11 @@ export default function HomepageExperience({ children, articles, cultureArticles
       <section className="home-screen home-screen--contact" id="contact" key="contact" style={backgroundStyle('contact')}>
         <div className="home-screen-inner home-contact-inner">
           <header className="home-section-heading"><span>{sectionContent.contact.eyebrow}</span><h2>{sectionContent.contact.title}</h2><p>{sectionContent.contact.subtitle}</p></header>
-          <div className="home-contact-content"><div className="home-contact-card"><h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3><p>地址：{contactInfo.address}</p><p>电话：{contactInfo.phone}</p>{contactInfo.email ? <p>邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></p> : null}{layout.showQuickLinks ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}</div>
+          <div className="home-contact-content"><div className="home-contact-card"><h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3><p>地址：{siteSettings.address || contactInfo.address}</p><p>电话：{siteSettings.phone || contactInfo.phone}</p>{(siteSettings.email || contactInfo.email) ? <p>邮箱：<a href={`mailto:${siteSettings.email || contactInfo.email}`}>{siteSettings.email || contactInfo.email}</a></p> : null}{layout.showQuickLinks ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}</div>
             {layout.showQrs ? <div className="home-qr-list">{qrs.map((qr) => <figure key={qr.id}><img src={qr.image} alt={qr.title || '集团公众平台二维码'} /><figcaption>{qr.title || '公众平台'}</figcaption></figure>)}</div> : null}
+            {friendLinks.length ? <div className="home-friend-links"><strong>友情链接</strong>{friendLinks.map((link) => <a href={link.url} target="_blank" rel="noreferrer" key={link.id}>{link.title}</a>)}</div> : null}
           </div>
-          <footer className="home-legal"><span>{siteSettings.footerText || siteSettings.siteName || '甘孜州建设投资集团有限公司'} 版权所有</span>{layout.icpRecordNumber ? <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{layout.icpRecordNumber}</a> : null}</footer>
+          <footer className="home-legal"><span>{siteSettings.copyright || siteSettings.footerText || siteSettings.siteName || '网站'}</span>{(siteSettings.icp || layout.icpRecordNumber) ? <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{siteSettings.icp || layout.icpRecordNumber}</a> : null}</footer>
         </div>
       </section>
     ),

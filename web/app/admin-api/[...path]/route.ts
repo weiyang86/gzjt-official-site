@@ -399,6 +399,9 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   }
   if (root === 'categories') return scope === 'notice' ? ['noticeCategories'] : ['categories'];
   if (root === 'navigation') return ['navigation'];
+  if (root === 'quick-links') return ['quickLinks'];
+  if (root === 'friend-links' || root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
+  if (root === 'home-stats') return ['homeStats'];
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
   if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content'];
@@ -1085,6 +1088,149 @@ const handleLocalNavigation = async (request: NextRequest, path: string[]) => {
   return null;
 };
 
+const normalizeQuickLinkInput = (body: Record<string, unknown>) => {
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!title) throw Object.assign(new Error('请填写入口名称'), { status: 400 });
+  if (!url || !/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(url)) throw Object.assign(new Error('跳转地址必须是站内路径、http(s)、mailto、tel 或锚点地址'), { status: 400 });
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  return {
+    title,
+    slug,
+    url,
+    position: typeof body.position === 'string' && body.position.trim() ? body.position.trim() : 'home',
+    summary: typeof body.summary === 'string' ? body.summary.trim() : '',
+    icon: typeof body.icon === 'string' && body.icon.trim() ? body.icon.trim() : null,
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status: body.status === 'disabled' ? 'disabled' : 'enabled',
+  };
+};
+
+const handleLocalQuickLinks = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const fields = 'id,title,slug,url,position,summary,icon,sort,status';
+  if (!id && request.method === 'GET') {
+    const position = request.nextUrl.searchParams.get('position') || '';
+    const params: Record<string, string | number> = { fields, sort: 'sort,id', limit: -1 };
+    if (position) params['filter[position][_eq]'] = position;
+    const result = await directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/quick_links', params), token);
+    return NextResponse.json({ data: result.data || [] });
+  }
+  if (!id && request.method === 'POST') {
+    const payload = normalizeQuickLinkInput(await request.json() as Record<string, unknown>);
+    const result = await directusJsonRequest<{ data?: unknown }>('/items/quick_links', token, 'POST', payload);
+    return NextResponse.json({ data: result.data || null }, { status: 201 });
+  }
+  if (id && request.method === 'PATCH') {
+    const payload = normalizeQuickLinkInput(await request.json() as Record<string, unknown>);
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/quick_links/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+  if (id && request.method === 'DELETE') {
+    await directusJsonRequest(`/items/quick_links/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+  return null;
+};
+
+
+const normalizeFriendLinkInput = (body: Record<string, unknown>) => {
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!title || title.length > 100) throw Object.assign(new Error('请填写友情链接名称且不能超过 100 个字符'), { status: 400 });
+  if (!url || !/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(url)) throw Object.assign(new Error('链接地址格式不正确'), { status: 400 });
+  return { title, url, position: 'footer', sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0, status: body.status === 'disabled' ? 'disabled' : 'enabled' };
+};
+
+const handleLocalFriendLinks = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request); if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken); const id = path[1] ? decodeURIComponent(path[1]) : '';
+  if (!id && request.method === 'GET') { const result = await directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/friend_links', { fields: 'id,title,url,position,sort,status', sort: 'sort,id', limit: -1 }), token); return NextResponse.json({ data: result.data || [] }); }
+  if (!id && request.method === 'POST') { const result = await directusJsonRequest<{ data?: unknown }>('/items/friend_links', token, 'POST', normalizeFriendLinkInput(await request.json() as Record<string, unknown>)); return NextResponse.json({ data: result.data || null }, { status: 201 }); }
+  if (id && request.method === 'PATCH') { const result = await directusJsonRequest<{ data?: unknown }>(`/items/friend_links/${encodeURIComponent(id)}`, token, 'PATCH', normalizeFriendLinkInput(await request.json() as Record<string, unknown>)); return NextResponse.json({ data: result.data || null }); }
+  if (id && request.method === 'DELETE') { await directusJsonRequest(`/items/friend_links/${encodeURIComponent(id)}`, token, 'DELETE'); return NextResponse.json({ data: { id, deleted: true } }); }
+  return null;
+};
+
+const handleLocalSiteSettings = async (request: NextRequest) => {
+  const { session, response } = requireSession(request); if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  if (request.method === 'GET') { const result = await directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/site_settings', { fields: 'id,site_name,footer_text,address,phone,email,icp,copyright', limit: 1 }), token); return NextResponse.json({ data: result.data?.[0] || null }); }
+  if (request.method === 'PATCH' || request.method === 'PUT') { const body = await request.json() as Record<string, unknown>; const payload = Object.fromEntries(['site_name','footer_text','address','phone','email','icp','copyright'].filter((key) => body[key] !== undefined).map((key) => [key, typeof body[key] === 'string' ? body[key].trim() : ''])); const current = await directusJsonRequest<{ data?: Array<{ id?: string }> }>(buildDirectusPath('/items/site_settings', { fields: 'id', limit: 1 }), token); const id = current.data?.[0]?.id; const result = id ? await directusJsonRequest<{ data?: unknown }>(`/items/site_settings/${encodeURIComponent(String(id))}`, token, 'PATCH', payload) : await directusJsonRequest<{ data?: unknown }>('/items/site_settings', token, 'POST', payload); return NextResponse.json({ data: result.data || null }); }
+  return null;
+};
+const normalizeHomeStatInput = (body: Record<string, unknown>) => {
+  const label = typeof body.label === 'string' ? body.label.trim() : '';
+  const value = typeof body.value === 'string' ? body.value.trim() : '';
+  const unit = typeof body.unit === 'string' ? body.unit.trim() : '';
+  if (!label || label.length > 64) throw Object.assign(new Error('指标名称不能为空且不能超过 64 个字符'), { status: 400 });
+  if (!value || value.length > 64) throw Object.assign(new Error('指标数值不能为空且不能超过 64 个字符'), { status: 400 });
+  if (unit.length > 16) throw Object.assign(new Error('单位不能超过 16 个字符'), { status: 400 });
+  return {
+    label,
+    value,
+    unit,
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    visible: body.visible !== false,
+  };
+};
+
+const homeStatsModuleCode = 'homepage-business-metrics';
+
+const toHomeStatPayload = (payload: ReturnType<typeof normalizeHomeStatInput>) => ({
+  module_code: homeStatsModuleCode,
+  item_type: 'link',
+  title: payload.label,
+  subtitle: payload.value,
+  sort: payload.sort,
+  status: payload.visible ? 'enabled' : 'disabled',
+  extra_json: { unit: payload.unit },
+});
+
+const normalizeHomeStatOutput = (item: Record<string, unknown>) => {
+  const extra = item.extra_json && typeof item.extra_json === 'object' && !Array.isArray(item.extra_json)
+    ? item.extra_json as Record<string, unknown>
+    : {};
+  return {
+    id: String(item.id || ''),
+    label: typeof item.title === 'string' ? item.title : '',
+    value: typeof item.subtitle === 'string' ? item.subtitle : '',
+    unit: typeof extra.unit === 'string' ? extra.unit : '',
+    sort: Number(item.sort) || 0,
+    visible: item.status === 'enabled',
+  };
+};
+
+const handleLocalHomeStats = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const fields = 'id,module_code,item_type,title,subtitle,sort,status,extra_json';
+  if (!id && request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: Array<Record<string, unknown>> }>(buildDirectusPath('/items/page_content_items', { fields, sort: 'sort,id', limit: -1, 'filter[module_code][_eq]': homeStatsModuleCode, 'filter[item_type][_eq]': 'link' }), token);
+    return NextResponse.json({ data: (result.data || []).map(normalizeHomeStatOutput) });
+  }
+  if (!id && request.method === 'POST') {
+    const payload = normalizeHomeStatInput(await request.json() as Record<string, unknown>);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>('/items/page_content_items', token, 'POST', toHomeStatPayload(payload));
+    return NextResponse.json({ data: result.data ? normalizeHomeStatOutput(result.data) : null }, { status: 201 });
+  }
+  if (id && request.method === 'PATCH') {
+    const payload = normalizeHomeStatInput(await request.json() as Record<string, unknown>);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'PATCH', toHomeStatPayload(payload));
+    return NextResponse.json({ data: result.data ? normalizeHomeStatOutput(result.data) : null });
+  }
+  if (id && request.method === 'DELETE') {
+    await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+  return null;
+};
+
 const normalizeNavigationInput = (body: Record<string, unknown>, isCreate: boolean) => {
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
@@ -1710,6 +1856,10 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (route === 'dashboard/stats') return await handleLocalDashboardStats(request);
     if (route === 'channels' && request.method === 'GET') return await handleLocalChannels(request);
     if (path[0] === 'navigation') return await handleLocalNavigation(request, path);
+    if (path[0] === 'quick-links') return await handleLocalQuickLinks(request, path);
+    if (path[0] === 'home-stats') return await handleLocalHomeStats(request, path);
+    if (path[0] === 'friend-links') return await handleLocalFriendLinks(request, path);
+    if (path[0] === 'site-settings') return await handleLocalSiteSettings(request);
     if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);
     if (path[0] === 'articles') return await handleLocalArticleRoute(request, path);

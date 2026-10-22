@@ -3,6 +3,9 @@ export type AdminMenuKey =
   | 'articles'
   | 'categories'
   | 'navigation'
+  | 'quickLinks'
+  | 'homeStats'
+  | 'footerSettings'
   | 'articleOwnership'
   | 'noticeArticles'
   | 'noticeCategories'
@@ -24,6 +27,9 @@ export const adminMenuItems: AdminMenuItem[] = [
   { key: 'articles', href: '/admin/articles', label: '新闻管理', group: 'content' },
   { key: 'categories', href: '/admin/categories', label: '新闻分类', group: 'content' },
   { key: 'navigation', href: '/admin/navigation', label: '导航树管理', group: 'content' },
+  { key: 'quickLinks', href: '/admin/quick-links', label: '快捷入口配置', group: 'content' },
+  { key: 'homeStats', href: '/admin/home-stats', label: '经营指标看板', group: 'content' },
+  { key: 'footerSettings', href: '/admin/footer-settings', label: '底部导航与友情链接', group: 'content' },
   { key: 'articleOwnership', href: '/admin/article-ownership', label: '文章归属管理', group: 'content' },
   { key: 'noticeArticles', href: '/admin/notice-articles', label: '公示公告管理', group: 'content' },
   { key: 'noticeCategories', href: '/admin/notice-categories', label: '公示公告分类', group: 'content' },

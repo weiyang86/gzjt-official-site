@@ -1,18 +1,20 @@
 import { Drawer, Header } from '../news/components';
 import HomepageExperience from '../homepage/HomepageExperience';
-import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicHomepageLayout, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings } from '@/lib/cms';
+import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicHomeStats, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings } from '@/lib/cms';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const topicQuery = new URLSearchParams({ scope: 'news', channelSlug: 'party-mass', limit: '12' });
-  const [articlePayload, topicPayload, sectors, qrs, quickLinks, siteSettings, layout, contactInfo] = await Promise.all([
+  const [articlePayload, topicPayload, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo] = await Promise.all([
     getPublicArticles(new URLSearchParams({ page: '1', pageSize: '12' })).catch(() => ({ page: 1, pageSize: 12, total: 0, items: [] })),
     getPublicArticles(topicQuery).catch(() => ({ page: 1, pageSize: 12, total: 0, items: [] })),
     getPublicBusinessSectors().catch(() => []),
     getPublicPlatformQrs().catch(() => []),
     getPublicQuickLinks().catch(() => []),
-    getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '' })),
+    getPublicHomeStats().catch(() => []),
+    getPublicFriendLinks('footer').catch(() => []),
+    getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicHomepageLayout(),
     getPublicContactInfo(),
   ]);
@@ -36,6 +38,8 @@ export default async function HomePage() {
         sectors={sectors}
         qrs={qrs}
         quickLinks={quickLinks}
+        homeStats={homeStats}
+        friendLinks={friendLinks}
         siteSettings={cleanedSiteSettings}
         layout={layout}
         contactInfo={contactInfo}
