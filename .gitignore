@@ -49,3 +49,5 @@ tmp/
 .temp/
 .cache/
 web/.cache/
+xiang/
+outputs/
