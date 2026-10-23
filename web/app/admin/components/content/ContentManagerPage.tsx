@@ -5,6 +5,7 @@ import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
+import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -99,7 +100,7 @@ const moduleConfig = (module: PageModule) => {
   if (module.module_code === 'group-intro') {
     return {
       ...base,
-      introText: '企业简介保存到 page_contents.module_code = group-intro，可维护页面标题、副标题、封面图、摘要、正文和发布状态。',
+      introText: '管理集团简介、经营指标、企业宗旨与使命。结构化配置保存在现有 page_contents.extra_json；初始值沿用当前官网文案，保存并发布后前台生效。',
       coverLabel: '企业简介封面图',
       contentLabel: '企业简介正文',
     };
@@ -146,20 +147,51 @@ function PageContentForm({ module, options = {} }: {
   const [form, setForm] = useState<PageContent>(() => emptyPageContent(moduleCode));
   const [message, setMessage] = useState<MessageState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
+    setLoadFailed(false);
     setMessage(null);
     AdminApi.pageContent(moduleCode)
       .then((result) => {
         if (!isMounted) return;
-        setForm({ ...emptyPageContent(moduleCode), ...((result.data || {}) as PageContent) });
+        const loaded = (result.data || {}) as PageContent;
+        const extra = loaded.extra_json && typeof loaded.extra_json === 'object' && !Array.isArray(loaded.extra_json)
+          ? loaded.extra_json
+          : {};
+        if (moduleCode === 'group-intro') {
+          const savedConfig = extra.groupIntro && typeof extra.groupIntro === 'object' && !Array.isArray(extra.groupIntro)
+            ? extra.groupIntro as Partial<GroupIntroConfig>
+            : {};
+          const groupIntro = {
+            ...defaultGroupIntroConfig,
+            ...savedConfig,
+            profileBadges: savedConfig.profileBadges || defaultGroupIntroConfig.profileBadges,
+            heroStats: savedConfig.heroStats || defaultGroupIntroConfig.heroStats,
+            principleEnglish: savedConfig.principleEnglish || defaultGroupIntroConfig.principleEnglish,
+            achievements: savedConfig.achievements || defaultGroupIntroConfig.achievements,
+            performanceParagraphs: savedConfig.performanceParagraphs || defaultGroupIntroConfig.performanceParagraphs,
+            missionParagraphs: savedConfig.missionParagraphs || defaultGroupIntroConfig.missionParagraphs,
+          };
+          setForm({
+            ...emptyPageContent(moduleCode),
+            ...loaded,
+            title: loaded.title || '甘孜州建设投资集团有限公司',
+            subtitle: loaded.subtitle || '州属一级国有企业，服务全州交通和城乡基础设施投融资、建设、开发与资产经营。',
+            content: loaded.content || '<p>甘孜州建设投资集团有限公司为州属一级国有企业。前身为甘孜州交通基础设施建设领导小组办公室，2018年5月，根据改革发展需要，组建了甘孜州交通投资建设集团有限公司；2018年12月，甘孜州城投公司整体划入集团，更名为甘孜州交通和城乡建设投资集团有限公司；2025年5月更名为甘孜州建设投资集团有限公司。</p><p>集团主要承担全州政府性投资的交通和城乡基础设施项目的投融资、建设、开发、资产经营等职责，经营范围涉及交通和城乡基础设施工程的建设、管理、测绘、勘察、监理、检测等业务，注册资本10亿元，总资产85.56亿元。</p><p>集团下设二级子公司9家，其中全资5家、控股2家、参股2家；三级子公司3家，均为控股公司；下属规上、限上企业6家，具备公路工程、房建市政施工总承包等资质17个。</p>',
+            extra_json: { ...extra, groupIntro },
+          });
+          return;
+        }
+        setForm({ ...emptyPageContent(moduleCode), ...loaded });
       })
       .catch((err) => {
         if (!isMounted) return;
+        setLoadFailed(true);
         setMessage({ text: err instanceof Error ? err.message : '页面内容加载失败。', type: 'error' });
       })
       .finally(() => {
@@ -172,6 +204,30 @@ function PageContentForm({ module, options = {} }: {
 
   const setField = (field: keyof PageContent, value: string | Record<string, unknown> | null) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const groupIntro = (() => {
+    const saved = form.extra_json?.groupIntro;
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return defaultGroupIntroConfig;
+    const value = saved as Partial<GroupIntroConfig>;
+    return {
+      ...defaultGroupIntroConfig,
+      ...value,
+      profileBadges: value.profileBadges || defaultGroupIntroConfig.profileBadges,
+      heroStats: value.heroStats || defaultGroupIntroConfig.heroStats,
+      principleEnglish: value.principleEnglish || defaultGroupIntroConfig.principleEnglish,
+      achievements: value.achievements || defaultGroupIntroConfig.achievements,
+      performanceParagraphs: value.performanceParagraphs || defaultGroupIntroConfig.performanceParagraphs,
+      missionParagraphs: value.missionParagraphs || defaultGroupIntroConfig.missionParagraphs,
+    };
+  })();
+  const updateGroupIntro = (patch: Partial<GroupIntroConfig>) => setField('extra_json', {
+    ...(form.extra_json || {}),
+    groupIntro: { ...groupIntro, ...patch },
+  });
+  const updateGroupIntroList = <T,>(key: 'heroStats' | 'achievements', index: number, patch: Partial<T>) => {
+    const current = groupIntro[key] as T[];
+    updateGroupIntro({ [key]: current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) });
   };
 
   const uploadCover = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,6 +318,45 @@ function PageContentForm({ module, options = {} }: {
         <label className="span-2">{config.contentLabel}
           <textarea className="content-editor" rows={config.bodyRows} value={form.content || ''} onChange={(event) => setField('content', event.target.value)} />
         </label>
+        {moduleCode === 'group-intro' ? (
+          <div className="span-2">
+            <section className="group-intro-settings">
+              <h3>集团简介展示配置</h3>
+              <p className="field-tip">以上正文及以下配置只在状态设为“已发布”后显示在官网 /about。数据使用现有 page_contents 字段，不新增表。</p>
+              <div className="editor-grid">
+                <label>简介标识<input value={groupIntro.profileMarker} onChange={(event) => updateGroupIntro({ profileMarker: event.target.value })} /></label>
+                <label>职责关键词（每行一项）<textarea rows={3} value={groupIntro.profileBadges.join('\n')} onChange={(event) => updateGroupIntro({ profileBadges: event.target.value.split('\n') })} /></label>
+                <div className="span-2 group-intro-repeaters">
+                  <h4>首页速览指标</h4>
+                  {groupIntro.heroStats.map((stat: GroupIntroStat, index) => <div className="group-intro-row" key={`hero-${index}`}>
+                    <input aria-label={`速览指标${index + 1}`} placeholder="数值" value={stat.value} onChange={(event) => updateGroupIntroList<GroupIntroStat>('heroStats', index, { value: event.target.value })} />
+                    <input aria-label={`速览指标${index + 1}名称`} placeholder="名称" value={stat.label} onChange={(event) => updateGroupIntroList<GroupIntroStat>('heroStats', index, { label: event.target.value })} />
+                    <button className="secondary-button" type="button" onClick={() => updateGroupIntro({ heroStats: groupIntro.heroStats.filter((_, itemIndex) => itemIndex !== index) })}>删除</button>
+                  </div>)}
+                  <button className="secondary-button" type="button" onClick={() => updateGroupIntro({ heroStats: [...groupIntro.heroStats, { value: '', label: '' }] })}>添加速览指标</button>
+                </div>
+                <label>企业宗旨标签<input value={groupIntro.principleLabel} onChange={(event) => updateGroupIntro({ principleLabel: event.target.value })} /></label>
+                <label>企业宗旨文案（换行分行）<textarea rows={3} value={groupIntro.principleTitle} onChange={(event) => updateGroupIntro({ principleTitle: event.target.value })} /></label>
+                <label className="span-2">企业宗旨英文文案（每行一项）<textarea rows={2} value={groupIntro.principleEnglish.join('\n')} onChange={(event) => updateGroupIntro({ principleEnglish: event.target.value.split('\n') })} /></label>
+                <label>成果板块标题<input value={groupIntro.performanceTitle} onChange={(event) => updateGroupIntro({ performanceTitle: event.target.value })} /></label>
+                <label>成果板块引言<textarea rows={3} value={groupIntro.performanceLead} onChange={(event) => updateGroupIntro({ performanceLead: event.target.value })} /></label>
+                <div className="span-2 group-intro-repeaters">
+                  <h4>经营与建设指标</h4>
+                  {groupIntro.achievements.map((item: GroupIntroAchievement, index) => <div className="group-intro-row group-intro-row--achievement" key={`achievement-${index}`}>
+                    <input aria-label={`成果数值${index + 1}`} placeholder="数值" value={item.value} onChange={(event) => updateGroupIntroList<GroupIntroAchievement>('achievements', index, { value: event.target.value })} />
+                    <input aria-label={`成果名称${index + 1}`} placeholder="说明" value={item.label} onChange={(event) => updateGroupIntroList<GroupIntroAchievement>('achievements', index, { label: event.target.value })} />
+                    <input aria-label={`成果标签${index + 1}`} placeholder="强调标签" value={item.accent} onChange={(event) => updateGroupIntroList<GroupIntroAchievement>('achievements', index, { accent: event.target.value })} />
+                    <button className="secondary-button" type="button" onClick={() => updateGroupIntro({ achievements: groupIntro.achievements.filter((_, itemIndex) => itemIndex !== index) })}>删除</button>
+                  </div>)}
+                  <button className="secondary-button" type="button" onClick={() => updateGroupIntro({ achievements: [...groupIntro.achievements, { value: '', label: '', accent: '' }] })}>添加成果指标</button>
+                </div>
+                <label className="span-2">成果补充说明（每行一段）<textarea rows={4} value={groupIntro.performanceParagraphs.join('\n')} onChange={(event) => updateGroupIntro({ performanceParagraphs: event.target.value.split('\n') })} /></label>
+                <label className="span-2">企业使命标题<input value={groupIntro.missionTitle} onChange={(event) => updateGroupIntro({ missionTitle: event.target.value })} /></label>
+                <label className="span-2">企业使命说明（每行一段）<textarea rows={5} value={groupIntro.missionParagraphs.join('\n')} onChange={(event) => updateGroupIntro({ missionParagraphs: event.target.value.split('\n') })} /></label>
+              </div>
+            </section>
+          </div>
+        ) : null}
         <label>发布状态
           <select value={form.status || 'draft'} onChange={(event) => setField('status', event.target.value)}>
             {statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
@@ -269,7 +364,8 @@ function PageContentForm({ module, options = {} }: {
         </label>
       </div>
       <div className="form-actions">
-        <button className="primary-link-button" type="submit" disabled={isSaving || isLoading}>{isSaving ? '正在保存...' : config.submitText}</button>
+        <button className="primary-link-button" type="submit" disabled={isSaving || isLoading || (moduleCode === 'group-intro' && loadFailed)}>{isSaving ? '正在保存...' : config.submitText}</button>
+        {moduleCode === 'group-intro' && loadFailed ? <span className="field-tip">数据加载失败，已禁用保存以避免覆盖原内容；请刷新页面重试。</span> : null}
       </div>
     </form>
   );

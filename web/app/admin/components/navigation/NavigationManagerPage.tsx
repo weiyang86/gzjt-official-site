@@ -58,34 +58,58 @@ export function NavigationManagerPage() {
     try { await AdminApi.deleteNavigationItem(row.id); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : '删除失败'); }
   };
-  const render = (parent = '', depth = 0): ReactNode => rows.filter((r) => parentId(r) === parent).map((row) => (
-    <div key={row.id} style={{ marginLeft: depth * 20 }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <strong style={{ flex: 1 }}>{row.name}<small style={{ marginLeft: 10, color: '#64748b' }}>{row.path} · {row.status === 'enabled' ? '启用' : '停用'}</small>{parentId(row) ? <small style={{ display: 'block', marginTop: 4, color: '#64748b', fontWeight: 400 }}>导航层级：{navigationPath(row, rows)}</small> : null}</strong>
-        <button type="button" onClick={() => setForm({ ...row, parent: parentId(row) })}>编辑</button>
-        <button type="button" onClick={() => void remove(row)}>删除</button>
-      </div>
-      {render(row.id, depth + 1)}
+  const render = (parent = ''): ReactNode => rows.filter((row) => parentId(row) === parent).map((row) => (
+    <div className="navigation-tree-node" key={row.id}>
+      <article className="navigation-tree-row">
+        <div className="navigation-tree-info">
+          <strong>{row.name || row.slug}</strong>
+          <span className="navigation-tree-path">{navigationPath(row, rows)}</span>
+          <span className="navigation-tree-route">{row.path || '未设置访问路径'}</span>
+        </div>
+        <div className="navigation-tree-meta">
+          <span className={`navigation-status${row.status === 'enabled' ? ' is-enabled' : ''}`}><i />{row.status === 'enabled' ? '启用' : '停用'}</span>
+          <span className="navigation-type">{row.type}</span>
+          {row.is_news_category ? <span className="navigation-type">新闻分类</span> : null}
+        </div>
+        <div className="navigation-tree-actions">
+          <button className="text-button" type="button" onClick={() => setForm({ ...row, parent: parentId(row) })}>编辑</button>
+          <button className="text-button is-danger" type="button" onClick={() => void remove(row)}>删除</button>
+        </div>
+      </article>
+      {rows.some((item) => parentId(item) === row.id) ? <div className="navigation-tree-children">{render(row.id)}</div> : null}
     </div>
   ));
-  return <section className="admin-page">
-    <header className="admin-page-header"><div><p className="eyebrow">SITE STRUCTURE</p><h1>导航树管理</h1><p>栏目直接维护在现有 channels 表中；此处支持任意层级，删除仍被引用的栏目会被拒绝。</p></div></header>
-    {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
-    <div className="admin-card" style={{ padding: 20, marginBottom: 20 }}>
-      <h2>{form.id ? '编辑栏目' : '新增栏目'}</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
-        <label>栏目名称<input value={form.name} onChange={(e) => set('name', e.target.value)} /></label>
-        <label>Slug<input value={form.slug} onChange={(e) => set('slug', e.target.value)} /></label>
-        <label>父级栏目<select value={parentId(form)} onChange={(e) => set('parent', e.target.value)}><option value="">无（顶级）</option>{choices.map((r) => <option key={r.id} value={r.id}>{navigationPath(r, rows)}</option>)}</select></label>
-        <label>类型<select value={form.type} onChange={(e) => set('type', e.target.value)}>{['list','page','link','module','news','notice'].map((v) => <option key={v}>{v}</option>)}</select></label>
-        <label>访问路径<input value={form.path} onChange={(e) => set('path', e.target.value)} placeholder="例如 /news/company" /></label>
-        <label>排序<input type="number" value={form.sort} onChange={(e) => set('sort', Number(e.target.value))} /></label>
-        <label>状态<select value={form.status} onChange={(e) => { set('status', e.target.value); set('visible', e.target.value === 'enabled'); }}><option value="enabled">启用</option><option value="disabled">停用</option></select></label>
-        <label><input type="checkbox" checked={form.is_news_category} onChange={(e) => set('is_news_category', e.target.checked)} /> 新闻分类</label>
+
+  return <section className="admin-page navigation-manager-page">
+    <header className="admin-page-header">
+      <div><p className="eyebrow">SITE STRUCTURE</p><h1>导航树管理</h1><p>栏目直接维护在现有 channels 表中；此处支持任意层级，删除仍被内容引用的栏目会被拒绝。</p></div>
+      <div className="navigation-manager-count"><strong>{rows.length}</strong><span>个栏目</span></div>
+    </header>
+    {error ? <p className="inline-message error" role="alert">{error}</p> : null}
+    <section className="editor-card navigation-editor-card">
+      <div className="section-title-row">
+        <div><p className="eyebrow">CONTENT SETTINGS</p><h2>{form.id ? '编辑栏目' : '新增栏目'}</h2></div>
+        {form.id ? <span className="status-badge status-draft">正在编辑</span> : null}
       </div>
-      <p><label>说明<textarea value={form.description} onChange={(e) => set('description', e.target.value)} /></label></p>
-      <button type="button" disabled={busy} onClick={() => void save()}>{busy ? '保存中…' : '保存栏目'}</button>{form.id && <button type="button" onClick={() => setForm(empty)}>取消编辑</button>}
-    </div>
-    <div className="admin-card" style={{ padding: 20 }}><h2>现有导航结构（{rows.length}）</h2>{render() || <p>暂无栏目</p>}</div>
+      <div className="editor-grid navigation-form-grid">
+        <label>栏目名称<input value={form.name} onChange={(event) => set('name', event.target.value)} /></label>
+        <label>标识 Slug<input value={form.slug} onChange={(event) => set('slug', event.target.value)} /></label>
+        <label>父级栏目<select value={parentId(form)} onChange={(event) => set('parent', event.target.value)}><option value="">无（顶级）</option>{choices.map((row) => <option key={row.id} value={row.id}>{navigationPath(row, rows)}</option>)}</select></label>
+        <label>栏目类型<select value={form.type} onChange={(event) => set('type', event.target.value)}>{['list', 'page', 'link', 'module', 'news', 'notice'].map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label>访问路径<input value={form.path} onChange={(event) => set('path', event.target.value)} placeholder="例如 /news/company" /></label>
+        <label>排序<input type="number" value={form.sort} onChange={(event) => set('sort', Number(event.target.value))} /></label>
+        <label>状态<select value={form.status} onChange={(event) => { set('status', event.target.value); set('visible', event.target.value === 'enabled'); }}><option value="enabled">启用</option><option value="disabled">停用</option></select></label>
+        <label className="navigation-checkbox-field"><input type="checkbox" checked={form.is_news_category} onChange={(event) => set('is_news_category', event.target.checked)} /><span>同时作为新闻分类</span></label>
+        <label className="span-2">栏目说明<textarea rows={3} value={form.description} onChange={(event) => set('description', event.target.value)} /></label>
+      </div>
+      <div className="navigation-form-actions">
+        <button className="primary-link-button" type="button" disabled={busy} onClick={() => void save()}>{busy ? '正在保存…' : '保存栏目'}</button>
+        {form.id ? <button className="secondary-button" type="button" disabled={busy} onClick={() => setForm(empty)}>取消编辑</button> : null}
+      </div>
+    </section>
+    <section className="table-card navigation-tree-card">
+      <div className="section-title-row"><div><p className="eyebrow">CURRENT STRUCTURE</p><h2>现有导航结构</h2></div><span className="navigation-tree-count">共 {rows.length} 项</span></div>
+      {rows.length ? <div className="navigation-tree">{render()}</div> : <div className="navigation-empty"><span>☷</span><strong>暂无导航栏目</strong><small>新增栏目后，导航树会显示在这里。</small></div>}
+    </section>
   </section>;
 }

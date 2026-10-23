@@ -73,3 +73,32 @@ export async function getPublicPageBySlug(slug: string) {
     status: toText(item.status) as PageContent['status'],
   };
 }
+
+export async function getPublicGroupIntro() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {
+    'filter[module_code][_eq]': 'group-intro',
+    'filter[status][_eq]': 'published',
+    limit: 1,
+    fields: 'id,module_code,title,subtitle,cover,summary,content,extra_json,status',
+  }), { cache: 'no-store', next: { revalidate: false } });
+  const item = response.data?.[0];
+  if (!item) return null;
+  let extraJson = item.extra_json;
+  if (typeof extraJson === 'string') {
+    try { extraJson = JSON.parse(extraJson); } catch { extraJson = {}; }
+  }
+  return {
+    id: String(item.id ?? ''),
+    module_code: String(item.module_code ?? ''),
+    title: toText(item.title),
+    slug: 'about',
+    subtitle: toText(item.subtitle),
+    cover: buildDirectusAssetUrl(toText(item.cover)),
+    summary: toText(item.summary),
+    content: toText(item.content),
+    extra_json: extraJson && typeof extraJson === 'object' && !Array.isArray(extraJson)
+      ? extraJson as Record<string, unknown>
+      : {},
+    status: toText(item.status) as PageContent['status'],
+  } satisfies PageContent;
+}

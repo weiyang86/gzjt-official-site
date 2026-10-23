@@ -7,8 +7,10 @@ import {
   getPublicCompanies,
   getPublicCompanyBySlug,
   getPublicContactInfo,
+  getPublicGroupIntro,
   getPublicPageBySlug,
 } from '@/lib/cms';
+import { getGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import {
   fallbackBusinessSectors,
   fallbackCompanies,
@@ -19,7 +21,6 @@ import type { BusinessSector, Company, PageContent } from '@/types/cms';
 
 type ActiveKey = NavKey;
 type HeroStat = { value: string; label: string };
-type AboutAchievement = { value: string; label: string; accent: string; target?: number; decimals?: number; suffix?: string };
 
 const pageMeta: Record<string, { title: string; kicker: string; active: ActiveKey; subtitle: string; cta?: string }> = {
   about: {
@@ -81,24 +82,6 @@ const defaultHeroStats: HeroStat[] = [
   { value: '规范', label: '运营管理' },
   { value: '服务', label: '发展大局' },
 ];
-
-const aboutStats: HeroStat[] = [
-  { value: '10亿元', label: '注册资本' },
-  { value: '85.56亿元', label: '总资产' },
-  { value: '9家', label: '二级子公司' },
-  { value: '17个', label: '专业资质' },
-];
-
-const aboutAchievements: AboutAchievement[] = [
-  { value: '50个', label: '近5年承担国省公路改扩建项目', accent: '项目集群', target: 50, suffix: '个' },
-  { value: '2248.4公里', label: '建设里程', accent: '通达里程', target: 2248.4, decimals: 1, suffix: '公里' },
-  { value: '175.6亿元', label: '完成投资', accent: '投资强度', target: 175.6, decimals: 1, suffix: '亿元' },
-  { value: '13.38亿元', label: '累计营业收入', accent: '经营质效', target: 13.38, decimals: 2, suffix: '亿元' },
-  { value: '1.74亿元', label: '累计利润总额', accent: '价值创造', target: 1.74, decimals: 2, suffix: '亿元' },
-  { value: '27% / 19%', label: '营收与利润年均增长率', accent: '年均增长' },
-];
-
-const aboutProfileBadges = ['投融资', '建设开发', '资产经营', '工程服务'];
 
 const aboutTimeline = [
   {
@@ -210,13 +193,13 @@ function Hero({ title, kicker, subtitle, cover, ctaHref = '#content', ctaLabel =
             <a className="btn" href="/contact-us">联系我们</a>
           </div>
         </div>
-        <div className="glass reveal is-visible" aria-label="页面速览">
+        {stats.length ? <div className="glass reveal is-visible" aria-label="页面速览">
           <div className="kpi-grid">
             {stats.map((item) => (
               <div className="kpi" key={`${item.value}-${item.label}`}><b>{item.value}</b><span>{item.label}</span></div>
             ))}
           </div>
-        </div>
+        </div> : null}
       </div>
     </section>
   );
@@ -348,14 +331,14 @@ function SectorCards({ sectors }: { sectors: BusinessSector[] }) {
 }
 
 export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta }) {
+  if (slug === 'about') {
+    const groupIntro = await getPublicGroupIntro().catch(() => null);
+    return <AboutPage page={groupIntro} />;
+  }
   const page = await loadPage(slug);
   const meta = pageMeta[slug];
   if (!page) notFound();
   const contactInfo = slug === 'contact' ? await getPublicContactInfo() : null;
-
-  if (slug === 'about') {
-    return <AboutPage cover={page.cover} />;
-  }
 
   return (
     <Shell active={meta.active}>
@@ -370,19 +353,26 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   );
 }
 
-function AboutPage({ cover }: { cover?: string }) {
+function AboutPage({ page }: { page: PageContent | null }) {
+  const config = getGroupIntroConfig(page?.extra_json) as GroupIntroConfig;
+  const heroStats = Array.isArray(config.heroStats) ? config.heroStats.filter((item): item is GroupIntroStat => Boolean(item?.value && item?.label)) : [];
+  const achievements = Array.isArray(config.achievements) ? config.achievements.filter((item): item is GroupIntroAchievement => Boolean(item?.value && item?.label)) : [];
+  const profileBadges = Array.isArray(config.profileBadges) ? config.profileBadges.filter(Boolean) : [];
+  const performanceParagraphs = Array.isArray(config.performanceParagraphs) ? config.performanceParagraphs.filter(Boolean) : [];
+  const missionParagraphs = Array.isArray(config.missionParagraphs) ? config.missionParagraphs.filter(Boolean) : [];
+  const hasProfile = Boolean(page?.content?.trim());
   return (
     <Shell active="about">
       <Breadcrumb title="集团概况" />
       <main className="page" aria-label="主要内容" data-about-page>
         <Hero
-          title="集团概况"
+          title={page?.title || '集团概况'}
           kicker="ABOUT GZJT"
-          subtitle="州属一级国有企业，服务全州交通和城乡基础设施投融资、建设、开发与资产经营。"
-          cover={cover || '/img/318康定市过境段公路工程项目434互通工程.jpg'}
+          subtitle={page?.subtitle || page?.summary || ''}
+          cover={page?.cover || '/img/318康定市过境段公路工程项目434互通工程.jpg'}
           ctaHref="#content"
           ctaLabel="了解集团"
-          stats={aboutStats}
+          stats={heroStats}
         />
 
         <section className="section about-profile" id="content" aria-label="集团简介">
@@ -390,28 +380,25 @@ function AboutPage({ cover }: { cover?: string }) {
             <div className="section-head reveal is-visible">
               <div>
                 <div className="kicker"><i aria-hidden="true" /><span>COMPANY PROFILE</span></div>
-                <div className="h2">甘孜州建设投资集团有限公司</div>
+                <div className="h2">{page?.title || '集团简介'}</div>
               </div>
             </div>
 
             <div className="about-profile-grid">
               <article className="about-copy about-copy--profile reveal is-visible" data-about-tilt>
-                <div className="about-copy-marker" aria-hidden="true">州属一级国有企业</div>
-                <p>甘孜州建设投资集团有限公司为州属一级国有企业。前身为甘孜州交通基础设施建设领导小组办公室，2018年5月，根据改革发展需要，组建了甘孜州交通投资建设集团有限公司；2018年12月，甘孜州城投公司整体划入集团，更名为甘孜州交通和城乡建设投资集团有限公司；2025年5月更名为甘孜州建设投资集团有限公司。</p>
-                <p>集团主要承担全州政府性投资的交通和城乡基础设施项目的投融资、建设、开发、资产经营等职责，经营范围涉及交通和城乡基础设施工程的建设、管理、测绘、勘察、监理、检测等业务，注册资本10亿元，总资产85.56亿元。</p>
-                <p>集团下设二级子公司9家，其中全资5家、控股2家、参股2家；三级子公司3家，均为控股公司；下属规上、限上企业6家，具备公路工程、房建市政施工总承包等资质17个。</p>
-                <div className="about-profile-badges" aria-label="集团职责关键词">
-                  {aboutProfileBadges.map((item) => <span key={item}>{item}</span>)}
-                </div>
+                {config.profileMarker ? <div className="about-copy-marker" aria-hidden="true">{config.profileMarker}</div> : null}
+                {hasProfile ? <div className="body" dangerouslySetInnerHTML={{ __html: page?.content || '' }} /> : <p>集团简介内容暂未发布，敬请关注。</p>}
+                {profileBadges.length ? <div className="about-profile-badges" aria-label="集团职责关键词">
+                  {profileBadges.map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
+                </div> : null}
               </article>
 
-              <aside className="about-principle reveal is-visible" aria-label="企业宗旨" data-about-tilt>
+              {config.principleTitle ? <aside className="about-principle reveal is-visible" aria-label={config.principleLabel || '企业宗旨'} data-about-tilt>
                 <div className="about-roadline" aria-hidden="true"><span /><span /><span /></div>
-                <div className="about-principle-label">企业宗旨</div>
-                <div className="about-principle-title">匠心筑路 畅通甘孜<br />建者无疆 善作善成</div>
-                <div className="about-principle-en">INGENUITY BUILDS ROADS, SMOOTH GANZI</div>
-                <div className="about-principle-en">BUILDERS ARE BOUNDLESS, GOOD DEEDS</div>
-              </aside>
+                <div className="about-principle-label">{config.principleLabel}</div>
+                <div className="about-principle-title">{config.principleTitle.split('\n').map((line, index) => <span key={index}>{index ? <br /> : null}{line}</span>)}</div>
+                {config.principleEnglish?.filter(Boolean).map((line, index) => <div className="about-principle-en" key={`${line}-${index}`}>{line}</div>)}
+              </aside> : null}
             </div>
           </div>
         </section>
@@ -436,18 +423,18 @@ function AboutPage({ cover }: { cover?: string }) {
           </div>
         </section>
 
-        <section className="section about-performance" aria-label="建设成果">
+        {achievements.length || performanceParagraphs.length || config.performanceLead ? <section className="section about-performance" aria-label="建设成果">
           <div className="content">
             <div className="section-head reveal is-visible">
               <div>
                 <div className="kicker"><i aria-hidden="true" /><span>PROJECT DELIVERY</span></div>
-                <div className="h2">建设与经营成果</div>
-                <p className="lead">集团自组建以来，在州委、州政府的坚强领导下，在州国资委、州交通运输局、州住房和城乡建设局的精心指导下，紧绕“交通先行”“城乡提升”“乡村振兴”战略，全力抓好重点交通和城建项目建设及企业经营发展等工作。</p>
+                <div className="h2">{config.performanceTitle || '建设与经营成果'}</div>
+                {config.performanceLead ? <p className="lead">{config.performanceLead}</p> : null}
               </div>
             </div>
             <div className="about-achievements">
-              {aboutAchievements.map((item) => (
-                <div className="about-achievement reveal is-visible" key={item.label} data-about-tilt>
+              {achievements.map((item, index) => (
+                <div className="about-achievement reveal is-visible" key={`${item.label}-${index}`} data-about-tilt>
                   <em>{item.accent}</em>
                   <strong
                     {...(typeof item.target === 'number' ? {
@@ -462,25 +449,23 @@ function AboutPage({ cover }: { cover?: string }) {
                 </div>
               ))}
             </div>
-            <div className="about-copy about-copy--wide reveal is-visible" data-about-tilt>
-              <p>近5年来，集团共承担CZ铁路配套公路、“9.5”泸定灾后重建、大香格里拉交旅融合等50个2248.4公里的国省公路改扩建项目，完成投资175.6亿元，以万里通途托起沿线百姓的团结梦、致富梦、发展梦。</p>
-              <p>集团累计实现营业收入13.38亿元、实现利润总额1.74亿元，年均增长率分别为27%、19%。</p>
-            </div>
+            {performanceParagraphs.length ? <div className="about-copy about-copy--wide reveal is-visible" data-about-tilt>
+              {performanceParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+            </div> : null}
           </div>
-        </section>
+        </section> : null}
 
-        <section className="section about-mission" aria-label="企业使命">
+        {config.missionTitle || missionParagraphs.length ? <section className="section about-mission" aria-label="企业使命">
           <div className="content">
             <div className="about-mission-panel reveal is-visible" data-about-tilt>
               <div>
                 <div className="kicker"><i aria-hidden="true" /><span>MISSION AND VISION</span></div>
-                <h2>铺筑人民幸福之路，建造甘孜发展之基</h2>
+                {config.missionTitle ? <h2>{config.missionTitle}</h2> : null}
               </div>
-              <p>近年来，集团公司紧扣州委“12345”总体工作格局，紧紧围绕集团“1344”发展战略目标，秉承“铺筑人民幸福之路、建造甘孜发展之基”的企业使命，以“赤诚奉献、克难奋进、求实求精、创新有为”的企业精神，按照“科学发展，诚实守信，质效至上，价值创造，守法合规，行稳致远”的经营理念，全力打造涉藏地区交通产业为引领的一流综合性投资运营商。</p>
-              <p>集团将持续为建设和谐美丽现代化新甘孜、加快涉藏地区交通基础设施建设步伐、筑牢中华民族共同体意识贡献建投力量。</p>
+              {missionParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
             </div>
           </div>
-        </section>
+        </section> : null}
 
       </main>
     </Shell>

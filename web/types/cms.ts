@@ -79,10 +79,14 @@ export interface Company {
 
 export interface PageContent {
   id: string;
+  module_code?: string;
   title: string;
   slug: string;
+  subtitle?: string;
   cover?: string;
+  summary?: string;
   content?: string;
+  extra_json?: Record<string, unknown>;
   status: ArticleStatus;
 }
 
