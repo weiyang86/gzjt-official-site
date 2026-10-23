@@ -1711,6 +1711,37 @@ code {
 .homepage-background-grid--compact .homepage-background-actions { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
 .homepage-background-grid--compact .secondary-button { padding: 4px 8px; font-size: 12px; }
 .homepage-copy-settings--compact { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+/* 任务05：领导致辞管理复用后台编辑器与列表卡片样式。 */
+.leadership-admin { display: grid; gap: 20px; }
+.leadership-admin .section-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.leadership-admin .section-title-row h2 { margin: 4px 0 0; color: var(--admin-text); }
+.leadership-admin .eyebrow { margin: 0; color: var(--admin-muted); font-size: 12px; }
+.leadership-admin .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.leadership-admin .form-actions { display: flex; align-items: center; gap: 10px; }
+.leadership-photo-field { display: grid; gap: 8px; }
+.leadership-admin-photo { width: 112px; height: 136px; border-radius: 10px; object-fit: cover; background: var(--admin-panel-soft); }
+.leadership-admin-photo.is-missing { display: grid; place-items: center; color: var(--admin-muted); font-size: 32px; }
+.leadership-list-count { color: var(--admin-muted); font-size: 13px; }
+.leadership-admin-list { display: grid; gap: 12px; }
+.leadership-admin-item { align-items: center; }
+.leadership-admin-list-photo { flex: 0 0 72px; width: 72px; height: 88px; border-radius: 8px; object-fit: cover; background: var(--admin-panel); }
+.leadership-admin-list-photo.is-missing { display: grid; place-items: center; color: var(--admin-muted); font-size: 24px; }
+.leadership-admin-item-copy { flex: 1; min-width: 0; }
+.leadership-admin-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.leadership-admin-item-heading h3 { margin: 0 0 4px; color: var(--admin-text); }
+.leadership-admin-item-heading strong { color: var(--admin-muted); font-size: 13px; }
+.leadership-admin-item-copy small { color: var(--admin-muted); }
+.leadership-admin-actions { align-self: flex-start; padding-top: 4px; }
+.leadership-admin-actions .is-danger { color: #b42318; }
+@media(max-width:720px){
+  .leadership-admin .editor-grid { grid-template-columns: 1fr; }
+  .leadership-admin .section-title-row,.leadership-admin-item-heading { align-items: flex-start; }
+  .leadership-admin-item { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 10px; }
+  .leadership-admin-list-photo { width: 64px; height: 78px; }
+  .leadership-admin-item-copy { grid-column: 2; }
+  .leadership-admin-actions { grid-column: 2; }
+}
 .homepage-copy-settings--compact .homepage-banner-editor { margin: 0; padding: 10px; border: 1px solid var(--admin-border); border-radius: 10px; background: #fff; }
 .homepage-copy-settings--compact .homepage-banner-editor > strong { display: block; margin-bottom: 6px; font-size: 13px; }
 .homepage-copy-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }

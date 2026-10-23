@@ -8,6 +8,7 @@ import {
   getPublicCompanyBySlug,
   getPublicContactInfo,
   getPublicGroupIntro,
+  getPublicLeaders,
   getPublicPageBySlug,
 } from '@/lib/cms';
 import { getGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
@@ -18,6 +19,7 @@ import {
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
 import type { BusinessSector, Company, PageContent } from '@/types/cms';
+import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
 type ActiveKey = NavKey;
 type HeroStat = { value: string; label: string };
@@ -348,6 +350,57 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
         {contactInfo ? <ContactInfoSection contactInfo={contactInfo} /> : null}
         <ContentSection page={page} />
         {slug === 'projects' ? <ProjectMap /> : null}
+      </main>
+    </Shell>
+  );
+}
+
+export async function LeadershipPage() {
+  let leaders: Awaited<ReturnType<typeof getPublicLeaders>> = [];
+  let hasLoadError = false;
+  try {
+    leaders = await getPublicLeaders();
+  } catch {
+    hasLoadError = true;
+  }
+
+  return (
+    <Shell active="about">
+      <Breadcrumb title="领导致辞" />
+      <main className="page" aria-label="领导致辞" data-leadership-page>
+        <Hero
+          title="领导致辞"
+          kicker="LEADERSHIP MESSAGE"
+          subtitle="凝聚发展共识，携手谱写甘孜州建设投资集团高质量发展新篇章。"
+          cover="/img/雅砻江大桥.jpg"
+          ctaHref="#leadership-content"
+          ctaLabel="查看致辞"
+          stats={[]}
+        />
+        <section className="section leadership-message-section" id="leadership-content" aria-label="集团领导致辞">
+          <div className="content">
+            <div className="section-head">
+              <div><div className="kicker"><i aria-hidden="true" /><span>LEADERSHIP MESSAGE</span></div><h2 className="h2">集团领导致辞</h2></div>
+            </div>
+            {hasLoadError ? <div className="leadership-empty" role="status">领导致辞暂时无法加载，请稍后再试。</div> : leaders.length ? (
+              <div className="leadership-message-list">
+                {leaders.map((leader) => (
+                  <article className="leader-message-card" key={leader.id}>
+                    <div className="leader-message-photo-wrap">
+                      <LeadershipPortrait className="leader-message-photo" src={leader.photo} name={leader.name} />
+                    </div>
+                    <div className="leader-message-copy">
+                      <p className="leader-message-kicker">集团领导 · 领导致辞</p>
+                      <h3>{leader.name}</h3>
+                      {leader.position ? <p className="leader-message-position">{leader.position}</p> : null}
+                      {leader.speech.trim() ? <div className="leader-message-body">{leader.speech}</div> : <p className="leader-message-unavailable">致辞内容暂未发布，敬请关注。</p>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : <div className="leadership-empty">领导致辞内容暂未发布，敬请关注。</div>}
+          </div>
+        </section>
       </main>
     </Shell>
   );

@@ -6,6 +6,7 @@ import type { MessageState, PageContent, PageContentItem, PageModule, PageModule
 import { getMergedNewsAdminHref } from './merged-news-channel';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
+import { LeadershipManager } from './LeadershipManager';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -983,6 +984,10 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
         <TimelineManager module={module} />
       </>
     );
+  }
+
+  if (module.module_code === 'leaders' && module.content_type === 'leader_list') {
+    return <LeadershipManager />;
   }
 
   if (module.module_code === 'org-chart' || module.content_type === 'image_text' || module.content_type === 'org_chart') {

@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm run dev:site",
+    "dev": "npm run dev:site",
     "dev:site": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",

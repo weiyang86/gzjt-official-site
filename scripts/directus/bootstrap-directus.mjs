@@ -644,7 +644,7 @@ async function seedData(token) {
     ['集团概况', 'group-overview', '企业简介', 'group-intro', '/pages/about/index.html', 'single_page', true, 101],
     ['集团概况', 'group-overview', '发展历程时间轴', 'group-history', '/pages/about/index.html', 'timeline', true, 102],
     ['集团概况', 'group-overview', '组织架构图', 'org-chart', '/pages/about/index.html', 'org_chart', true, 103],
-    ['集团概况', 'group-overview', '集团主要领导', 'leaders', '/pages/about/index.html', 'leader_list', false, 104],
+    ['集团概况', 'group-overview', '集团主要领导', 'leaders', '/group/leadership', 'leader_list', true, 104],
     ['新闻中心', 'news-center', '集团新闻', 'group-news', '/pages/news/index.html', 'article_list', true, 201],
     ['新闻中心', 'news-center', '行业要闻', 'industry-news', '/pages/news/index.html', 'article_list', true, 202],
     ['新闻中心', 'news-center', '媒体聚焦', 'media-focus', '/pages/news/index.html', 'article_list', true, 203],

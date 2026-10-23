@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['gwdev.gzjtjt.cn'],
   turbopack: {
     root: process.cwd(),
   },

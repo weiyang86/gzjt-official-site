@@ -115,6 +115,26 @@ export async function getPublicPlatformQrs() {
   })).filter((item) => item.image);
 }
 
+export async function getPublicLeaders() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    fields: 'id,module_code,item_type,title,subtitle,image,content,sort,status',
+    sort: 'sort,id',
+    limit: -1,
+    'filter[module_code][_eq]': 'leaders',
+    'filter[item_type][_eq]': 'leader',
+    'filter[status][_eq]': 'enabled',
+  }), { cache: 'no-store', next: { revalidate: false } });
+
+  return (response.data || []).map((item) => ({
+    id: String(item.id ?? ''),
+    name: toText(item.title),
+    position: toText(item.subtitle),
+    photo: buildDirectusAssetUrl(toText(item.image)),
+    speech: toText(item.content),
+    sort: Number(item.sort) || 0,
+  })).filter((item) => item.name);
+}
+
 export async function getPublicHomepageLayout() {
   try {
     const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {

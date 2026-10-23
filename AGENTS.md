@@ -31,6 +31,22 @@
 - 前台只能读取已发布内容。
 - 生产部署前必须备份数据库和 uploads。
 
+## 测试环境推送限制（gwdev）
+
+测试环境目录为服务器 `/www/wwwroot/gwdev`，通过 `gwdev.gzjtjt.cn` 访问。向测试环境同步代码时，必须先比较本地与服务器配置；不得用整目录覆盖方式覆盖下列测试环境专属配置：
+
+- `web/.env.local` ↔ 服务器 `/www/wwwroot/gwdev/.env.local`：两端内容不同。服务器配置用于测试环境，API 地址按服务器现有值（当前约定为 `localhost:8000`）保留；禁止用本地 `.env.local`（本地开发 API 使用 `8008`）覆盖，也禁止提交或传输其中的密钥、密码等值。
+- `web/package-lock.json` ↔ 服务器 `/www/wwwroot/gwdev/package-lock.json`：两端内容不同。默认不覆盖服务器锁文件；只有依赖确有变更并完成差异审查后，才可同步更新。
+- 服务器 `/www/server/panel/vhost/nginx/gwdev.gzjtjt.cn.conf`：测试域名专属 Nginx 配置，仓库中没有对应文件。代码推送不得覆盖、删除或重写该文件；需要变更代理配置时单独检查并验证。
+- 服务器备份文件 `/www/wwwroot/gwdev/.env.local.backup-before-localhost-8000` 与 `/www/wwwroot/gwdev/next.config.ts.bak-codex-20261023`：仅作回滚备份，不得在同步中覆盖或删除。
+
+同步时还必须遵守：
+
+1. 保留 `web/next.config.ts` 中的 `allowedDevOrigins: ['gwdev.gzjtjt.cn']`。该设置已用于允许测试域名加载 Next.js 开发资源，删除后会导致测试页客户端交互失效。
+2. 不同步 `node_modules`。当前本地和测试环境已安装的 Next.js/React 版本不同；如需升级测试环境依赖，先列明版本差异、影响和回滚方式，再单独处理。
+3. 默认只同步本次修改且经过审核的源码文件。涉及 `.env.local`、`package-lock.json`、Next 配置或服务器 Nginx 配置时，先展示差异并取得用户确认，不得静默覆盖。
+4. 推送后检查测试环境 `.env.local`、`package-lock.json`、`next.config.ts` 和 Nginx 配置仍符合上述要求，并验证客户端交互；不得把测试环境配置复制回本地或提交到 Git。
+
 ## 内容模型要求
 
 必须优先支撑：
