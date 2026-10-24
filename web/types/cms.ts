@@ -90,6 +90,14 @@ export interface PageContent {
   status: ArticleStatus;
 }
 
+export interface HistoryTimelineItem {
+  id: string;
+  year: string;
+  title: string;
+  description: string;
+  sort: number;
+}
+
 export interface Banner {
   id: string;
   title: string;

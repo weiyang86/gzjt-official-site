@@ -1,4 +1,35 @@
-import type { BusinessSector, Company, PageContent } from '@/types/cms';
+import type { BusinessSector, Company, HistoryTimelineItem, PageContent } from '@/types/cms';
+
+export const fallbackHistoryTimeline: HistoryTimelineItem[] = [
+  {
+    id: 'history-predecessor',
+    year: '前身',
+    title: '甘孜州交通基础设施建设领导小组办公室',
+    description: '承担交通基础设施建设相关组织协调工作，为后续集团化运作奠定基础。',
+    sort: 10,
+  },
+  {
+    id: 'history-2018-05',
+    year: '2018.05',
+    title: '组建甘孜州交通投资建设集团有限公司',
+    description: '根据改革发展需要，正式推进市场化、集团化、专业化建设。',
+    sort: 20,
+  },
+  {
+    id: 'history-2018-12',
+    year: '2018.12',
+    title: '更名为甘孜州交通和城乡建设投资集团有限公司',
+    description: '甘孜州城投公司整体划入集团，交通与城乡建设职责进一步整合。',
+    sort: 30,
+  },
+  {
+    id: 'history-2025-05',
+    year: '2025.05',
+    title: '更名为甘孜州建设投资集团有限公司',
+    description: '企业名称与发展定位更加统一，持续服务全州交通和城乡基础设施建设。',
+    sort: 40,
+  },
+];
 
 export const fallbackSinglePages: PageContent[] = [
   {

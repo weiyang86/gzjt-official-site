@@ -1,5 +1,5 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
-import type { DirectusListResponse } from '@/types/cms';
+import type { DirectusListResponse, HistoryTimelineItem } from '@/types/cms';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
@@ -113,6 +113,50 @@ export async function getPublicPlatformQrs() {
     image: buildDirectusAssetUrl(toText(item.image)),
     sort: Number(item.sort) || 0,
   })).filter((item) => item.image);
+}
+
+export const historyTimelineModuleCode = 'group-history';
+export const historyTimelineItemType = 'timeline';
+
+const decodeBasicEntities = (value: string) => value
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"')
+  .replace(/&#39;|&#x27;/gi, "'")
+  .replace(/&amp;/gi, '&');
+
+/**
+ * 时间轴“内容”字段允许后台粘贴富文本；前台按纯文本展示，保留换行但移除标签。
+ */
+const normalizeTimelineContent = (value: string) => {
+  if (!value) return '';
+  return decodeBasicEntities(value
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/\s*(p|div|li|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, ''))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+export async function getPublicHistoryTimeline() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    fields: 'id,module_code,item_type,date_label,title,content,sort,status',
+    sort: 'sort,id',
+    limit: -1,
+    'filter[module_code][_eq]': historyTimelineModuleCode,
+    'filter[item_type][_eq]': historyTimelineItemType,
+    'filter[status][_eq]': 'enabled',
+  }), { cache: 'no-store', next: { revalidate: false } });
+
+  return (response.data || []).map((item): HistoryTimelineItem => ({
+    id: String(item.id ?? ''),
+    year: toText(item.date_label),
+    title: toText(item.title),
+    description: normalizeTimelineContent(toText(item.content)),
+    sort: Number(item.sort) || 0,
+  })).filter((item) => item.title);
 }
 
 export async function getPublicLeaders() {

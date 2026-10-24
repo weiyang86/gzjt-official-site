@@ -1459,3 +1459,9 @@
   .leader-message-photo{height:220px}
   .leader-message-copy h3{font-size:22px}
 }
+/* 任务07：发展历程时间轴读取 page_content_items 后的多行说明与空状态。 */
+.about-timeline-item p{white-space:pre-line}
+.about-history-empty{grid-column:1/-1;padding:40px 24px;border:1px dashed rgba(13,47,90,.18);border-radius:18px;background:rgba(255,255,255,.72);color:rgba(11,18,32,.62);text-align:center;font-size:15px;line-height:1.9}
+@media(max-width:576px){
+  .about-history-empty{padding:30px 18px;font-size:14px}
+}

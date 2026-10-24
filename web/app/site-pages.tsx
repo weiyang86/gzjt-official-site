@@ -8,6 +8,7 @@ import {
   getPublicCompanyBySlug,
   getPublicContactInfo,
   getPublicGroupIntro,
+  getPublicHistoryTimeline,
   getPublicLeaders,
   getPublicPageBySlug,
 } from '@/lib/cms';
@@ -16,9 +17,10 @@ import {
   fallbackBusinessSectors,
   fallbackCompanies,
   fallbackCompanyBySlug,
+  fallbackHistoryTimeline,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { BusinessSector, Company, PageContent } from '@/types/cms';
+import type { BusinessSector, Company, HistoryTimelineItem, PageContent } from '@/types/cms';
 import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
 type ActiveKey = NavKey;
@@ -85,28 +87,9 @@ const defaultHeroStats: HeroStat[] = [
   { value: '服务', label: '发展大局' },
 ];
 
-const aboutTimeline = [
-  {
-    year: '前身',
-    title: '甘孜州交通基础设施建设领导小组办公室',
-    desc: '承担交通基础设施建设相关组织协调工作，为后续集团化运作奠定基础。',
-  },
-  {
-    year: '2018.05',
-    title: '组建甘孜州交通投资建设集团有限公司',
-    desc: '根据改革发展需要，正式推进市场化、集团化、专业化建设。',
-  },
-  {
-    year: '2018.12',
-    title: '更名为甘孜州交通和城乡建设投资集团有限公司',
-    desc: '甘孜州城投公司整体划入集团，交通与城乡建设职责进一步整合。',
-  },
-  {
-    year: '2025.05',
-    title: '更名为甘孜州建设投资集团有限公司',
-    desc: '企业名称与发展定位更加统一，持续服务全州交通和城乡基础设施建设。',
-  },
-];
+const historyPlaceholderPattern = /示例|测试|示意|占位|待完善|待替换/i;
+const visibleHistoryTimeline = (items: HistoryTimelineItem[]) => items
+  .filter((item) => item.title && !historyPlaceholderPattern.test(`${item.year} ${item.title}`));
 
 const placeholderTextPattern = /测试|示例|示意|后续|可编辑详情入口|用于本地|待替换|待完善|Directus|CMS|Next|Trae/i;
 const stripDecoratedTitle = (value?: string) => (value || '').split('｜')[0].replace(/（示意）/g, '').trim();
@@ -334,8 +317,12 @@ function SectorCards({ sectors }: { sectors: BusinessSector[] }) {
 
 export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta }) {
   if (slug === 'about') {
-    const groupIntro = await getPublicGroupIntro().catch(() => null);
-    return <AboutPage page={groupIntro} />;
+    const [groupIntro, historyTimeline] = await Promise.all([
+      getPublicGroupIntro().catch(() => null),
+      getPublicHistoryTimeline().catch(() => null),
+    ]);
+    // 接口失败时沿用原静态时间轴；接口正常但无启用条目时展示空状态，确保后台启停生效。
+    return <AboutPage page={groupIntro} timeline={historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline)} />;
   }
   const page = await loadPage(slug);
   const meta = pageMeta[slug];
@@ -406,7 +393,7 @@ export async function LeadershipPage() {
   );
 }
 
-function AboutPage({ page }: { page: PageContent | null }) {
+function AboutPage({ page, timeline }: { page: PageContent | null; timeline: HistoryTimelineItem[] }) {
   const config = getGroupIntroConfig(page?.extra_json) as GroupIntroConfig;
   const heroStats = Array.isArray(config.heroStats) ? config.heroStats.filter((item): item is GroupIntroStat => Boolean(item?.value && item?.label)) : [];
   const achievements = Array.isArray(config.achievements) ? config.achievements.filter((item): item is GroupIntroAchievement => Boolean(item?.value && item?.label)) : [];
@@ -465,13 +452,13 @@ function AboutPage({ page }: { page: PageContent | null }) {
               </div>
             </div>
             <div className="about-timeline">
-              {aboutTimeline.map((item, index) => (
-                <article className="about-timeline-item reveal is-visible" key={item.year} data-about-tilt style={{ '--i': index } as CSSProperties}>
-                  <div className="about-timeline-year">{item.year}</div>
+              {timeline.length ? timeline.map((item, index) => (
+                <article className="about-timeline-item reveal is-visible" key={item.id || `${item.year}-${item.title}-${index}`} data-about-tilt style={{ '--i': index } as CSSProperties}>
+                  {item.year ? <div className="about-timeline-year">{item.year}</div> : null}
                   <h3>{item.title}</h3>
-                  <p>{item.desc}</p>
+                  {item.description ? <p>{item.description}</p> : null}
                 </article>
-              ))}
+              )) : <div className="about-history-empty" role="status">发展历程内容暂未发布，敬请关注。</div>}
             </div>
           </div>
         </section>
