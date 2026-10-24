@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
+import { CompanyManager } from './CompanyManager';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
 
@@ -545,7 +546,12 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   }
 
   if (module.content_type === 'company_list') {
-    return <section className="notice-card"><p className="eyebrow">{module.content_type}</p><h2>下属公司数据预留</h2><p>该模块内容来源于下属公司数据，第一阶段保留入口，不影响新闻管理。</p></section>;
+    return (
+      <CompanyManager
+        moduleTitle={module.module_title}
+        mode={module.module_code === 'company-intro' ? 'intro' : 'list'}
+      />
+    );
   }
 
   if (module.content_type === 'sector_list') {

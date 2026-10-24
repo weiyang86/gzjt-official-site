@@ -1406,6 +1406,6 @@ http.createServer((req, res) => {
     console.log(`Server running at http://localhost:${port}`);
     const defaultDataApi = process.env.NODE_ENV === 'production'
         ? 'http://192.168.0.221:8000/_plugins/gw/curd'
-        : 'http://localhost:8008/_plugins/gw/curd';
+        : 'https://portal.gzjtjt.cn/_plugins/gw/curd';
     console.log(`CMS data API: ${process.env.CMS_DATA_API_URL || defaultDataApi}`);
 });

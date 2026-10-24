@@ -404,6 +404,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
+  if (root === 'companies') return ['content'];
   return ['dashboard'];
 };
 
@@ -1036,6 +1037,78 @@ const handleLocalChannels = async (request: NextRequest) => {
   const serviceToken = await getServiceDirectusToken(session.accessToken);
   const result = await directusJsonRequest<{ data?: unknown[] }>(getChannelsPath(getAdminScope(request)), serviceToken);
   return NextResponse.json({ data: result.data || [] });
+};
+
+const companyFields = 'id,name,short_name,slug,logo,cover,intro,address,main_business,registered_capital,sort,status';
+
+const normalizeCompanyInput = (body: Record<string, unknown>) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!name || !slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    throw Object.assign(new Error('请填写公司名称，以及由小写英文、数字或中横线组成的 slug'), { status: 400 });
+  }
+  return {
+    name,
+    slug,
+    short_name: typeof body.short_name === 'string' ? body.short_name.trim() : '',
+    intro: typeof body.intro === 'string' ? body.intro.trim() : '',
+    address: typeof body.address === 'string' ? body.address.trim() : '',
+    main_business: typeof body.main_business === 'string' ? body.main_business.trim() : '',
+    registered_capital: typeof body.registered_capital === 'string' ? body.registered_capital.trim() : '',
+    logo: typeof body.logo === 'string' && body.logo ? body.logo : null,
+    cover: typeof body.cover === 'string' && body.cover ? body.cover : null,
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status: body.status === 'disabled' ? 'disabled' : 'enabled',
+  };
+};
+
+const handleLocalCompanies = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+
+  if (!id && request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: unknown[] }>(
+      buildDirectusPath('/items/companies', { fields: companyFields, sort: 'sort,id', limit: -1 }),
+      token,
+    );
+    return NextResponse.json({ data: result.data || [] });
+  }
+  if (!id && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeCompanyInput(body);
+    const duplicated = await directusJsonRequest<{ meta?: { filter_count?: number } }>(
+      buildDirectusPath('/items/companies', { fields: 'id', limit: 1, 'filter[slug][_eq]': payload.slug }),
+      token,
+    );
+    if (Number(duplicated.meta?.filter_count || 0)) {
+      throw Object.assign(new Error('slug 已存在，请更换'), { status: 409 });
+    }
+    const result = await directusJsonRequest<{ data?: unknown }>('/items/companies', token, 'POST', payload);
+    return NextResponse.json({ data: result.data || null }, { status: 201 });
+  }
+  if (id && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeCompanyInput(body);
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/companies/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+  if (id && request.method === 'DELETE') {
+    const articles = await directusJsonRequest<{ meta?: { filter_count?: number } }>(
+      buildDirectusPath('/items/articles', { fields: 'id', limit: 1, 'filter[related_company][_eq]': id }),
+      token,
+    );
+    if (Number(articles.meta?.filter_count || 0)) {
+      return NextResponse.json(
+        { error: { code: 'COMPANY_IN_USE', message: '该公司仍有关联文章，请先在文章归属管理中调整后再删除。' } },
+        { status: 409 },
+      );
+    }
+    await directusJsonRequest(`/items/companies/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+  return null;
 };
 
 const handleLocalNavigation = async (request: NextRequest, path: string[]) => {
@@ -1694,6 +1767,7 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);
     if (path[0] === 'articles') return await handleLocalArticleRoute(request, path);
+    if (path[0] === 'companies') return await handleLocalCompanies(request, path);
     if (route === 'files') return await handleLocalFileUpload(request);
     if (route === 'categories') return await handleLocalCategoryList(request);
     if (path[0] === 'categories') return await handleLocalCategoryRoute(request, path);

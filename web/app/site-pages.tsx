@@ -1,17 +1,17 @@
 import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/components';
+import { OrgChartFigure } from './organization/org-chart-figure';
 import {
   getPublicArticles,
   getPublicBusinessSectors,
   getPublicCompanies,
   getPublicCompanyBySlug,
   getPublicPageBySlug,
+  getPublicPageModule,
 } from '@/lib/cms';
 import {
   fallbackBusinessSectors,
-  fallbackCompanies,
-  fallbackCompanyBySlug,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
 import type { BusinessSector, Company, PageContent } from '@/types/cms';
@@ -123,23 +123,20 @@ const aboutTimeline = [
 ];
 
 const placeholderTextPattern = /测试|示例|示意|后续|可编辑详情入口|用于本地|待替换|待完善|Directus|CMS|Next|Trae/i;
-const stripDecoratedTitle = (value?: string) => (value || '').split('｜')[0].replace(/（示意）/g, '').trim();
 const isPlaceholderText = (value?: string | null) => Boolean(value && placeholderTextPattern.test(value));
 const companyDisplayName = (company: Company) => {
-  const name = stripDecoratedTitle(company.name);
-  if (name && !isPlaceholderText(name)) return name;
-  const shortName = stripDecoratedTitle(company.shortName);
-  if (shortName && !isPlaceholderText(shortName)) return `${shortName}公司`;
-  return '下属公司';
+  const name = (company.name || '').trim();
+  if (name) return name;
+  const shortName = (company.shortName || '').trim();
+  return shortName ? `${shortName}公司` : '下属公司';
 };
 const companyDisplayLabel = (company: Company) => {
-  const shortName = stripDecoratedTitle(company.shortName);
-  return shortName && !isPlaceholderText(shortName) ? shortName : '下属公司';
+  const shortName = (company.shortName || '').trim();
+  return shortName || '下属公司';
 };
 const companyDisplayIntro = (company: Company) => {
   const text = company.intro || company.description || '';
-  if (text && !isPlaceholderText(text)) return text;
-  return '承担集团相关业务职责，服务重点项目建设、运营管理与区域协同发展。';
+  return text || '承担集团相关业务职责，服务重点项目建设、运营管理与区域协同发展。';
 };
 
 const sanitizePageContent = (page: PageContent | null, slug: string) => {
@@ -161,10 +158,9 @@ async function loadPage(slug: string): Promise<PageContent | null> {
 
 async function loadCompanies() {
   try {
-    const companies = await getPublicCompanies();
-    return companies.length ? companies : fallbackCompanies;
+    return await getPublicCompanies();
   } catch {
-    return fallbackCompanies;
+    return [];
   }
 }
 
@@ -179,9 +175,17 @@ async function loadBusinessSectors() {
 
 async function loadCompany(slug: string) {
   try {
-    return await getPublicCompanyBySlug(slug) || fallbackCompanyBySlug(slug);
+    return await getPublicCompanyBySlug(slug);
   } catch {
-    return fallbackCompanyBySlug(slug);
+    return null;
+  }
+}
+
+async function loadOrgChart() {
+  try {
+    return await getPublicPageModule('org-chart');
+  } catch {
+    return null;
   }
 }
 
@@ -238,12 +242,18 @@ function Shell({ active, children, actionHref = 'https://gjy.gzjtjt.cn/', action
   );
 }
 
-function Breadcrumb({ title }: { title: string }) {
+function Breadcrumb({ title, parents = [] }: { title: string; parents?: Array<{ title: string; href: string }> }) {
   return (
     <div className="breadcrumb" aria-label="面包屑导航">
       <div className="content">
         <div className="crumb-inner">
           <a href="/" data-no-transition>首页</a>
+          {parents.map((parent) => (
+            <span key={parent.href} style={{ display: 'contents' }}>
+              <span className="crumb-sep">›</span>
+              <a href={parent.href} data-no-transition>{parent.title}</a>
+            </span>
+          ))}
           <span className="crumb-sep">›</span>
           <span>{title}</span>
         </div>
@@ -281,18 +291,24 @@ function CompanyCards({ companies }: { companies: Company[] }) {
             <p className="lead">集中展示集团下属企业，可进入公司详情页查看职责、业务范围和联系信息。</p>
           </div>
         </div>
-        <div className="grid">
-          {companies.map((company) => (
-            <a className="card reveal is-visible" href={`/org/${company.slug}`} key={company.slug} style={{ gridColumn: 'span 4', display: 'block' }}>
-              <div style={{ height: 180, overflow: 'hidden' }}><img src={company.cover || fallbackCover} alt="" /></div>
-              <div className="card-pad">
-                <div className="pill">{companyDisplayLabel(company)}</div>
-                <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{companyDisplayName(company)}</div>
-                <div className="rich" style={{ marginTop: 8 }}>{companyDisplayIntro(company)}</div>
-              </div>
-            </a>
-          ))}
-        </div>
+        {companies.length ? (
+          <div className="grid">
+            {companies.map((company) => (
+              <a className="card reveal is-visible" href={`/org/${company.slug}`} key={company.slug} style={{ gridColumn: 'span 4', display: 'block' }}>
+                <div style={{ height: 180, overflow: 'hidden' }}><img src={company.cover || fallbackCover} alt="" /></div>
+                <div className="card-pad">
+                  <div className="pill">{companyDisplayLabel(company)}</div>
+                  <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{companyDisplayName(company)}</div>
+                  <div className="rich" style={{ marginTop: 8 }}>{companyDisplayIntro(company)}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="detail reveal is-visible">
+            <div className="body"><p>暂无下属公司信息。</p></div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -481,10 +497,53 @@ export async function OrgListPage() {
   const companies = await loadCompanies();
   return (
     <Shell active="about">
-      <Breadcrumb title="下属公司" />
+      <Breadcrumb title="下属公司" parents={[{ title: '组织架构', href: '/organization' }]} />
       <main className="page" aria-label="主要内容">
         <Hero title="下属公司" kicker="SUBSIDIARIES" subtitle="形成集团总部、专业子公司、项目公司的组织体系，保障战略落地与专业化运营。" cover="/img/雅砻江大桥.jpg" ctaHref="#companies" ctaLabel="查看公司" />
         <div id="companies"><CompanyCards companies={companies} /></div>
+      </main>
+    </Shell>
+  );
+}
+
+export async function OrganizationPage() {
+  const orgChart = await loadOrgChart();
+  const title = orgChart?.title || '组织架构';
+  const cover = orgChart?.cover || '';
+
+  return (
+    <Shell active="about">
+      <Breadcrumb title="组织架构" />
+      <main className="page" aria-label="主要内容">
+        <Hero
+          title="组织架构"
+          kicker="ORGANIZATION"
+          subtitle="形成集团总部、专业子公司、项目公司的组织体系，保障战略落地与专业化运营。"
+          cover="/img/雅砻江大桥.jpg"
+          ctaHref="#org-chart"
+          ctaLabel="查看架构图"
+        />
+        <section className="section" id="org-chart" aria-label="组织架构图">
+          <div className="content">
+            <div className="section-head reveal is-visible">
+              <div>
+                <div className="kicker"><i aria-hidden="true" /><span>ORGANIZATION CHART</span></div>
+                <div className="h2">{title}</div>
+              </div>
+            </div>
+            <div className="detail reveal is-visible">
+              {cover ? (
+                <OrgChartFigure src={cover} title={title} />
+              ) : (
+                <div className="body"><p>组织架构图待补充，请稍后查看。</p></div>
+              )}
+              {orgChart?.content ? <div className="body" dangerouslySetInnerHTML={{ __html: orgChart.content }} /> : null}
+              <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                <a className="btn" href="/org" data-no-transition>查看下属公司</a>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </Shell>
   );
@@ -500,7 +559,7 @@ export async function CompanyDetailPage({ slug }: { slug: string }) {
 
   return (
     <Shell active="about" actionHref="/org" actionLabel="返回公司列表">
-      <Breadcrumb title={title} />
+      <Breadcrumb title={title} parents={[{ title: '组织架构', href: '/organization' }, { title: '下属公司', href: '/org' }]} />
       <main className="page" aria-label="主要内容">
         <Hero title={title} kicker="COMPANY PROFILE" subtitle={intro} cover={company.cover} ctaHref="#profile" ctaLabel="查看详情" />
         <section className="section" id="profile" aria-label="公司详情">
@@ -510,9 +569,9 @@ export async function CompanyDetailPage({ slug }: { slug: string }) {
               <div className="meta">简称：{label}</div>
               <div className="body">
                 <p>{intro}</p>
-                {company.mainBusiness && !isPlaceholderText(company.mainBusiness) ? <p><b>主营业务：</b>{company.mainBusiness}</p> : null}
-                {company.address && !isPlaceholderText(company.address) ? <p><b>注册地址：</b>{company.address}</p> : null}
-                {company.registeredCapital && !isPlaceholderText(company.registeredCapital) ? <p><b>注册资本：</b>{company.registeredCapital}</p> : null}
+                {company.mainBusiness ? <p><b>主营业务：</b>{company.mainBusiness}</p> : null}
+                {company.address ? <p><b>注册地址：</b>{company.address}</p> : null}
+                {company.registeredCapital ? <p><b>注册资本：</b>{company.registeredCapital}</p> : null}
               </div>
               <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <a className="btn btn--primary" href="/org">返回公司列表</a>
