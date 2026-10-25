@@ -226,6 +226,32 @@ export const AdminApi = {
   setBusinessSectorEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/business-sectors/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
     method: 'PATCH',
   }),
+  downloadCategories: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/download-categories', params)),
+  downloadCategory: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/download-categories/${encodeURIComponent(id)}`, params)),
+  createDownloadCategory: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/download-categories', params), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateDownloadCategory: (id: string, payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/download-categories/${encodeURIComponent(id)}`, params), {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  setDownloadCategoryEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/download-categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
+    method: 'PATCH',
+  }),
+  downloads: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/downloads', params)),
+  download: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/downloads/${encodeURIComponent(id)}`, params)),
+  createDownload: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/downloads', params), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateDownload: (id: string, payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/downloads/${encodeURIComponent(id)}`, params), {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  setDownloadEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/downloads/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
+    method: 'PATCH',
+  }),
   pageModules: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/page-modules', params)),
   pageModulesGrouped: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/page-modules/grouped', params)),
   updatePageModule: (id: string, payload: unknown) => adminFetch(`/admin-api/page-modules/${encodeURIComponent(id)}`, {

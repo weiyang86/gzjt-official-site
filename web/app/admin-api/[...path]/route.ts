@@ -87,8 +87,13 @@ const businessSectorFields = 'id,name,slug,cover,intro,sort,status';
 const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const pageContentStatuses = new Set(['draft', 'published', 'archived']);
-const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'download_category', 'download']);
 const pageContentItemStatuses = new Set(['enabled', 'disabled']);
+const downloadCenterModuleCode = 'download-center';
+const downloadCategoryItemType = 'download_category';
+const downloadResourceItemType = 'download';
+const downloadItemFields = 'id,module_code,item_type,title,subtitle,content,link_url,sort,status,extra_json';
+const downloadFileFields = 'id,filename_download,filename_disk,type,filesize';
 const directusUserStatuses = new Set(['active', 'invited', 'draft', 'suspended', 'archived']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const allowedDocumentTypes = new Set([
@@ -405,8 +410,9 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'friend-links' || root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
   if (root === 'home-stats') return ['homeStats'];
   if (root === 'article-ownership') return ['articleOwnership'];
-  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
-  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content'];
+  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'downloads'];
+  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'downloads'];
+  if (root === 'downloads' || root === 'download-categories') return ['downloads'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items' || root === 'business-sectors') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   return ['dashboard'];
@@ -829,6 +835,147 @@ const normalizePageContentItemInput = (body: Record<string, unknown>, isCreate =
   if (isCreate) payload.module_code = moduleCode;
   if (!payload.title) throw Object.assign(new Error('title is required'), { status: 400 });
   return payload;
+};
+
+const downloadText = (value: unknown) => typeof value === 'string' ? value : '';
+const downloadExtra = (value: unknown): Record<string, unknown> => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+const readDownloadRows = async (itemType: string, token: string) => {
+  const result = await directusJsonRequest<{ data?: Array<Record<string, unknown>> }>(buildDirectusPath('/items/page_content_items', {
+    fields: downloadItemFields,
+    sort: 'sort,id',
+    limit: -1,
+    'filter[module_code][_eq]': downloadCenterModuleCode,
+    'filter[item_type][_eq]': itemType,
+  }), token);
+  return Array.isArray(result.data) ? result.data : [];
+};
+
+const getDownloadRecord = async (id: string, itemType: string, token: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(buildDirectusPath(`/items/page_content_items/${encodeURIComponent(id)}`, {
+    fields: downloadItemFields,
+  }), token);
+  const item = result.data;
+  if (!item || item.module_code !== downloadCenterModuleCode || item.item_type !== itemType) {
+    throw Object.assign(new Error('资料下载记录不存在。'), { status: 404 });
+  }
+  return item;
+};
+
+const getDownloadFile = async (fileId: string, token: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(buildDirectusPath(`/items/directus_files/${encodeURIComponent(fileId)}`, {
+    fields: downloadFileFields,
+  }), token);
+  const file = result.data;
+  if (!file?.id) throw Object.assign(new Error('附件不存在，请重新上传。'), { status: 400 });
+  return {
+    id: String(file.id),
+    filename: downloadText(file.filename_download) || downloadText(file.filename_disk) || '附件',
+    type: downloadText(file.type),
+    filesize: Number(file.filesize) || 0,
+  };
+};
+
+const mapDownloadCategory = (row: Record<string, unknown>) => ({
+  id: String(row.id ?? ''),
+  name: downloadText(row.title),
+  slug: downloadText(row.subtitle),
+  description: downloadText(row.content),
+  sort: Number(row.sort) || 0,
+  status: downloadText(row.status) || 'enabled',
+});
+
+const mapDownloadResource = (row: Record<string, unknown>) => {
+  const extra = downloadExtra(row.extra_json);
+  const fileId = downloadText(row.link_url);
+  return {
+    id: String(row.id ?? ''),
+    name: downloadText(row.title),
+    description: downloadText(row.content),
+    categorySlug: downloadText(row.subtitle),
+    fileId,
+    fileUrl: fileId ? `/api/public/cms/assets/${encodeURIComponent(fileId)}` : '',
+    filename: downloadText(extra.filename) || downloadText(row.title) || '附件',
+    filesize: Number(extra.filesize) || 0,
+    fileType: downloadText(extra.fileType) || downloadText(extra.file_type),
+    sort: Number(row.sort) || 0,
+    status: downloadText(row.status) || 'enabled',
+  };
+};
+
+const normalizeDownloadCategoryInput = (body: Record<string, unknown>) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!name) throw Object.assign(new Error('资料分类名称不能为空。'), { status: 400 });
+  if (!slug) throw Object.assign(new Error('资料分类标识不能为空。'), { status: 400 });
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    throw Object.assign(new Error('资料分类标识只能使用小写字母、数字和连字符。'), { status: 400 });
+  }
+  return {
+    module_code: downloadCenterModuleCode,
+    item_type: downloadCategoryItemType,
+    title: name,
+    subtitle: slug,
+    content: typeof body.description === 'string' ? body.description.trim() : '',
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status: typeof body.status === 'string' && pageContentItemStatuses.has(body.status) ? body.status : 'enabled',
+  };
+};
+
+const normalizeDownloadResourceInput = async (body: Record<string, unknown>, token: string, existing?: Record<string, unknown>) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const categorySlug = typeof body.category_slug === 'string'
+    ? body.category_slug.trim()
+    : typeof body.categorySlug === 'string'
+      ? body.categorySlug.trim()
+      : '';
+  if (!name) throw Object.assign(new Error('资料名称不能为空。'), { status: 400 });
+  if (!categorySlug) throw Object.assign(new Error('请选择资料分类。'), { status: 400 });
+
+  const rawFileId = typeof body.file_id === 'string'
+    ? body.file_id.trim()
+    : typeof body.fileId === 'string'
+      ? body.fileId.trim()
+      : '';
+  const fileId = rawFileId || downloadText(existing?.link_url);
+  if (!fileId) throw Object.assign(new Error('请上传资料附件。'), { status: 400 });
+  const file = await getDownloadFile(fileId, token);
+  const previousExtra = downloadExtra(existing?.extra_json);
+
+  return {
+    module_code: downloadCenterModuleCode,
+    item_type: downloadResourceItemType,
+    title: name,
+    subtitle: categorySlug,
+    content: typeof body.description === 'string' ? body.description.trim() : '',
+    link_url: fileId,
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status: typeof body.status === 'string' && pageContentItemStatuses.has(body.status) ? body.status : 'enabled',
+    extra_json: {
+      ...previousExtra,
+      filename: file.filename,
+      filesize: file.filesize,
+      fileType: file.type,
+    },
+  };
+};
+
+const assertDownloadCategoryExists = async (slug: string, token: string) => {
+  const categories = await readDownloadRows(downloadCategoryItemType, token);
+  const found = categories.find((row) => downloadText(row.subtitle) === slug);
+  if (!found) throw Object.assign(new Error('所选资料分类不存在，请刷新后重试。'), { status: 400 });
+  return found;
 };
 
 const getArticleDetailPath = (id: string) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
@@ -1619,6 +1766,148 @@ const handleLocalBusinessSectorRoute = async (request: NextRequest, path: string
   return null;
 };
 
+const handleLocalDownloadCategoryList = async (request: NextRequest) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = session.accessToken;
+
+  if (request.method === 'GET') {
+    const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim().toLowerCase();
+    const status = (request.nextUrl.searchParams.get('status') || '').trim();
+    const rows = await readDownloadRows(downloadCategoryItemType, token);
+    const data = rows
+      .map(mapDownloadCategory)
+      .filter((item) => (!status || item.status === status)
+        && (!keyword || `${item.name} ${item.slug} ${item.description}`.toLowerCase().includes(keyword)))
+      .sort((left, right) => (left.sort - right.sort) || left.id.localeCompare(right.id));
+    return NextResponse.json({ data });
+  }
+
+  if (request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeDownloadCategoryInput(body);
+    const rows = await readDownloadRows(downloadCategoryItemType, token);
+    if (rows.some((row) => downloadText(row.subtitle) === payload.subtitle)) {
+      throw Object.assign(new Error('资料分类标识已存在，请更换后再保存。'), { status: 409 });
+    }
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>('/items/page_content_items', token, 'POST', payload);
+    return NextResponse.json({ data: mapDownloadCategory(result.data || payload) }, { status: 201 });
+  }
+
+  return null;
+};
+
+const handleLocalDownloadCategoryRoute = async (request: NextRequest, path: string[]) => {
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const action = path[2] || '';
+  if (!id) return null;
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = session.accessToken;
+
+  if (!action && request.method === 'GET') {
+    const item = await getDownloadRecord(id, downloadCategoryItemType, token);
+    return NextResponse.json({ data: mapDownloadCategory(item) });
+  }
+
+  if (!action && request.method === 'PATCH') {
+    const existing = await getDownloadRecord(id, downloadCategoryItemType, token);
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeDownloadCategoryInput(body);
+    const rows = await readDownloadRows(downloadCategoryItemType, token);
+    if (rows.some((row) => row.id !== id && downloadText(row.subtitle) === payload.subtitle)) {
+      throw Object.assign(new Error('资料分类标识已存在，请更换后再保存。'), { status: 409 });
+    }
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+
+    const previousSlug = downloadText(existing.subtitle);
+    if (previousSlug && previousSlug !== payload.subtitle) {
+      const resources = await readDownloadRows(downloadResourceItemType, token);
+      const affected = resources.filter((row) => downloadText(row.subtitle) === previousSlug);
+      for (const row of affected) {
+        await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(String(row.id))}`, token, 'PATCH', {
+          subtitle: payload.subtitle,
+        });
+      }
+    }
+
+    return NextResponse.json({ data: mapDownloadCategory(result.data || { ...existing, ...payload }) });
+  }
+
+  if ((action === 'enable' || action === 'disable') && request.method === 'PATCH') {
+    await getDownloadRecord(id, downloadCategoryItemType, token);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'PATCH', {
+      status: action === 'enable' ? 'enabled' : 'disabled',
+    });
+    return NextResponse.json({ data: mapDownloadCategory(result.data || { id }) });
+  }
+
+  return null;
+};
+
+const handleLocalDownloadList = async (request: NextRequest) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = session.accessToken;
+
+  if (request.method === 'GET') {
+    const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim().toLowerCase();
+    const status = (request.nextUrl.searchParams.get('status') || '').trim();
+    const categorySlug = (request.nextUrl.searchParams.get('category_slug') || '').trim();
+    const rows = await readDownloadRows(downloadResourceItemType, token);
+    const data = rows
+      .map(mapDownloadResource)
+      .filter((item) => (!status || item.status === status)
+        && (!categorySlug || item.categorySlug === categorySlug)
+        && (!keyword || `${item.name} ${item.description} ${item.filename} ${item.categorySlug}`.toLowerCase().includes(keyword)))
+      .sort((left, right) => (left.sort - right.sort) || left.id.localeCompare(right.id));
+    return NextResponse.json({ data });
+  }
+
+  if (request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = await normalizeDownloadResourceInput(body, token);
+    await assertDownloadCategoryExists(payload.subtitle, token);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>('/items/page_content_items', token, 'POST', payload);
+    return NextResponse.json({ data: mapDownloadResource(result.data || payload) }, { status: 201 });
+  }
+
+  return null;
+};
+
+const handleLocalDownloadRoute = async (request: NextRequest, path: string[]) => {
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const action = path[2] || '';
+  if (!id) return null;
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = session.accessToken;
+
+  if (!action && request.method === 'GET') {
+    const item = await getDownloadRecord(id, downloadResourceItemType, token);
+    return NextResponse.json({ data: mapDownloadResource(item) });
+  }
+
+  if (!action && request.method === 'PATCH') {
+    const existing = await getDownloadRecord(id, downloadResourceItemType, token);
+    const body = await request.json() as Record<string, unknown>;
+    const payload = await normalizeDownloadResourceInput(body, token, existing);
+    await assertDownloadCategoryExists(payload.subtitle, token);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+    return NextResponse.json({ data: mapDownloadResource(result.data || { ...existing, ...payload }) });
+  }
+
+  if ((action === 'enable' || action === 'disable') && request.method === 'PATCH') {
+    await getDownloadRecord(id, downloadResourceItemType, token);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'PATCH', {
+      status: action === 'enable' ? 'enabled' : 'disabled',
+    });
+    return NextResponse.json({ data: mapDownloadResource(result.data || { id }) });
+  }
+
+  return null;
+};
+
 const handleLocalPageModuleList = async (request: NextRequest, grouped = false) => {
   if (request.method !== 'GET') return null;
   const { session, response } = requireSession(request);
@@ -1966,6 +2255,10 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'categories') return await handleLocalCategoryRoute(request, path);
     if (route === 'business-sectors') return await handleLocalBusinessSectorList(request);
     if (path[0] === 'business-sectors') return await handleLocalBusinessSectorRoute(request, path);
+    if (route === 'download-categories') return await handleLocalDownloadCategoryList(request);
+    if (path[0] === 'download-categories') return await handleLocalDownloadCategoryRoute(request, path);
+    if (route === 'downloads') return await handleLocalDownloadList(request);
+    if (path[0] === 'downloads') return await handleLocalDownloadRoute(request, path);
     if (route === 'page-modules') return await handleLocalPageModuleList(request);
     if (route === 'page-modules/grouped') return await handleLocalPageModuleList(request, true);
     if (path[0] === 'page-modules') return await handleLocalPageModuleRoute(request, path);

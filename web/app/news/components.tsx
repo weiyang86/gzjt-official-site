@@ -4,7 +4,7 @@ import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks } from '
 import type { Channel } from '@/types/cms';
 import NavigationActiveState from './NavigationActiveState';
 
-export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
+export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact' | 'downloads';
 
 const channelHref = (channel: Channel, includeChildren = false) => {
   let href = '';
@@ -27,6 +27,7 @@ const navKeyByChannelName: Record<string, NavKey> = {
   '廉洁建设': 'cleanGov',
   '廉洁建投': 'cleanGov',
   '社会责任': 'responsibility',
+  '资料下载': 'downloads',
   '联系我们': 'contact',
 };
 

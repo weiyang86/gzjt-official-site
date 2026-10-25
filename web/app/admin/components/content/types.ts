@@ -67,5 +67,8 @@ export type BusinessSectorAdminItem = {
 export type UploadPayload = {
   id?: string;
   filename?: string;
+  type?: string;
+  filesize?: number;
   preview_url?: string;
+  asset_url?: string;
 };

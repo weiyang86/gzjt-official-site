@@ -170,7 +170,7 @@ async function loadCompany(slug: string) {
   }
 }
 
-function Hero({ title, kicker, subtitle, cover, ctaHref = '#content', ctaLabel = '查看内容', stats = defaultHeroStats }: {
+export function Hero({ title, kicker, subtitle, cover, ctaHref = '#content', ctaLabel = '查看内容', stats = defaultHeroStats }: {
   title: string;
   kicker: string;
   subtitle: string;
@@ -206,7 +206,7 @@ function Hero({ title, kicker, subtitle, cover, ctaHref = '#content', ctaLabel =
   );
 }
 
-function Shell({ active, children, actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云' }: {
+export function Shell({ active, children, actionHref = 'https://gjy.gzjtjt.cn/', actionLabel = '甘建云' }: {
   active: ActiveKey;
   children: ReactNode;
   actionHref?: string;
@@ -223,7 +223,7 @@ function Shell({ active, children, actionHref = 'https://gjy.gzjtjt.cn/', action
   );
 }
 
-function Breadcrumb({ title }: { title: string }) {
+export function Breadcrumb({ title }: { title: string }) {
   return (
     <div className="breadcrumb" aria-label="面包屑导航">
       <div className="content">

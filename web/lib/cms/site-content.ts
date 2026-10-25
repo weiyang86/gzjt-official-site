@@ -1,7 +1,23 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
-import type { BusinessSector, Company, DirectusListResponse, PageContent } from '@/types/cms';
+import type { BusinessSector, Company, DirectusListResponse, DownloadCategory, DownloadCenterData, DownloadResource, PageContent } from '@/types/cms';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
+const downloadCenterModuleCode = 'download-center';
+const downloadCategoryItemType = 'download_category';
+const downloadResourceItemType = 'download';
+
+const toExtraJson = (value: unknown): Record<string, unknown> => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
 
 const mapCompany = (item: Record<string, unknown>): Company => ({
   id: String(item.id ?? ''),
@@ -53,6 +69,72 @@ export async function getPublicBusinessSectors() {
     description: toText(item.intro),
     status: toText(item.status) as BusinessSector['status'],
   }));
+}
+
+export async function getPublicDownloadCenter(): Promise<DownloadCenterData> {
+  const [categoryResponse, resourceResponse] = await Promise.all([
+    cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+      'filter[module_code][_eq]': downloadCenterModuleCode,
+      'filter[item_type][_eq]': downloadCategoryItemType,
+      'filter[status][_eq]': 'enabled',
+      sort: 'sort,id',
+      limit: -1,
+      fields: 'id,module_code,item_type,title,subtitle,content,sort,status',
+    }), { cache: 'no-store', next: { revalidate: false } }),
+    cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+      'filter[module_code][_eq]': downloadCenterModuleCode,
+      'filter[item_type][_eq]': downloadResourceItemType,
+      'filter[status][_eq]': 'enabled',
+      sort: 'sort,id',
+      limit: -1,
+      fields: 'id,module_code,item_type,title,subtitle,content,link_url,sort,status,extra_json',
+    }), { cache: 'no-store', next: { revalidate: false } }),
+  ]);
+
+  const categories = (categoryResponse.data || [])
+    .map((item): DownloadCategory => ({
+      id: String(item.id ?? ''),
+      name: toText(item.title),
+      slug: toText(item.subtitle),
+      description: toText(item.content),
+      sort: Number(item.sort) || 0,
+      status: toText(item.status) || 'enabled',
+    }))
+    .filter((item) => item.id && item.name && item.slug)
+    .sort((left, right) => (Number(left.sort) - Number(right.sort)) || left.id.localeCompare(right.id));
+
+  const categoryBySlug = new Map(categories.map((item) => [item.slug, item]));
+  const resources = (resourceResponse.data || [])
+    .map((item): DownloadResource => {
+      const extra = toExtraJson(item.extra_json);
+      const categorySlug = toText(item.subtitle);
+      const fileId = toText(item.link_url);
+      return {
+        id: String(item.id ?? ''),
+        name: toText(item.title),
+        description: toText(item.content),
+        categorySlug,
+        categoryName: categoryBySlug.get(categorySlug)?.name || '',
+        fileId,
+        fileUrl: buildDirectusAssetUrl(fileId),
+        filename: toText(extra.filename) || toText(item.title) || '附件',
+        filesize: Number(extra.filesize) || 0,
+        fileType: toText(extra.fileType) || toText(extra.file_type),
+        sort: Number(item.sort) || 0,
+        status: toText(item.status) || 'enabled',
+      };
+    })
+    // 分类停用或资料指向无效分类时，前台不展示，避免出现无归属资料。
+    .filter((item) => Boolean(item.id && item.name && item.categorySlug && categoryBySlug.has(item.categorySlug)))
+    .sort((left, right) => {
+      const leftCategorySort = categoryBySlug.get(left.categorySlug)?.sort || 0;
+      const rightCategorySort = categoryBySlug.get(right.categorySlug)?.sort || 0;
+      return (Number(leftCategorySort) - Number(rightCategorySort))
+        || (Number(left.sort) - Number(right.sort))
+        || left.id.localeCompare(right.id);
+    });
+
+  return { categories, resources };
 }
 
 export async function getPublicPageBySlug(slug: string) {
