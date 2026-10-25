@@ -1,4 +1,6 @@
+import type { Metadata } from 'next';
 import { getPublicArticles, getPublicChannels } from '@/lib/cms';
+import { buildSeoMetadata } from '@/lib/cms/seo';
 import { Drawer, Footer, Header, NewsAssets } from '../news/components';
 import type { Channel, PublicArticleListPayload } from '@/types/cms';
 
@@ -77,6 +79,12 @@ async function loadNotices(searchParams: URLSearchParams) {
       error: error instanceof Error ? error.message : '公示公告数据加载失败',
     };
   }
+}
+
+export async function generateMetadata({ searchParams }: DisclosurePageProps): Promise<Metadata> {
+  const rawSearchParams = await searchParams;
+  const keyword = getFirst(rawSearchParams.keyword) || '';
+  return buildSeoMetadata({ path: '/disclosure', noIndex: Boolean(keyword) });
 }
 
 function Tabs({ channels, active, keyword }: { channels: Channel[]; active: string; keyword: string }) {

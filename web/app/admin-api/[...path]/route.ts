@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { allAdminMenuKeys, adminMenuItems, menuKeysWithDashboard, type AdminMenuKey } from '@/lib/admin/menu-permissions';
 import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from '@/lib/admin/sso';
 import { createArticlePreviewPath } from '@/lib/preview/article-preview';
+import { normalizeSeoConfig, seoConfigModuleCode } from '@/lib/seo/pages';
 import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset, loginTrustedUser } from '@/lib/cms/api-store';
 
 export const dynamic = 'force-dynamic';
@@ -401,6 +402,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'navigation') return ['navigation'];
   if (root === 'quick-links') return ['quickLinks'];
   if (root === 'friend-links' || root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
+  if (root === 'seo-settings') return ['seo'];
   if (root === 'home-stats') return ['homeStats'];
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
@@ -1617,6 +1619,67 @@ const handleLocalPageContentRoute = async (request: NextRequest, path: string[])
   return null;
 };
 
+const handleLocalSeoSettings = async (request: NextRequest) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+
+  if (request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: unknown[] }>(buildDirectusPath('/items/page_contents', {
+      fields: 'id,module_code,extra_json,status',
+      limit: 1,
+      'filter[module_code][_eq]': seoConfigModuleCode,
+    }), session.accessToken);
+    const item = Array.isArray(result.data) ? result.data[0] as Record<string, unknown> | undefined : undefined;
+    let extra: unknown = item?.extra_json;
+    if (typeof extra === 'string') {
+      try {
+        extra = JSON.parse(extra);
+      } catch {
+        extra = {};
+      }
+    }
+    return NextResponse.json({
+      data: {
+        config: normalizeSeoConfig(extra),
+        status: typeof item?.status === 'string' ? item.status : 'draft',
+        has_content: Boolean(item?.id),
+      },
+    });
+  }
+
+  if (request.method === 'PUT') {
+    const body = await request.json() as Record<string, unknown>;
+    let rawConfig: unknown = body.config ?? body.extra_json ?? body;
+    if (typeof rawConfig === 'string') {
+      try {
+        rawConfig = JSON.parse(rawConfig);
+      } catch {
+        throw Object.assign(new Error('SEO 配置格式不正确'), { status: 400 });
+      }
+    }
+    const config = normalizeSeoConfig(rawConfig);
+    const status = typeof body.status === 'string' && pageContentStatuses.has(body.status) ? body.status : 'published';
+    const payload = {
+      module_code: seoConfigModuleCode,
+      title: 'SEO 设置',
+      subtitle: '',
+      cover: null,
+      summary: '',
+      content: '',
+      extra_json: { seo: config },
+      status,
+    };
+    const existing = await directusJsonRequest<{ data?: Array<{ id?: string }> }>(getPageContentPath(seoConfigModuleCode), session.accessToken);
+    const found = Array.isArray(existing.data) ? existing.data[0] : null;
+    const result = found?.id
+      ? await directusJsonRequest<{ data?: unknown }>(`/items/page_contents/${encodeURIComponent(found.id)}`, session.accessToken, 'PATCH', payload)
+      : await directusJsonRequest<{ data?: unknown }>('/items/page_contents', session.accessToken, 'POST', payload);
+    return NextResponse.json({ data: { config, status } }, { status: found?.id ? 200 : 201 });
+  }
+
+  return null;
+};
+
 const handleLocalPageContentItemsList = async (request: NextRequest) => {
   const { session, response } = requireSession(request);
   if (!session) return response;
@@ -1860,6 +1923,7 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'home-stats') return await handleLocalHomeStats(request, path);
     if (path[0] === 'friend-links') return await handleLocalFriendLinks(request, path);
     if (path[0] === 'site-settings') return await handleLocalSiteSettings(request);
+    if (path[0] === 'seo-settings') return await handleLocalSeoSettings(request);
     if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);
     if (path[0] === 'articles') return await handleLocalArticleRoute(request, path);

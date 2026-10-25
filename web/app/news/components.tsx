@@ -105,6 +105,7 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
               })}
             </nav>
             <div className="header-actions">
+              <a className="btn" href="/search" aria-label="站内搜索">搜索</a>
               <a
                 className="btn btn--primary"
                 href={actionHref}
@@ -136,6 +137,7 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
           <a href={_props.homeHref || '/home'} className={_props.active === 'home' ? 'is-active' : undefined} aria-current={_props.active === 'home' ? 'page' : undefined} data-nav-key="home" data-no-transition>首页</a>
+          <a href="/search">站内搜索</a>
           {navigation.roots.map((item) => {
             const dropdownItems = item.slug === 'contact-us-nav' ? [] : navigation.children(item.id);
             return (

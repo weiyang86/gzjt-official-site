@@ -1,6 +1,8 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getFallbackNewsPayload, fallbackNewsArticles } from '@/lib/cms/fallback-news';
 import { getPublicArticleById, getPublicArticles } from '@/lib/cms';
+import { buildSeoMetadata } from '@/lib/cms/seo';
 import { isNoticeChannel } from '@/lib/cms/channels';
 import { Drawer, Footer, Header, NewsAssets } from '../components';
 import type { Article } from '@/types/cms';
@@ -46,6 +48,27 @@ function labelFor(article: Article) {
   const channel = article.mainChannel || article.main_channel;
   const defaultLabel = getArticleScope(article) === 'notice' ? '公示公告' : '新闻中心';
   return article.newsSubcategory ? `${channel?.name || defaultLabel} · ${article.newsSubcategory}` : channel?.name || defaultLabel;
+}
+
+const stripHtml = (value: string) => value.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+
+export async function generateMetadata({ params }: DetailPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const article = await getPublicArticleById(id).catch(() => null);
+  if (!article) {
+    return buildSeoMetadata({ path: `/news/${id}`, title: '内容未找到', noIndex: true });
+  }
+  const channel = article.mainChannel || article.main_channel;
+  const description = article.summary || stripHtml(article.content || '').slice(0, 160);
+  const keywords = [channel?.name, '甘孜州建设投资集团', article.newsSubcategory].filter(Boolean).join(',');
+  return buildSeoMetadata({
+    path: `/news/${id}`,
+    title: article.title,
+    description,
+    keywords,
+    image: article.cover,
+    type: 'article',
+  });
 }
 
 export default async function NewsDetailPage({ params }: DetailPageProps) {

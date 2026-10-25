@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { fallbackNewsChannels, getFallbackNewsPayload } from '@/lib/cms/fallback-news';
 import { getPublicArticles, getPublicChannels, isNewsChannel } from '@/lib/cms';
+import { buildSeoMetadata } from '@/lib/cms/seo';
 import { Drawer, Footer, Header, NewsAssets } from './components';
 import type { Article, Channel, PublicArticleListPayload } from '@/types/cms';
 
@@ -52,6 +54,12 @@ const buildHref = (params: { channel?: string; channelRoot?: string; keyword?: s
   const query = search.toString();
   return query ? `/news?${query}` : '/news';
 };
+
+export async function generateMetadata({ searchParams }: NewsPageProps): Promise<Metadata> {
+  const rawSearchParams = await searchParams;
+  const keyword = getFirst(rawSearchParams.keyword) || '';
+  return buildSeoMetadata({ path: '/news', noIndex: Boolean(keyword) });
+}
 
 const getChannelLabel = (item: Article) => {
   const channel = item.mainChannel || item.main_channel;
