@@ -107,6 +107,10 @@ const topicModulePrefix = 'topic-';
 const topicArticleItemType = 'article';
 const topicFields = 'id,module_code,title,subtitle,cover,summary,content,extra_json,status';
 const topicStatuses = new Set(['draft', 'published', 'archived']);
+const projectModuleCode = 'project-list';
+const projectItemType = 'project';
+const projectFields = 'id,module_code,item_type,title,subtitle,image,content,sort,status,extra_json';
+const projectStatuses = new Set(['enabled', 'disabled']);
 
 const globalForAdminSessions = globalThis as typeof globalThis & {
   __gzjtAdminSessions?: Map<string, AdminSession>;
@@ -405,8 +409,9 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'navigation') return ['navigation'];
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'topics') return ['topics'];
-  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics'];
-  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics'];
+  if (root === 'projects') return ['projects'];
+  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics', 'projects'];
+  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics', 'projects'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   if (root === 'companies') return ['content'];
@@ -1943,6 +1948,124 @@ const handleLocalTopicArticles = async (request: NextRequest, path: string[]) =>
   return null;
 };
 
+const mapProjectRow = (row: Record<string, unknown>) => {
+  const extra = readJsonObject(row.extra_json);
+  const coordinate = (value: unknown) => {
+    if (value === '' || value === null || value === undefined) return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
+  return {
+    id: String(row.id || ''),
+    name: String(row.title || ''),
+    type: String(row.subtitle || ''),
+    location: String(extra.location || ''),
+    summary: String(extra.summary || ''),
+    progress: String(extra.progress || ''),
+    image: String(row.image || ''),
+    detail: String(row.content || ''),
+    map_x: coordinate(extra.map_x),
+    map_y: coordinate(extra.map_y),
+    sort: Number(row.sort) || 0,
+    status: String(row.status || 'enabled'),
+  };
+};
+
+const normalizeProjectCoordinate = (value: unknown) => {
+  if (value === '' || value === null || value === undefined) return '';
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw Object.assign(new Error('地图坐标必须是 0 到 100 之间的数值'), { status: 400 });
+  }
+  return Number(number.toFixed(2));
+};
+
+const normalizeProjectInput = (body: Record<string, unknown>, isCreate = false) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name) throw Object.assign(new Error('项目名称不能为空'), { status: 400 });
+  if (name.length > 100) throw Object.assign(new Error('项目名称不能超过 100 个字符'), { status: 400 });
+  const rawSort = Number(body.sort);
+  const sort = Number.isFinite(rawSort) ? Math.max(0, Math.trunc(rawSort)) : 0;
+  const status = typeof body.status === 'string' && projectStatuses.has(body.status) ? body.status : 'enabled';
+  const text = (value: unknown, max: number, label: string) => {
+    const result = typeof value === 'string' ? value.trim() : '';
+    if (result.length > max) throw Object.assign(new Error(`${label}不能超过 ${max} 个字符`), { status: 400 });
+    return result;
+  };
+  return {
+    ...(isCreate ? { module_code: projectModuleCode, item_type: projectItemType } : {}),
+    title: name,
+    subtitle: text(body.type, 50, '项目类型'),
+    image: typeof body.image === 'string' && body.image.trim() ? body.image.trim() : null,
+    content: typeof body.detail === 'string' ? body.detail : '',
+    sort,
+    status,
+    extra_json: {
+      location: text(body.location, 100, '项目位置'),
+      summary: text(body.summary, 500, '项目简介'),
+      progress: text(body.progress, 50, '建设进度'),
+      map_x: normalizeProjectCoordinate(body.map_x),
+      map_y: normalizeProjectCoordinate(body.map_y),
+    },
+  };
+};
+
+const getProjectRow = async (token: string, id: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+    buildDirectusPath(`/items/page_content_items/${encodeURIComponent(id)}`, { fields: projectFields }),
+    token,
+  );
+  const row = result.data || null;
+  if (!row || String(row.module_code || '') !== projectModuleCode || String(row.item_type || '') !== projectItemType) {
+    throw Object.assign(new Error('项目不存在'), { status: 404 });
+  }
+  return row;
+};
+
+const handleLocalProjects = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+
+  if (!id && request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+      buildDirectusPath('/items/page_content_items', {
+        fields: projectFields,
+        limit: -1,
+        sort: 'sort,id',
+        'filter[module_code][_eq]': projectModuleCode,
+        'filter[item_type][_eq]': projectItemType,
+      }),
+      session.accessToken,
+    );
+    return NextResponse.json({ data: (result.data || []).map(mapProjectRow) });
+  }
+
+  if (!id && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeProjectInput(body, true);
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>('/items/page_content_items', session.accessToken, 'POST', payload);
+    return NextResponse.json({ data: mapProjectRow(result.data || {}) }, { status: 201 });
+  }
+
+  if (id && request.method === 'PATCH') {
+    const existing = await getProjectRow(session.accessToken, id);
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeProjectInput(body);
+    // 合并原有扩展字段，避免历史项目数据在保存后丢失未展示的信息。
+    payload.extra_json = { ...readJsonObject(existing.extra_json), ...payload.extra_json };
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+      `/items/page_content_items/${encodeURIComponent(id)}`,
+      session.accessToken,
+      'PATCH',
+      payload,
+    );
+    return NextResponse.json({ data: mapProjectRow(result.data || {}) });
+  }
+
+  return null;
+};
+
 const handleLocalAsset = async (request: NextRequest, path: string[]) => {
   const id = path[1] ? decodeURIComponent(path[1]) : '';
   if (!id || request.method !== 'GET') return null;
@@ -2148,6 +2271,7 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
       if (path[2] === 'articles') return await handleLocalTopicArticles(request, path);
       return await handleLocalTopics(request, path);
     }
+    if (path[0] === 'projects') return await handleLocalProjects(request, path);
     if (path[0] === 'companies') return await handleLocalCompanies(request, path);
     if (route === 'files') return await handleLocalFileUpload(request);
     if (route === 'categories') return await handleLocalCategoryList(request);

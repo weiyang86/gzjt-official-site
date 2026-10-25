@@ -104,6 +104,21 @@ export interface Company {
   status?: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  summary: string;
+  progress: string;
+  image?: string;
+  detail: string;
+  mapX?: number;
+  mapY?: number;
+  sort: number;
+  status: string;
+}
+
 export interface PageContent {
   id: string;
   title: string;

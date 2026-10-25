@@ -37,7 +37,7 @@ const toAssetValue = (value: unknown) => {
   return '';
 };
 
-const normalizeRichTextAssetUrls = (html: string) => {
+export const normalizeRichTextAssetUrls = (html: string) => {
   if (!html) return '';
 
   const rewriteUrl = (value: string) => normalizePublicAssetUrl(value) || value;

@@ -62,6 +62,21 @@ export type AdminTopicCandidate = {
   cover?: string;
 };
 
+export type AdminProject = {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  summary: string;
+  progress: string;
+  image?: string;
+  detail: string;
+  map_x?: number | null;
+  map_y?: number | null;
+  sort: number;
+  status: string;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -191,6 +206,15 @@ export const AdminApi = {
   updateCompany: (id: string, payload: unknown) => adminFetch(`/admin-api/companies/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteCompany: (id: string) => adminFetch(`/admin-api/companies/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   topics: () => adminFetch<AdminTopic[]>('/admin-api/topics'),
+  projects: () => adminFetch<AdminProject[]>('/admin-api/projects'),
+  createProject: (payload: unknown) => adminFetch<AdminProject>('/admin-api/projects', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateProject: (id: string, payload: unknown) => adminFetch<AdminProject>(`/admin-api/projects/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
   topic: (id: string) => adminFetch<AdminTopic>(`/admin-api/topics/${encodeURIComponent(id)}`),
   createTopic: (payload: unknown) => adminFetch<AdminTopic>('/admin-api/topics', { method: 'POST', body: JSON.stringify(payload) }),
   updateTopic: (id: string, payload: unknown) => adminFetch<AdminTopic>(`/admin-api/topics/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
