@@ -28,9 +28,26 @@ const navKeyByChannelName: Record<string, NavKey> = {
   '联系我们': 'contact',
 };
 
+const ensureTrainingNavigation = (channels: Channel[]) => {
+  if (channels.some((channel) => channel.slug === 'party-training' || channel.path === '/party/training')) return channels;
+  const partyMass = channels.find((channel) => channel.slug === 'party-mass' && !channel.parent);
+  if (!partyMass) return channels;
+  return [...channels, {
+    id: 'training-resources-nav',
+    name: '培训资源',
+    slug: 'party-training',
+    parent: partyMass.id,
+    type: 'link',
+    path: '/party/training',
+    sort: 99,
+    status: 'enabled',
+    visible: true,
+  }];
+};
+
 const getDynamicNavigation = async () => {
   try {
-    const channels = (await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false);
+    const channels = ensureTrainingNavigation((await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false));
     const ids = new Set(channels.map((channel) => channel.id));
     const roots = channels.filter((channel) => !channel.parent || !ids.has(channel.parent));
     const children = (parentId: string) => channels.filter((channel) => channel.parent === parentId);
