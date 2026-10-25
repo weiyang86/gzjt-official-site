@@ -46,7 +46,7 @@ const extractLegacyHome = () => {
     .replace(/<template\s+data-home-single-screen\s*>/i, '')
     .replace(/<\/template>/i, '');
 
-  // 首页只保留导航文档要求的轮播、新闻、文化/专题和联系信息；
+  // 首页只保留轮播、新闻和联系信息；
   // 旧版中其余硬编码统计、项目及历程内容不是 CMS 数据，避免误展示。
   for (const sectionId of ['data', 'business', 'projects', 'timeline']) {
     const sectionStart = new RegExp(`<section\\b(?=[^>]*\\bid=["']${sectionId}["'])[^>]*>`, 'i').exec(visibleBody);

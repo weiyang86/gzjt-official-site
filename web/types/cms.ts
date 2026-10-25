@@ -62,6 +62,33 @@ export interface PublicArticleListPayload {
   items: Article[];
 }
 
+export interface Topic {
+  id: string;
+  slug: string;
+  moduleCode: string;
+  title: string;
+  subtitle?: string;
+  cover?: string;
+  summary?: string;
+  content?: string;
+  status: ArticleStatus;
+  sort: number;
+  articleCount?: number;
+}
+
+export interface TopicArticle {
+  id: string;
+  articleId: string;
+  title: string;
+  summary?: string;
+  status?: string;
+  publishAt?: string;
+  cover?: string;
+  sort: number;
+  itemStatus: 'enabled' | 'disabled';
+  missing?: boolean;
+}
+
 export interface Company {
   id: string;
   name: string;

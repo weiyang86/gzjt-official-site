@@ -113,6 +113,22 @@ const mapPublicArticleSummary = (item: Record<string, unknown>, channelMap = new
   };
 };
 
+export async function getPublicArticlesByIds(ids: string[]): Promise<Article[]> {
+  const uniqueIds = Array.from(new Set(ids.map((item) => String(item || '').trim()).filter(Boolean)));
+  if (!uniqueIds.length) return [];
+
+  const allChannels = await getPublicChannels();
+  const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
+  const articles = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/articles', {
+    fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,main_channel.id,main_channel.name,main_channel.slug',
+    limit: -1,
+    'filter[id][_in]': uniqueIds.join(','),
+    'filter[status][_eq]': 'published',
+  }), realtimeCmsInit);
+
+  return (Array.isArray(articles?.data) ? articles.data : []).map((item) => mapPublicArticleSummary(item, channelMap));
+}
+
 const getScope = (searchParams: URLSearchParams): PublicScope => {
   const type = (searchParams.get('type') || '').trim();
   const scope = (searchParams.get('scope') || '').trim();

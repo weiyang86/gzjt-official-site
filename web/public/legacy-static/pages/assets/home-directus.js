@@ -44,10 +44,25 @@
   }
 
   const renderBanner = async () => {
-    const payload = await fetchJson('/api/public/cms/articles?limit=5&fallback=none')
+    const [payload, topicPayload] = await Promise.all([
+      fetchJson('/api/public/cms/articles?limit=5&fallback=none'),
+      fetchJson('/api/public/cms/topics'),
+    ])
     const articles = Array.isArray(payload?.items) ? payload.items.slice(0, 5) : []
-    if (!articles.length) return
-    const banners = articles.map((article) => {
+    const topics = Array.isArray(topicPayload)
+      ? topicPayload.filter((topic) => topic && topic.slug && topic.title).slice(0, 2)
+      : []
+    const topicBanners = topics.map((topic) => {
+      const topicSummary = String(topic.summary || topic.subtitle || '').trim()
+      return {
+        image: String(topic.cover || '').trim() || '/img/index_bg.png',
+        title: String(topic.title || '').trim(),
+        subtitle: topicSummary ? `专题 · ${topicSummary}` : `专题 · ${Number(topic.articleCount || 0)} 篇内容`,
+        linkUrl: `/topics/${encodeURIComponent(String(topic.slug))}`,
+        linkLabel: '查看专题',
+      }
+    })
+    const articleBanners = articles.map((article) => {
       const channelName = String(article.mainChannel?.name || '').trim()
       const publishDate = String(article.publishDate || '').trim()
       return {
@@ -57,8 +72,11 @@
           || String(article.summary || '').trim()
           || [channelName, publishDate].filter(Boolean).join(' · '),
         linkUrl: detailUrl(article.id),
+        linkLabel: '浏览新闻',
       }
     })
+    const banners = [...topicBanners, ...articleBanners].slice(0, 7)
+    if (!banners.length) return
     const hero = document.querySelector('[data-home-banners]')
     const link = document.querySelector('[data-banner-link]')
     const dots = document.querySelector('[data-home-banner-dots]')
@@ -83,7 +101,17 @@
         subtitle.style.lineHeight = '1.6'
       }
       const bannerHref = String(banner.linkUrl || '').trim()
-      if (link) link.setAttribute('href', bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '#news')
+      const targetHref = bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '#news'
+      if (link) {
+        link.setAttribute('href', targetHref)
+        link.innerHTML = `${escapeHtml(banner.linkLabel || '浏览新闻')} <span class="btn-arrow" aria-hidden="true">→</span>`
+      }
+      const clickable = [title, subtitle]
+      clickable.forEach((element) => {
+        if (!element) return
+        element.style.cursor = 'pointer'
+        element.onclick = () => { window.location.href = targetHref }
+      })
       dots?.querySelectorAll('button').forEach((button, buttonIndex) => button.setAttribute('aria-current', buttonIndex === index ? 'true' : 'false'))
     }
     if (dots && banners.length > 1) {
@@ -188,18 +216,6 @@
     })
   }
 
-  const renderTopicArticles = async () => {
-    const payload = await fetchJson('/api/public/cms/articles?scope=news&channelSlug=party-mass&limit=4&fallback=none')
-    const list = document.querySelector('[data-home-topic-links]')
-    if (!list) return
-    const articles = Array.isArray(payload?.items) ? payload.items : []
-    if (!articles.length) {
-      list.innerHTML = '<span class="news-empty">暂无已发布专题内容</span>'
-      return
-    }
-    list.innerHTML = articles.map(item => `<a href="${detailUrl(item.id)}">${articleTitle(item, 48)}</a>`).join('')
-  }
-
   const renderHomeQrs = async () => {
     const list = document.querySelector('[data-home-public-qrs]')
     if (!list) return
@@ -231,7 +247,6 @@
     renderBanner()
     renderHomeSections()
     renderGroupNews()
-    renderTopicArticles()
     renderHomeQrs()
     renderSiteSettings()
   }

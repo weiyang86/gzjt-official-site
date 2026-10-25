@@ -28,6 +28,40 @@ export type DashboardStats = {
   notice_categories?: number;
 };
 
+export type AdminTopic = {
+  id: string;
+  slug: string;
+  module_code: string;
+  title: string;
+  subtitle?: string;
+  cover?: string;
+  summary?: string;
+  content?: string;
+  status: string;
+  sort: number;
+  article_count?: number;
+};
+
+export type AdminTopicArticle = {
+  id: string;
+  article_id: string;
+  title: string;
+  status?: string;
+  publish_at?: string;
+  cover?: string;
+  sort: number;
+  item_status?: string;
+  missing?: boolean;
+};
+
+export type AdminTopicCandidate = {
+  id: string;
+  title: string;
+  status?: string;
+  publish_at?: string;
+  cover?: string;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -156,6 +190,16 @@ export const AdminApi = {
   createCompany: (payload: unknown) => adminFetch('/admin-api/companies', { method: 'POST', body: JSON.stringify(payload) }),
   updateCompany: (id: string, payload: unknown) => adminFetch(`/admin-api/companies/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteCompany: (id: string) => adminFetch(`/admin-api/companies/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  topics: () => adminFetch<AdminTopic[]>('/admin-api/topics'),
+  topic: (id: string) => adminFetch<AdminTopic>(`/admin-api/topics/${encodeURIComponent(id)}`),
+  createTopic: (payload: unknown) => adminFetch<AdminTopic>('/admin-api/topics', { method: 'POST', body: JSON.stringify(payload) }),
+  updateTopic: (id: string, payload: unknown) => adminFetch<AdminTopic>(`/admin-api/topics/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteTopic: (id: string) => adminFetch(`/admin-api/topics/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  topicArticles: (id: string) => adminFetch<{ topic: AdminTopic; items: AdminTopicArticle[]; candidates: AdminTopicCandidate[] }>(`/admin-api/topics/${encodeURIComponent(id)}/articles`),
+  addTopicArticle: (id: string, articleId: string) => adminFetch(`/admin-api/topics/${encodeURIComponent(id)}/articles`, { method: 'POST', body: JSON.stringify({ article_id: articleId }) }),
+  updateTopicArticle: (id: string, itemId: string, payload: unknown) => adminFetch(`/admin-api/topics/${encodeURIComponent(id)}/articles/${encodeURIComponent(itemId)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteTopicArticle: (id: string, itemId: string) => adminFetch(`/admin-api/topics/${encodeURIComponent(id)}/articles/${encodeURIComponent(itemId)}`, { method: 'DELETE' }),
+  reorderTopicArticles: (id: string, itemIds: string[]) => adminFetch(`/admin-api/topics/${encodeURIComponent(id)}/articles/order`, { method: 'PATCH', body: JSON.stringify({ item_ids: itemIds }) }),
   articles: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/articles', params)),
   article: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}`, params)),
   articlePreviewLink: (id: string, params: AdminQuery = {}) => adminFetch<{ url?: string }>(withQuery(`/admin-api/articles/${encodeURIComponent(id)}/preview-link`, params)),

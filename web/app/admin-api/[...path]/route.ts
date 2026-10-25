@@ -85,7 +85,7 @@ const categoryTypes = new Set(['list', 'page', 'link', 'module', 'news', 'notice
 const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const pageContentStatuses = new Set(['draft', 'published', 'archived']);
-const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'culture']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'culture', 'article']);
 const pageContentItemStatuses = new Set(['enabled', 'disabled']);
 const directusUserStatuses = new Set(['active', 'invited', 'draft', 'suspended', 'archived']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -103,6 +103,10 @@ const directusUserFields = 'id,email,first_name,last_name,status,role';
 const directusUserListFields = 'id,email,first_name,last_name,status,role.id,role.name,role.description';
 const directusRoleFields = 'id,name,description';
 const legacyNoticeChannelSlug = 'announcements';
+const topicModulePrefix = 'topic-';
+const topicArticleItemType = 'article';
+const topicFields = 'id,module_code,title,subtitle,cover,summary,content,extra_json,status';
+const topicStatuses = new Set(['draft', 'published', 'archived']);
 
 const globalForAdminSessions = globalThis as typeof globalThis & {
   __gzjtAdminSessions?: Map<string, AdminSession>;
@@ -400,8 +404,9 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'categories') return scope === 'notice' ? ['noticeCategories'] : ['categories'];
   if (root === 'navigation') return ['navigation'];
   if (root === 'article-ownership') return ['articleOwnership'];
-  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
-  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content'];
+  if (root === 'topics') return ['topics'];
+  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics'];
+  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   if (root === 'companies') return ['content'];
@@ -1566,6 +1571,378 @@ const handleLocalPageContentItemRoute = async (request: NextRequest, path: strin
   return null;
 };
 
+const readJsonObject = (value: unknown): Record<string, unknown> => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+const normalizeTopicSlug = (value: unknown) => {
+  const slug = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    throw Object.assign(new Error('专题 slug 只能使用小写英文、数字或中横线'), { status: 400 });
+  }
+  return slug;
+};
+
+const topicModuleCodeOf = (slug: string) => `${topicModulePrefix}${slug}`;
+
+const topicSlugOf = (moduleCode: string) => (
+  moduleCode.startsWith(topicModulePrefix) ? moduleCode.slice(topicModulePrefix.length) : ''
+);
+
+const mapTopicRow = (row: Record<string, unknown>) => {
+  const moduleCode = String(row.module_code || '');
+  const extra = readJsonObject(row.extra_json);
+  return {
+    id: String(row.id || ''),
+    slug: topicSlugOf(moduleCode),
+    module_code: moduleCode,
+    title: String(row.title || ''),
+    subtitle: String(row.subtitle || ''),
+    cover: String(row.cover || ''),
+    summary: String(row.summary || ''),
+    content: String(row.content || ''),
+    status: String(row.status || 'draft'),
+    sort: Number(extra.sort) || 0,
+    extra_json: extra,
+  };
+};
+
+const getTopicRowById = async (token: string, id: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown> | Record<string, unknown>[] }>(
+    buildDirectusPath(`/items/page_contents/${encodeURIComponent(id)}`, { fields: topicFields }),
+    token,
+  );
+  const row = Array.isArray(result.data) ? result.data[0] : result.data;
+  if (!row || !String(row.module_code || '').startsWith(topicModulePrefix)) {
+    throw Object.assign(new Error('专题不存在'), { status: 404 });
+  }
+  return row;
+};
+
+const listTopicArticleItems = async (token: string, moduleCode: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+    buildDirectusPath('/items/page_content_items', {
+      fields: 'id,module_code,item_type,title,link_url,sort,status,extra_json',
+      limit: -1,
+      sort: 'sort,id',
+      'filter[module_code][_eq]': moduleCode,
+      'filter[item_type][_eq]': topicArticleItemType,
+    }),
+    token,
+  );
+  return Array.isArray(result.data) ? result.data : [];
+};
+
+const topicArticleIdOf = (item: Record<string, unknown>) => {
+  const extra = readJsonObject(item.extra_json);
+  const fromExtra = String(extra.article_id || extra.articleId || '');
+  if (fromExtra) return fromExtra;
+  const linkUrl = String(item.link_url || '');
+  const matched = linkUrl.match(/\/news\/([^/?#]+)/);
+  return matched ? decodeURIComponent(matched[1]) : '';
+};
+
+const getArticleBriefById = async (token: string, id: string) => {
+  try {
+    const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+      buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, { fields: 'id,title,status,publish_at,cover' }),
+      token,
+    );
+    return result.data || null;
+  } catch {
+    return null;
+  }
+};
+
+const getTopicArticleItem = async (token: string, itemId: string, moduleCode: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+    buildDirectusPath(`/items/page_content_items/${encodeURIComponent(itemId)}`, { fields: 'id,module_code,item_type' }),
+    token,
+  );
+  const item = result.data || null;
+  if (!item || String(item.module_code || '') !== moduleCode || String(item.item_type || '') !== topicArticleItemType) {
+    throw Object.assign(new Error('专题文章关联不存在'), { status: 404 });
+  }
+  return item;
+};
+
+const handleLocalTopics = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+
+  if (!id && request.method === 'GET') {
+    const [contents, items] = await Promise.all([
+      directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+        buildDirectusPath('/items/page_contents', {
+          fields: topicFields,
+          limit: -1,
+          'filter[module_code][_starts_with]': topicModulePrefix,
+        }),
+        token,
+      ),
+      directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+        buildDirectusPath('/items/page_content_items', {
+          fields: 'id,module_code',
+          limit: -1,
+          'filter[module_code][_starts_with]': topicModulePrefix,
+          'filter[item_type][_eq]': topicArticleItemType,
+        }),
+        token,
+      ),
+    ]);
+    const countMap = new Map<string, number>();
+    (items.data || []).forEach((item) => {
+      const moduleCode = String(item.module_code || '');
+      if (!moduleCode) return;
+      countMap.set(moduleCode, (countMap.get(moduleCode) || 0) + 1);
+    });
+    const topics = (contents.data || [])
+      .map((row) => ({ ...mapTopicRow(row), article_count: countMap.get(String(row.module_code || '')) || 0 }))
+      .filter((item) => item.slug && item.title)
+      .sort((a, b) => (a.sort - b.sort) || a.title.localeCompare(b.title, 'zh-CN'));
+    return NextResponse.json({ data: topics });
+  }
+
+  if (!id && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const slug = normalizeTopicSlug(body.slug);
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    if (!title) throw Object.assign(new Error('请填写专题名称'), { status: 400 });
+    const moduleCode = topicModuleCodeOf(slug);
+    const duplicated = await directusJsonRequest<{ meta?: { filter_count?: number } }>(
+      buildDirectusPath('/items/page_contents', { fields: 'id', limit: 1, 'filter[module_code][_eq]': moduleCode }),
+      token,
+    );
+    if (Number(duplicated.meta?.filter_count || 0)) {
+      throw Object.assign(new Error('该专题 slug 已存在，请更换'), { status: 409 });
+    }
+    const status = typeof body.status === 'string' && topicStatuses.has(body.status) ? body.status : 'draft';
+    const payload = {
+      module_code: moduleCode,
+      title,
+      subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : '',
+      cover: typeof body.cover === 'string' && body.cover ? body.cover : null,
+      summary: typeof body.summary === 'string' ? body.summary.trim() : '',
+      content: typeof body.content === 'string' ? body.content : '',
+      extra_json: { ...readJsonObject(body.extra_json), sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0 },
+      status,
+    };
+    const created = await directusJsonRequest<{ data?: Record<string, unknown> }>('/items/page_contents', token, 'POST', payload);
+    return NextResponse.json({ data: mapTopicRow(created.data || {}) }, { status: 201 });
+  }
+
+  if (id && request.method === 'GET') {
+    const row = await getTopicRowById(token, id);
+    return NextResponse.json({ data: mapTopicRow(row) });
+  }
+
+  if (id && request.method === 'PATCH') {
+    const existing = await getTopicRowById(token, id);
+    const body = await request.json() as Record<string, unknown>;
+    const title = typeof body.title === 'string' ? body.title.trim() : String(existing.title || '');
+    if (!title) throw Object.assign(new Error('请填写专题名称'), { status: 400 });
+    const status = typeof body.status === 'string' && topicStatuses.has(body.status)
+      ? body.status
+      : String(existing.status || 'draft');
+    const sort = Number.isFinite(Number(body.sort)) ? Number(body.sort) : (Number(readJsonObject(existing.extra_json).sort) || 0);
+    const payload = {
+      title,
+      subtitle: typeof body.subtitle === 'string' ? body.subtitle.trim() : String(existing.subtitle || ''),
+      cover: body.cover === undefined
+        ? (existing.cover || null)
+        : (typeof body.cover === 'string' && body.cover ? body.cover : null),
+      summary: typeof body.summary === 'string' ? body.summary.trim() : String(existing.summary || ''),
+      content: typeof body.content === 'string' ? body.content : String(existing.content || ''),
+      extra_json: { ...readJsonObject(existing.extra_json), ...readJsonObject(body.extra_json), sort },
+      status,
+    };
+    const updated = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+      `/items/page_contents/${encodeURIComponent(id)}`,
+      token,
+      'PATCH',
+      payload,
+    );
+    return NextResponse.json({ data: mapTopicRow(updated.data || {}) });
+  }
+
+  if (id && request.method === 'DELETE') {
+    const existing = await getTopicRowById(token, id);
+    const moduleCode = String(existing.module_code || '');
+    const items = await directusJsonRequest<{ data?: Array<{ id?: string }> }>(
+      buildDirectusPath('/items/page_content_items', { fields: 'id', limit: -1, 'filter[module_code][_eq]': moduleCode }),
+      token,
+    );
+    await Promise.all((items.data || []).map((item) => (
+      item.id ? directusJsonRequest(`/items/page_content_items/${encodeURIComponent(item.id)}`, token, 'DELETE') : Promise.resolve(null)
+    )));
+    await directusJsonRequest(`/items/page_contents/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+
+  return null;
+};
+
+const handleLocalTopicArticles = async (request: NextRequest, path: string[]) => {
+  const topicId = path[1] ? decodeURIComponent(path[1]) : '';
+  if (!topicId) return null;
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const topic = await getTopicRowById(token, topicId);
+  const moduleCode = String(topic.module_code || '');
+  const itemIdOrAction = path[3] ? decodeURIComponent(path[3]) : '';
+
+  if (!itemIdOrAction && request.method === 'GET') {
+    const items = await listTopicArticleItems(token, moduleCode);
+    const articleIds = Array.from(new Set(items.map((item) => topicArticleIdOf(item)).filter(Boolean)));
+    const articleMap = new Map<string, Record<string, unknown>>();
+    if (articleIds.length) {
+      const articles = await directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+        buildDirectusPath('/items/articles', {
+          fields: 'id,title,status,publish_at,cover',
+          limit: -1,
+          'filter[id][_in]': articleIds.join(','),
+        }),
+        token,
+      );
+      (articles.data || []).forEach((article) => {
+        const articleId = String(article.id || '');
+        if (articleId) articleMap.set(articleId, article);
+      });
+    }
+
+    const associatedIds = new Set<string>();
+    const associated = items.map((item) => {
+      const articleId = topicArticleIdOf(item);
+      const article = articleMap.get(articleId);
+      if (articleId) associatedIds.add(articleId);
+      return {
+        id: String(item.id || ''),
+        article_id: articleId,
+        title: String(article?.title || item.title || ''),
+        status: String(article?.status || 'deleted'),
+        publish_at: String(article?.publish_at || ''),
+        cover: String(article?.cover || ''),
+        sort: Number(item.sort) || 0,
+        item_status: String(item.status || 'enabled'),
+        missing: !article,
+      };
+    }).sort((a, b) => a.sort - b.sort);
+
+    const candidatesResult = await directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+      buildDirectusPath('/items/articles', {
+        fields: 'id,title,status,publish_at,cover',
+        sort: '-publish_at,-id',
+        limit: 300,
+        'filter[status][_neq]': 'archived',
+      }),
+      token,
+    );
+    const candidates = (candidatesResult.data || [])
+      .filter((article) => !associatedIds.has(String(article.id || '')))
+      .map((article) => ({
+        id: String(article.id || ''),
+        title: String(article.title || ''),
+        status: String(article.status || ''),
+        publish_at: String(article.publish_at || ''),
+        cover: String(article.cover || ''),
+      }));
+
+    return NextResponse.json({ data: { topic: mapTopicRow(topic), items: associated, candidates } });
+  }
+
+  if (!itemIdOrAction && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const articleId = typeof body.article_id === 'string' ? body.article_id.trim() : '';
+    if (!articleId) throw Object.assign(new Error('请选择要加入专题的文章'), { status: 400 });
+    const article = await getArticleBriefById(token, articleId);
+    if (!article) throw Object.assign(new Error('文章不存在或已删除'), { status: 404 });
+    const items = await listTopicArticleItems(token, moduleCode);
+    if (items.some((item) => topicArticleIdOf(item) === articleId)) {
+      throw Object.assign(new Error('该文章已在当前专题中'), { status: 409 });
+    }
+    const nextSort = items.reduce((max, item) => Math.max(max, Number(item.sort) || 0), 0) + 1;
+    const payload = {
+      module_code: moduleCode,
+      item_type: topicArticleItemType,
+      title: String(article.title || ''),
+      subtitle: '',
+      date_label: '',
+      image: null,
+      content: '',
+      link_url: `/news/${encodeURIComponent(articleId)}`,
+      sort: nextSort,
+      status: 'enabled',
+      extra_json: { article_id: articleId },
+    };
+    const created = await directusJsonRequest<{ data?: Record<string, unknown> }>('/items/page_content_items', token, 'POST', payload);
+    return NextResponse.json({ data: created.data || null }, { status: 201 });
+  }
+
+  if (itemIdOrAction === 'order' && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const itemIds = Array.isArray(body.item_ids)
+      ? body.item_ids.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    if (!itemIds.length) throw Object.assign(new Error('缺少排序条目'), { status: 400 });
+    const items = await listTopicArticleItems(token, moduleCode);
+    const existingIds = new Set(items.map((item) => String(item.id || '')));
+    if (itemIds.some((itemId) => !existingIds.has(itemId))) {
+      throw Object.assign(new Error('排序条目不属于当前专题'), { status: 400 });
+    }
+    await Promise.all(itemIds.map((itemId, index) => directusJsonRequest(
+      `/items/page_content_items/${encodeURIComponent(itemId)}`,
+      token,
+      'PATCH',
+      { sort: index + 1 },
+    )));
+    return NextResponse.json({ data: { item_ids: itemIds } });
+  }
+
+  if (itemIdOrAction && request.method === 'DELETE') {
+    await getTopicArticleItem(token, itemIdOrAction, moduleCode);
+    await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(itemIdOrAction)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id: itemIdOrAction, deleted: true } });
+  }
+
+  if (itemIdOrAction && request.method === 'PATCH') {
+    await getTopicArticleItem(token, itemIdOrAction, moduleCode);
+    const body = await request.json() as Record<string, unknown>;
+    const payload: Record<string, unknown> = {};
+    if (body.sort !== undefined) {
+      const sort = Number(body.sort);
+      if (!Number.isFinite(sort)) throw Object.assign(new Error('排序必须是数字'), { status: 400 });
+      payload.sort = sort;
+    }
+    if (body.status !== undefined) {
+      const status = typeof body.status === 'string' && pageContentItemStatuses.has(body.status) ? body.status : '';
+      if (!status) throw Object.assign(new Error('无效的条目状态'), { status: 400 });
+      payload.status = status;
+    }
+    if (!Object.keys(payload).length) throw Object.assign(new Error('没有可更新的字段'), { status: 400 });
+    const updated = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+      `/items/page_content_items/${encodeURIComponent(itemIdOrAction)}`,
+      token,
+      'PATCH',
+      payload,
+    );
+    return NextResponse.json({ data: updated.data || null });
+  }
+
+  return null;
+};
+
 const handleLocalAsset = async (request: NextRequest, path: string[]) => {
   const id = path[1] ? decodeURIComponent(path[1]) : '';
   if (!id || request.method !== 'GET') return null;
@@ -1767,6 +2144,10 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);
     if (path[0] === 'articles') return await handleLocalArticleRoute(request, path);
+    if (path[0] === 'topics') {
+      if (path[2] === 'articles') return await handleLocalTopicArticles(request, path);
+      return await handleLocalTopics(request, path);
+    }
     if (path[0] === 'companies') return await handleLocalCompanies(request, path);
     if (route === 'files') return await handleLocalFileUpload(request);
     if (route === 'categories') return await handleLocalCategoryList(request);
