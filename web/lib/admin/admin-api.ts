@@ -213,6 +213,19 @@ export const AdminApi = {
     method: 'PATCH',
   }),
   categoryUsage: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}/usage`, params)),
+  businessSectors: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/business-sectors', params)),
+  businessSector: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/business-sectors/${encodeURIComponent(id)}`, params)),
+  createBusinessSector: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/business-sectors', params), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateBusinessSector: (id: string, payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/business-sectors/${encodeURIComponent(id)}`, params), {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  setBusinessSectorEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/business-sectors/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
+    method: 'PATCH',
+  }),
   pageModules: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/page-modules', params)),
   pageModulesGrouped: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/page-modules/grouped', params)),
   updatePageModule: (id: string, payload: unknown) => adminFetch(`/admin-api/page-modules/${encodeURIComponent(id)}`, {

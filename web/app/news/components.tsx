@@ -20,6 +20,8 @@ const navKeyByChannelName: Record<string, NavKey> = {
   '信息公开': 'disclosure',
   '新闻中心': 'news',
   '业务动态': 'businessDynamics',
+  '业务领域': 'businessDev',
+  '产业布局': 'businessDev',
   '业务发展': 'businessDev',
   '党建群团': 'partyMasses',
   '廉洁建设': 'cleanGov',

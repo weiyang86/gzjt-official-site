@@ -156,8 +156,7 @@ async function loadCompanies() {
 
 async function loadBusinessSectors() {
   try {
-    const sectors = await getPublicBusinessSectors();
-    return sectors.length ? sectors : fallbackBusinessSectors;
+    return await getPublicBusinessSectors();
   } catch {
     return fallbackBusinessSectors;
   }
@@ -304,29 +303,61 @@ function CompanyCards({ companies }: { companies: Company[] }) {
   );
 }
 
-function SectorCards({ sectors }: { sectors: BusinessSector[] }) {
+const plainText = (value?: string) => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+const escapeHtml = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+const sectorIntroHtml = (value?: string) => {
+  const intro = String(value || '').trim();
+  if (!intro) return '<p>产业介绍待完善。</p>';
+  if (/<[a-z][^>]*>/i.test(intro)) return intro;
+  return intro.split(/\r?\n/).filter((line) => line.trim()).map((line) => `<p>${escapeHtml(line.trim())}</p>`).join('');
+};
+const sectorHref = (slug: string, basePath: string) => `${basePath}?sector=${encodeURIComponent(slug)}#sector-detail`;
+
+function SectorDetail({ sector }: { sector: BusinessSector }) {
   return (
-    <section className="section" id="sectors" aria-label="业务板块">
+    <section className="section" id="sector-detail" aria-label={`${sector.name || sector.title || '产业布局'}详情`}>
+      <div className="content">
+        <div className="detail reveal is-visible">
+          <div className="pill">产业布局详情</div>
+          <h1 style={{ marginTop: 14 }}>{sector.name || sector.title || '产业布局'}</h1>
+          {sector.cover ? <img src={sector.cover} alt={sector.name || sector.title || ''} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 16, marginTop: 20 }} /> : null}
+          <div className="body" dangerouslySetInnerHTML={{ __html: sectorIntroHtml(sector.intro || sector.description) }} />
+          <a className="pill" href="#sectors" style={{ display: 'inline-block', marginTop: 8 }}>返回产业布局</a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SectorCards({ sectors, activeSlug, basePath }: { sectors: BusinessSector[]; activeSlug?: string; basePath: string }) {
+  return (
+    <section className="section" id="sectors" aria-label="产业布局">
       <div className="content">
         <div className="section-head reveal is-visible">
           <div>
             <div className="kicker"><i aria-hidden="true" /><span>BUSINESS PORTFOLIO</span></div>
-            <div className="h2">业务板块</div>
-            <p className="lead">围绕交通建设、城乡建设、产业投资、运营服务等方向，构建投融建运协同发展格局。</p>
+            <div className="h2">产业体系</div>
+            <p className="lead">展示集团产业体系宏观介绍，围绕交通建设、城乡建设、产业投资、运营服务等方向，构建投融建运协同发展格局。</p>
           </div>
         </div>
-        <div className="grid">
-          {sectors.map((sector) => (
-            <article className="card reveal is-visible" key={sector.slug} style={{ gridColumn: 'span 4' }}>
-              <div style={{ height: 180, overflow: 'hidden' }}><img src={sector.cover || fallbackCover} alt="" /></div>
+        {sectors.length ? <div className="grid">
+          {sectors.map((sector, index) => (
+            <a className="card reveal is-visible" href={sectorHref(sector.slug, basePath)} key={sector.slug || index} style={{ gridColumn: 'span 4', display: 'block', outline: sector.slug === activeSlug ? '2px solid rgba(24, 92, 175, .45)' : undefined }}>
+              <div style={{ height: 180, overflow: 'hidden' }}><img src={sector.cover || fallbackCover} alt={sector.name || sector.title || ''} /></div>
               <div className="card-pad">
-                <div className="pill">{sector.slug}</div>
+                <div className="pill">产业板块 {String(index + 1).padStart(2, '0')}</div>
                 <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{sector.name || sector.title}</div>
-                <div className="rich" style={{ marginTop: 8 }}>{sector.intro || sector.description || '业务介绍待完善。'}</div>
+                <div className="rich" style={{ marginTop: 8 }}>{plainText(sector.intro || sector.description) || '产业介绍待完善。'}</div>
+                <div style={{ marginTop: 12, color: 'var(--blue)', fontWeight: 800, fontSize: 13 }}>查看详情 →</div>
               </div>
-            </article>
+            </a>
           ))}
-        </div>
+        </div> : <p className="lead">暂无已发布的产业内容，敬请关注。</p>}
       </div>
     </section>
   );
@@ -525,14 +556,16 @@ function AboutPage({ page }: { page: PageContent | null }) {
   );
 }
 
-export async function BusinessPage() {
+export async function BusinessPage({ selectedSlug, basePath = '/business' }: { selectedSlug?: string; basePath?: string } = {}) {
   const sectors = await loadBusinessSectors();
+  const selectedSector = selectedSlug ? sectors.find((sector) => sector.slug === selectedSlug) : undefined;
   return (
     <Shell active="businessDev" actionHref="/projects" actionLabel="查看项目">
-      <Breadcrumb title="业务发展" />
+      <Breadcrumb title="产业布局" />
       <main className="page" aria-label="主要内容">
-        <Hero title="业务发展" kicker="BUSINESS PORTFOLIO" subtitle="围绕基础设施建设与区域发展，形成投融建运协同的业务板块。" cover="/img/318康定市过境段公路工程项目434互通工程.jpg" ctaHref="#sectors" ctaLabel="查看业务板块" />
-        <SectorCards sectors={sectors} />
+        <Hero title="产业布局" kicker="BUSINESS PORTFOLIO" subtitle="展示集团产业体系宏观介绍，围绕基础设施建设与区域发展，形成投融建运协同的产业布局。" cover="/img/318康定市过境段公路工程项目434互通工程.jpg" ctaHref="#sectors" ctaLabel="查看产业布局" />
+        {selectedSector ? <SectorDetail sector={selectedSector} /> : null}
+        <SectorCards sectors={sectors} activeSlug={selectedSector?.slug} basePath={basePath} />
       </main>
     </Shell>
   );
