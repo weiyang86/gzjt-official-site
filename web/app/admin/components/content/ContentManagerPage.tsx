@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
-import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
+import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, normalizeMapEmbedUrl, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import { LeadershipManager } from './LeadershipManager';
 
@@ -662,82 +662,78 @@ function ContactInfoManager() {
   const [contactInfo, setContactInfo] = useState<ContactInfoConfig>(defaultContactInfo);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasSavedConfig, setHasSavedConfig] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    const load = async () => {
-      try {
-        const result = await AdminApi.pageContent(contactInfoModuleCode);
-        const content = (result.data || {}) as PageContent;
-        const extra = content.extra_json && typeof content.extra_json === 'object' ? content.extra_json : {};
-        const saved = extra.contactInfo && typeof extra.contactInfo === 'object'
-          ? extra.contactInfo as Partial<ContactInfoConfig>
-          : null;
-        if (saved) {
-          if (mounted) {
-            setContactInfo({
-              email: typeof saved.email === 'string' ? saved.email : defaultContactInfo.email,
-              phone: typeof saved.phone === 'string' ? saved.phone : defaultContactInfo.phone,
-              address: typeof saved.address === 'string' ? saved.address : defaultContactInfo.address,
-            });
-            setHasSavedConfig(Boolean(content.id));
-          }
-          return;
-        }
-
-        const homepageResult = await AdminApi.pageContent(homepageLayoutModuleCode);
-        const homepageContent = (homepageResult.data || {}) as PageContent;
-        const homepageExtra = homepageContent.extra_json && typeof homepageContent.extra_json === 'object' ? homepageContent.extra_json : {};
-        const storedLayout = 'homepageLayout' in homepageExtra ? homepageExtra.homepageLayout : homepageExtra;
-        const homepage = normalizeHomepageLayout(storedLayout);
-        if (mounted) setContactInfo({ ...defaultContactInfo, address: homepage.contactAddress, phone: homepage.contactPhone });
-      } catch (error) {
+    AdminApi.contactSettings()
+      .then((result) => {
+        if (!mounted) return;
+        const saved = (result.data || {}) as Partial<ContactInfoConfig>;
+        setContactInfo({
+          email: typeof saved.email === 'string' ? saved.email : defaultContactInfo.email,
+          phone: typeof saved.phone === 'string' ? saved.phone : defaultContactInfo.phone,
+          address: typeof saved.address === 'string' ? saved.address : defaultContactInfo.address,
+          mapEmbedUrl: typeof saved.mapEmbedUrl === 'string' ? saved.mapEmbedUrl : defaultContactInfo.mapEmbedUrl,
+        });
+      })
+      .catch((error) => {
         if (mounted) setMessage({ text: error instanceof Error ? error.message : '联系信息加载失败。', type: 'error' });
-      } finally {
+      })
+      .finally(() => {
         if (mounted) setIsLoading(false);
-      }
-    };
-    load();
+      });
     return () => { mounted = false; };
   }, []);
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
+    const email = contactInfo.email.trim();
+    const phone = contactInfo.phone.trim();
+    const address = contactInfo.address.trim();
+    const rawMapEmbedUrl = contactInfo.mapEmbedUrl.trim();
+    const mapEmbedUrl = normalizeMapEmbedUrl(rawMapEmbedUrl);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage({ text: '请输入正确的联系邮箱。', type: 'error' });
+      return;
+    }
+    if (rawMapEmbedUrl && !mapEmbedUrl) {
+      setMessage({ text: '地图嵌入地址必须是有效的 HTTP(S) 链接。', type: 'error' });
+      return;
+    }
+
     setIsSaving(true);
     setMessage(null);
     try {
-      await AdminApi.savePageContent(contactInfoModuleCode, {
-        title: '联系我们配置',
-        subtitle: '官网联系方式',
-        cover: null,
-        summary: '维护官网联系邮箱、联系电话和联系地址。',
-        content: '',
-        extra_json: { contactInfo },
-        status: 'published',
-      });
-      setHasSavedConfig(true);
-      setMessage({ text: '联系信息已保存并发布。', type: 'success' });
+      const nextContactInfo = { email, phone, address, mapEmbedUrl };
+      await AdminApi.updateContactSettings(nextContactInfo);
+      setContactInfo(nextContactInfo);
+      setMessage({ text: '联系信息与地图配置已保存，首页、页脚和联系我们页面已同步。', type: 'success' });
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : '保存失败，请检查 page_contents 权限。', type: 'error' });
+      setMessage({ text: error instanceof Error ? error.message : '保存失败，请检查联系信息配置权限。', type: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
 
+  const mapPreviewUrl = normalizeMapEmbedUrl(contactInfo.mapEmbedUrl);
+
   return (
     <form className="editor-card content-form-card" onSubmit={save}>
-      <div className="section-title-row"><div><p className="eyebrow">全站配置 · {contactInfoModuleCode}</p><h2>联系我们配置</h2></div><span className="status-badge status-published">复用 page_contents</span></div>
-      <p className="form-help-text">维护前台“联系我们”页面及页脚显示的邮箱、电话和地址；配置保存到现有 page_contents.extra_json，不新增数据表。</p>
+      <div className="section-title-row"><div><p className="eyebrow">全站配置 · {contactInfoModuleCode}</p><h2>联系我们配置</h2></div><span className="status-badge status-published">全站统一来源</span></div>
+      <p className="form-help-text">统一维护首页、页脚和“联系我们”页面使用的邮箱、电话、地址；地图嵌入配置保存到现有 page_contents.extra_json，不新增数据表。</p>
       {message ? <div className={`inline-message ${message.type || ''}`.trim()}>{message.text}</div> : null}
       {isLoading ? <p>正在读取联系信息...</p> : <>
         <div className="editor-grid">
           <label>联系邮箱<input type="email" value={contactInfo.email} onChange={(event) => setContactInfo((current) => ({ ...current, email: event.target.value }))} placeholder="请输入联系邮箱（可留空）" /></label>
           <label>联系电话<input type="tel" value={contactInfo.phone} onChange={(event) => setContactInfo((current) => ({ ...current, phone: event.target.value }))} placeholder="请输入联系电话" /></label>
           <label className="span-2">联系地址<input value={contactInfo.address} onChange={(event) => setContactInfo((current) => ({ ...current, address: event.target.value }))} placeholder="请输入联系地址" /></label>
+          <label className="span-2">地图嵌入地址<input value={contactInfo.mapEmbedUrl} onChange={(event) => setContactInfo((current) => ({ ...current, mapEmbedUrl: event.target.value }))} placeholder="https://...（iframe 嵌入地址，留空则不展示地图）" /></label>
         </div>
-        {!hasSavedConfig ? <p className="field-tip">当前显示兼容默认值；首次保存后会创建并发布联系我们配置。</p> : null}
+        <p className="field-tip">支持高德、百度或 OpenStreetMap 等地图服务提供的 HTTP(S) iframe 嵌入地址；留空可关闭地图展示。</p>
+        {mapPreviewUrl ? <div style={{ marginTop: 12, overflow: 'hidden', border: '1px solid rgba(13,47,90,.14)', borderRadius: 12 }}>
+          <iframe title="地图配置预览" src={mapPreviewUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" style={{ width: '100%', height: 320, border: 0, display: 'block' }} />
+        </div> : null}
         <div className="form-actions"><button className="primary-link-button" type="submit" disabled={isSaving}>{isSaving ? '正在保存...' : '保存并发布'}</button></div>
       </>}
     </form>

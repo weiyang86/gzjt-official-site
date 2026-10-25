@@ -137,6 +137,10 @@ const sanitizePageContent = (page: PageContent | null, slug: string) => {
   return page;
 };
 
+const stripLegacyContactDetails = (html?: string | null) => (html || '')
+  .replace(/<p[^>]*>\s*(?:联系地址|地址|联系电话|电话|联系邮箱|电子邮箱|邮箱)\s*[：:][\s\S]*?<\/p>\s*/gi, '')
+  .trim();
+
 async function loadPage(slug: string): Promise<PageContent | null> {
   try {
     return sanitizePageContent(await getPublicPageBySlug(slug), slug);
@@ -267,10 +271,13 @@ function ContactInfoSection({ contactInfo }: { contactInfo: Awaited<ReturnType<t
           </div>
         </div>
         <div className="grid">
-          <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系地址</div><p>{contactInfo.address}</p></div></article>
-          <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系电话</div><p><a href={`tel:${contactInfo.phone}`}>{contactInfo.phone}</a></p></div></article>
+          <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系地址</div><p>{contactInfo.address || '暂未配置'}</p></div></article>
+          <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系电话</div><p>{contactInfo.phone ? <a href={`tel:${contactInfo.phone}`}>{contactInfo.phone}</a> : '暂未配置'}</p></div></article>
           {contactInfo.email ? <article className="card reveal is-visible" style={{ gridColumn: 'span 4' }}><div className="card-pad"><div className="pill">联系邮箱</div><p><a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></p></div></article> : null}
         </div>
+        {contactInfo.mapEmbedUrl ? <div className="map-box reveal is-visible" style={{ marginTop: 18 }}>
+          <iframe title="集团位置地图" loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={contactInfo.mapEmbedUrl} />
+        </div> : null}
       </div>
     </section>
   );
@@ -341,6 +348,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   const meta = pageMeta[slug];
   if (!page) notFound();
   const contactInfo = slug === 'contact' ? await getPublicContactInfo() : null;
+  const displayPage = slug === 'contact' ? { ...page, content: stripLegacyContactDetails(page.content) } : page;
 
   return (
     <Shell active={meta.active}>
@@ -348,7 +356,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
       <main className="page" aria-label="主要内容">
         <Hero title={page.title || meta.title} kicker={meta.kicker} subtitle={meta.subtitle} cover={page.cover} ctaLabel={meta.cta || '查看内容'} />
         {contactInfo ? <ContactInfoSection contactInfo={contactInfo} /> : null}
-        <ContentSection page={page} />
+        {slug === 'contact' && !displayPage.content ? null : <ContentSection page={displayPage} />}
         {slug === 'projects' ? <ProjectMap /> : null}
       </main>
     </Shell>

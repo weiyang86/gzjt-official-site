@@ -5,6 +5,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { allAdminMenuKeys, adminMenuItems, menuKeysWithDashboard, type AdminMenuKey } from '@/lib/admin/menu-permissions';
 import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from '@/lib/admin/sso';
 import { createArticlePreviewPath } from '@/lib/preview/article-preview';
+import { contactInfoModuleCode, normalizeMapEmbedUrl } from '@/lib/cms/homepage-layout';
+import { getPublicContactInfo } from '@/lib/cms/public-content';
 import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset, loginTrustedUser } from '@/lib/cms/api-store';
 
 export const dynamic = 'force-dynamic';
@@ -400,6 +402,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'categories') return scope === 'notice' ? ['noticeCategories'] : ['categories'];
   if (root === 'navigation') return ['navigation'];
   if (root === 'quick-links') return ['quickLinks'];
+  if (root === 'contact-settings') return ['content', 'footerSettings'];
   if (root === 'friend-links' || root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
   if (root === 'home-stats') return ['homeStats'];
   if (root === 'article-ownership') return ['articleOwnership'];
@@ -1162,6 +1165,92 @@ const handleLocalSiteSettings = async (request: NextRequest) => {
   if (request.method === 'PATCH' || request.method === 'PUT') { const body = await request.json() as Record<string, unknown>; const payload = Object.fromEntries(['site_name','footer_text','address','phone','email','icp','copyright'].filter((key) => body[key] !== undefined).map((key) => [key, typeof body[key] === 'string' ? body[key].trim() : ''])); const current = await directusJsonRequest<{ data?: Array<{ id?: string }> }>(buildDirectusPath('/items/site_settings', { fields: 'id', limit: 1 }), token); const id = current.data?.[0]?.id; const result = id ? await directusJsonRequest<{ data?: unknown }>(`/items/site_settings/${encodeURIComponent(String(id))}`, token, 'PATCH', payload) : await directusJsonRequest<{ data?: unknown }>('/items/site_settings', token, 'POST', payload); return NextResponse.json({ data: result.data || null }); }
   return null;
 };
+
+type ContactSettingsInput = {
+  email: string;
+  phone: string;
+  address: string;
+  mapEmbedUrl: string;
+};
+
+const normalizeContactSettingsInput = (body: Record<string, unknown>): ContactSettingsInput => {
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+  const address = typeof body.address === 'string' ? body.address.trim() : '';
+  const rawMapEmbedUrl = typeof body.mapEmbedUrl === 'string' ? body.mapEmbedUrl.trim() : '';
+  const mapEmbedUrl = normalizeMapEmbedUrl(rawMapEmbedUrl);
+  if (email.length > 255) throw Object.assign(new Error('联系邮箱不能超过 255 个字符'), { status: 400 });
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Object.assign(new Error('联系邮箱格式不正确'), { status: 400 });
+  if (phone.length > 255) throw Object.assign(new Error('联系电话不能超过 255 个字符'), { status: 400 });
+  if (address.length > 255) throw Object.assign(new Error('联系地址不能超过 255 个字符'), { status: 400 });
+  if (rawMapEmbedUrl.length > 2048) throw Object.assign(new Error('地图嵌入地址不能超过 2048 个字符'), { status: 400 });
+  if (rawMapEmbedUrl && !mapEmbedUrl) throw Object.assign(new Error('地图嵌入地址必须是有效的 HTTP(S) 链接'), { status: 400 });
+  return { email, phone, address, mapEmbedUrl };
+};
+
+const handleLocalContactSettings = async (request: NextRequest) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+
+  if (request.method === 'GET') {
+    return NextResponse.json({ data: await getPublicContactInfo() });
+  }
+
+  if (request.method === 'PATCH' || request.method === 'PUT') {
+    const input = normalizeContactSettingsInput(await request.json() as Record<string, unknown>);
+    const settings = await directusJsonRequest<{ data?: Array<{ id?: string }> }>(
+      buildDirectusPath('/items/site_settings', { fields: 'id', limit: 1 }),
+      token,
+    );
+    const settingsId = settings.data?.[0]?.id;
+    const contactFields = { email: input.email, phone: input.phone, address: input.address };
+    if (settingsId) {
+      await directusJsonRequest(`/items/site_settings/${encodeURIComponent(String(settingsId))}`, token, 'PATCH', contactFields);
+    } else {
+      await directusJsonRequest('/items/site_settings', token, 'POST', {
+        site_name: '甘孜州建设投资集团有限公司',
+        ...contactFields,
+      });
+    }
+
+    const existing = await directusJsonRequest<{
+      data?: Array<{
+        id?: string;
+        title?: string;
+        subtitle?: string;
+        cover?: unknown;
+        summary?: string;
+        content?: string;
+        extra_json?: unknown;
+      }>;
+    }>(getPageContentPath(contactInfoModuleCode), token);
+    const currentPage = existing.data?.[0];
+    const currentExtra = normalizeExtraJson(currentPage?.extra_json) as Record<string, unknown>;
+    const currentContactInfo = currentExtra.contactInfo && typeof currentExtra.contactInfo === 'object' && !Array.isArray(currentExtra.contactInfo)
+      ? currentExtra.contactInfo as Record<string, unknown>
+      : {};
+    const pagePayload = {
+      module_code: contactInfoModuleCode,
+      title: currentPage?.title?.trim() || '联系我们配置',
+      subtitle: currentPage?.subtitle?.trim() || '官网联系方式',
+      cover: currentPage?.cover ?? null,
+      summary: currentPage?.summary?.trim() || '维护官网联系邮箱、联系电话、联系地址和地图嵌入配置。',
+      content: currentPage?.content || '',
+      extra_json: { ...currentExtra, contactInfo: { ...currentContactInfo, ...input } },
+      status: 'published',
+    };
+    if (currentPage?.id) {
+      await directusJsonRequest(`/items/page_contents/${encodeURIComponent(String(currentPage.id))}`, token, 'PATCH', pagePayload);
+    } else {
+      await directusJsonRequest('/items/page_contents', token, 'POST', pagePayload);
+    }
+
+    return NextResponse.json({ data: input });
+  }
+
+  return null;
+};
 const normalizeHomeStatInput = (body: Record<string, unknown>) => {
   const label = typeof body.label === 'string' ? body.label.trim() : '';
   const value = typeof body.value === 'string' ? body.value.trim() : '';
@@ -1859,6 +1948,7 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'quick-links') return await handleLocalQuickLinks(request, path);
     if (path[0] === 'home-stats') return await handleLocalHomeStats(request, path);
     if (path[0] === 'friend-links') return await handleLocalFriendLinks(request, path);
+    if (path[0] === 'contact-settings') return await handleLocalContactSettings(request);
     if (path[0] === 'site-settings') return await handleLocalSiteSettings(request);
     if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);

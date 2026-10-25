@@ -5,12 +5,38 @@ export type ContactInfoConfig = {
   email: string;
   phone: string;
   address: string;
+  mapEmbedUrl: string;
 };
+
+export const defaultContactMapEmbedUrl = 'https://www.openstreetmap.org/export/embed.html?bbox=101.933%2C30.050%2C102.050%2C30.120&layer=mapnik';
 
 export const defaultContactInfo: ContactInfoConfig = {
   email: '',
   phone: '',
   address: '',
+  mapEmbedUrl: defaultContactMapEmbedUrl,
+};
+
+export const normalizeMapEmbedUrl = (value: unknown) => {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? trimmed : '';
+  } catch {
+    return '';
+  }
+};
+
+export const normalizeContactInfo = (value: unknown, fallback: ContactInfoConfig = defaultContactInfo): ContactInfoConfig => {
+  const config = value && typeof value === 'object' ? value as Partial<Record<keyof ContactInfoConfig, unknown>> : {};
+  return {
+    email: typeof config.email === 'string' ? config.email.trim() : fallback.email,
+    phone: typeof config.phone === 'string' ? config.phone.trim() : fallback.phone,
+    address: typeof config.address === 'string' ? config.address.trim() : fallback.address,
+    mapEmbedUrl: typeof config.mapEmbedUrl === 'string' ? normalizeMapEmbedUrl(config.mapEmbedUrl) : fallback.mapEmbedUrl,
+  };
 };
 
 export type HomepageSectionId = 'news' | 'culture' | 'business' | 'contact';
