@@ -58,6 +58,7 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
             </a>
             <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
               <a href="/" data-no-transition>首页</a>
+              <a href="/topics" data-no-transition>专题专栏</a>
               {navigation.roots.map((item) => {
                 const dropdownItems = navigation.descendants(item.id);
                 if (dropdownItems.length) {
@@ -114,6 +115,7 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
           <a href="/" data-no-transition>首页</a>
+          <a href="/topics">专题专栏</a>
           {navigation.roots.map((item) => {
             const dropdownItems = navigation.descendants(item.id);
             return (
