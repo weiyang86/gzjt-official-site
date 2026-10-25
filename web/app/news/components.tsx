@@ -28,9 +28,42 @@ const navKeyByChannelName: Record<string, NavKey> = {
   '联系我们': 'contact',
 };
 
+/**
+ * 独立功能页不属于资讯栏目，但需要在既有栏目树下提供入口。
+ * 企业荣誉挂在“集团概况”下，不再从“集团历程”区块进入。
+ * CMS 已存在相同 slug 或 path 的栏目时自动跳过，避免重复菜单。
+ */
+const supplementalNavItems = [
+  { parentSlug: 'group-profile', name: '企业荣誉', slug: 'group-honors', path: '/about/honors' },
+];
+
+const mergeSupplementalNav = (channels: Channel[]) => {
+  supplementalNavItems.forEach((item) => {
+    const parent = channels.find((channel) => channel.slug === item.parentSlug);
+    const exists = channels.some((channel) => channel.slug === item.slug || channel.path === item.path);
+    if (!parent || exists) return;
+    const siblingSorts = channels
+      .filter((channel) => channel.parent === parent.id)
+      .map((channel) => Number(channel.sort) || 0);
+    channels.push({
+      id: `supplemental-${item.slug}`,
+      name: item.name,
+      slug: item.slug,
+      parent: parent.id,
+      type: 'page',
+      path: item.path,
+      sort: siblingSorts.length ? Math.max(...siblingSorts) + 1 : 1,
+      status: 'enabled',
+      visible: true,
+      isNewsCategory: false,
+    });
+  });
+  return channels;
+};
+
 const getDynamicNavigation = async () => {
   try {
-    const channels = (await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false);
+    const channels = mergeSupplementalNav((await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false));
     const ids = new Set(channels.map((channel) => channel.id));
     const roots = channels.filter((channel) => !channel.parent || !ids.has(channel.parent));
     const children = (parentId: string) => channels.filter((channel) => channel.parent === parentId);

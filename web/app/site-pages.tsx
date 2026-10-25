@@ -9,6 +9,7 @@ import {
   getPublicContactInfo,
   getPublicGroupIntro,
   getPublicHistoryTimeline,
+  getPublicHonors,
   getPublicLeaders,
   getPublicPageBySlug,
 } from '@/lib/cms';
@@ -20,7 +21,7 @@ import {
   fallbackHistoryTimeline,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { BusinessSector, Company, HistoryTimelineItem, PageContent } from '@/types/cms';
+import type { BusinessSector, Company, HistoryTimelineItem, HonorItem, PageContent } from '@/types/cms';
 import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
 type ActiveKey = NavKey;
@@ -386,6 +387,69 @@ export async function LeadershipPage() {
                 ))}
               </div>
             ) : <div className="leadership-empty">领导致辞内容暂未发布，敬请关注。</div>}
+          </div>
+        </section>
+      </main>
+    </Shell>
+  );
+}
+
+export async function HonorsPage() {
+  let honors: HonorItem[] = [];
+  let hasLoadError = false;
+  try {
+    honors = await getPublicHonors();
+  } catch {
+    hasLoadError = true;
+  }
+
+  return (
+    <Shell active="about">
+      <Breadcrumb title="企业荣誉" />
+      <main className="page" aria-label="企业荣誉" data-honors-page>
+        <Hero
+          title="企业荣誉"
+          kicker="CORPORATE HONORS"
+          subtitle="记录集团在交通建设、城乡发展与国企担当中的荣誉资质，见证每一份认可与责任。"
+          cover="/img/雅砻江大桥.jpg"
+          ctaHref="#honors-content"
+          ctaLabel="查看荣誉"
+          stats={[]}
+        />
+        <section className="section honors-section" id="honors-content" aria-label="荣誉资质">
+          <div className="content">
+            <div className="section-head reveal is-visible">
+              <div>
+                <div className="kicker"><i aria-hidden="true" /><span>HONORS &amp; QUALIFICATIONS</span></div>
+                <h2 className="h2">荣誉资质</h2>
+                <p className="lead">按排序展示集团及所属企业获得的重要荣誉、资质证书与表彰文件。</p>
+              </div>
+            </div>
+            {hasLoadError ? <div className="honors-empty" role="status">企业荣誉内容暂时无法加载，请稍后再试。</div> : honors.length ? (
+              <div className="honors-grid">
+                {honors.map((honor, index) => (
+                  <article className="honor-card reveal is-visible" key={honor.id} style={{ '--i': index } as CSSProperties}>
+                    <div className="honor-certificate">
+                      {honor.image ? (
+                        <a href={honor.image} target="_blank" rel="noreferrer" aria-label={`查看${honor.title}证书大图`}>
+                          <img src={honor.image} alt={`${honor.title}证书`} loading="lazy" />
+                        </a>
+                      ) : <div className="honor-certificate-placeholder"><span>荣誉证书</span><small>暂未上传</small></div>}
+                      {honor.year ? <span className="honor-year">{honor.year}</span> : null}
+                    </div>
+                    <div className="honor-card-body">
+                      <h3>{honor.title}</h3>
+                      {honor.description ? <p>{honor.description}</p> : null}
+                      {honor.attachmentUrl ? (
+                        <a className="honor-attachment" href={honor.attachmentUrl} target="_blank" rel="noreferrer">
+                          <span aria-hidden="true">附件</span>{honor.attachmentName || '查看荣誉附件'}
+                        </a>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : <div className="honors-empty" role="status">企业荣誉内容暂未发布，敬请关注。</div>}
           </div>
         </section>
       </main>

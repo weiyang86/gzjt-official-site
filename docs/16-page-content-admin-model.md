@@ -49,7 +49,7 @@ ADMIN-08R 将“页面内容管理”从单纯占位清单升级为可逐步落�
 | 字段 | 说明 |
 | --- | --- |
 | `module_code` | 所属模块编码。 |
-| `item_type` | `timeline` / `leader` / `org_node` / `link` / `image`。 |
+| `item_type` | `timeline` / `leader` / `org_node` / `link` / `image` / `honor`。 |
 | `title` / `subtitle` | 条目标题和副标题。 |
 | `date_label` | 时间轴年份、日期或阶段文案。 |
 | `image` | 关联 Directus Files。 |
@@ -66,6 +66,7 @@ ADMIN-08R 将“页面内容管理”从单纯占位清单升级为可逐步落�
 | 集团概况 | 企业简介 | `single_page` |
 | 集团概况 | 发展历程时间轴 | `timeline` |
 | 集团概况 | 组织架构图 | `org_chart` |
+| 集团概况 | 企业荣誉 | `honor_list` |
 | 新闻中心 | 集团新闻、行业要闻、媒体聚焦 | `article_list` |
 | 业务板块 | 项目建设、经营管理 | `sector_list` |
 | 下属公司 | 公司列表、公司简介、公司动态 | `company_list` / `article_list` |
@@ -145,7 +146,17 @@ ADMIN-10R 在 ADMIN-09R 通用表单框架基础上，优先落地“集团概�
 - 条目字段：年份或时间写入 `date_label`，标题写入 `title`，内容写入 `content`，排序写入 `sort`，状态写入 `status`。
 - 后台只做停用，不做物理删除。
 
-### 9.3 组织架构图 `org-chart`
+### 9.3 企业荣誉 `group-honors`
+
+- 表单类型：`honor_list`，后台组件为 `HonorManager`。
+- 开放编辑：`admin_enabled=true`。
+- 荣誉条目写入 `page_content_items`，固定 `module_code = group-honors`、`item_type = honor`。
+- 字段映射：荣誉名称写入 `title`，年份写入 `date_label`，证书图片文件 ID 写入 `image`，说明写入 `content`，附件文件 ID 写入 `link_url`，附件原始文件名写入 `extra_json.attachmentName`，排序写入 `sort`，启停写入 `status`。
+- 证书图片复用 `/admin-api/files`；附件通过 `/admin-api/files?kind=document` 上传，支持 PDF、Word、Excel、PowerPoint、ZIP、RAR，单文件不超过 10MB。
+- 前台 `/about/honors` 只读取 `status = enabled` 的条目，图片或附件缺失时降级展示占位和纯文本。
+- 后台只做停用，不做物理删除。
+
+### 9.4 组织架构图 `org-chart`
 
 - 表单类型：`org_chart`。
 - 开放编辑：`admin_enabled=true`。
@@ -153,12 +164,12 @@ ADMIN-10R 在 ADMIN-09R 通用表单框架基础上，优先落地“集团概�
 - 固定条件：`page_contents.module_code = org-chart`。
 - 字段映射：页面标题写入 `title`，组织架构图图片文件 ID 写入 `cover`，说明文字写入 `content`，发布状态写入 `status`。
 
-### 9.4 上传与权限
+### 9.5 上传与权限
 
-企业简介封面图和组织架构图图片复用 `/admin-api/files`，由 `server.js` 使用当前登录用户的 Directus Token 代理到 Directus Files。浏览器端不保存、不硬编码、不透传 Directus Token。
+企业简介封面图、组织架构图图片和企业荣誉证书图片复用 `/admin-api/files`，由 `server.js` 使用当前登录用户的 Directus Token 代理到 Directus Files。浏览器端不保存、不硬编码、不透传 Directus Token。
 
-当前前端提示支持 JPG、PNG、WEBP，单文件不超过 10MB；服务端仍以 `/admin-api/files` 的校验和 Directus Files 权限为准。
+企业荣誉附件通过 `/admin-api/files?kind=document` 上传，服务端校验 PDF、Word、Excel、PowerPoint、ZIP、RAR 扩展名或 MIME 类型，单文件不超过 10MB；图片仍只允许 JPG、PNG、WEBP。
 
-### 9.5 前台影响
+### 9.6 前台影响
 
-本阶段不修改 `web/pages/`，不修改前台 CSS、布局或动画。Directus 中保存的 `page_contents` 与 `page_content_items` 先供后台维护；后续接入前台时需逐个模块替换内容来源，并保持现有前台视觉结构不变。
+企业荣誉已在 Next 前台 `/about/honors` 接入 `page_content_items`，只展示启用条目。顶部导航在“集团概况”展开目录中提供“企业荣誉”入口；该入口由前端导航层补充，CMS `channels` 已存在 `group-honors` 或 `/about/honors` 栏目时不会重复生成。集团历程区块不再放置进入企业荣誉的按钮。原有静态页面和视觉体系保持不变，其他模块接入前台时仍需逐个替换内容来源，并保持现有前台视觉结构不变。

@@ -155,7 +155,7 @@ const fields = {
     stringField('module_title', true),
     stringField('module_code', true),
     stringField('route_path'),
-    selectField('content_type', ['single_page', 'timeline', 'image_text', 'org_chart', 'leader_list', 'article_list', 'company_list', 'sector_list', 'contact_info', 'static_placeholder'], 'static_placeholder'),
+    selectField('content_type', ['single_page', 'timeline', 'image_text', 'org_chart', 'leader_list', 'honor_list', 'article_list', 'company_list', 'sector_list', 'contact_info', 'static_placeholder'], 'static_placeholder'),
     booleanField('admin_enabled', false),
     selectField('dev_status', ['developing', 'enabled', 'disabled'], 'developing'),
     textField('placeholder_text', 'input-multiline', '正在开发中'),
@@ -175,7 +175,7 @@ const fields = {
   ],
   page_content_items: [
     stringField('module_code', true),
-    selectField('item_type', ['timeline', 'leader', 'org_node', 'link', 'image'], 'timeline'),
+    selectField('item_type', ['timeline', 'leader', 'org_node', 'link', 'image', 'honor'], 'timeline'),
     stringField('title', true),
     stringField('subtitle'),
     stringField('date_label'),
@@ -280,7 +280,9 @@ async function ensureField(token, collection, fieldDef) {
   const fields = await request(`/fields/${collection}`, { token });
   const exists = Array.isArray(fields) && fields.some((item) => item?.field === fieldDef.field);
   if (exists) {
-    if (collection === 'page_modules' && ['content_type', 'admin_enabled', 'placeholder_text', 'status'].includes(fieldDef.field)) {
+    const shouldRefreshMeta = (collection === 'page_modules' && ['content_type', 'admin_enabled', 'placeholder_text', 'status'].includes(fieldDef.field))
+      || (collection === 'page_content_items' && fieldDef.field === 'item_type');
+    if (shouldRefreshMeta) {
       try {
         await request(`/fields/${collection}/${fieldDef.field}`, { token, method: 'PATCH', body: { meta: fieldDef.meta, schema: fieldDef.schema } });
         log(`Field exists/updated: ${collection}.${fieldDef.field}`);
@@ -645,6 +647,7 @@ async function seedData(token) {
     ['集团概况', 'group-overview', '发展历程时间轴', 'group-history', '/pages/about/index.html', 'timeline', true, 102],
     ['集团概况', 'group-overview', '组织架构图', 'org-chart', '/pages/about/index.html', 'org_chart', true, 103],
     ['集团概况', 'group-overview', '集团主要领导', 'leaders', '/group/leadership', 'leader_list', true, 104],
+    ['集团概况', 'group-overview', '企业荣誉', 'group-honors', '/about/honors', 'honor_list', true, 105],
     ['新闻中心', 'news-center', '集团新闻', 'group-news', '/pages/news/index.html', 'article_list', true, 201],
     ['新闻中心', 'news-center', '行业要闻', 'industry-news', '/pages/news/index.html', 'article_list', true, 202],
     ['新闻中心', 'news-center', '媒体聚焦', 'media-focus', '/pages/news/index.html', 'article_list', true, 203],

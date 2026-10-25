@@ -286,7 +286,7 @@ ADMIN-08R 将页面模块占位升级为“后台菜单 + 页面主体内容 + �
 
 ### content_type 取值
 
-`single_page` / `timeline` / `image_text` / `org_chart` / `leader_list` / `article_list` / `company_list` / `sector_list` / `contact_info` / `static_placeholder`。
+`single_page` / `timeline` / `image_text` / `org_chart` / `leader_list` / `honor_list` / `article_list` / `company_list` / `sector_list` / `contact_info` / `static_placeholder`。
 
 ### 第一阶段开放编辑
 

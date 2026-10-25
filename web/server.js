@@ -220,8 +220,23 @@ const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const pageContentStatuses = new Set(['draft', 'published', 'archived']);
 const pageContentItemStatuses = new Set(['enabled', 'disabled']);
-const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'honor']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const allowedDocumentTypes = new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/x-rar-compressed',
+    'application/vnd.rar',
+    'application/x-rar'
+]);
+const allowedDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar']);
 const maxUploadBytes = 10 * 1024 * 1024;
 const maxMultipartBytes = 12 * 1024 * 1024;
 
@@ -880,6 +895,15 @@ const parseMultipartFileInfo = (bodyBuffer, boundary) => {
     return null;
 };
 
+const getUploadKind = (req) => {
+    try {
+        const kind = new URL(req.url, 'http://localhost').searchParams.get('kind');
+        return kind === 'document' ? 'document' : 'image';
+    } catch (err) {
+        return 'image';
+    }
+};
+
 const validateUpload = (req, bodyBuffer) => {
     const contentType = req.headers['content-type'] || '';
     if (!String(contentType).toLowerCase().startsWith('multipart/form-data')) {
@@ -888,10 +912,18 @@ const validateUpload = (req, bodyBuffer) => {
     const boundary = getMultipartBoundary(contentType);
     if (!boundary) throw Object.assign(new Error('multipart boundary is missing'), { statusCode: 400 });
     const fileInfo = parseMultipartFileInfo(bodyBuffer, boundary);
+    const kind = getUploadKind(req);
     if (!fileInfo || !fileInfo.filename) {
-        throw Object.assign(new Error('image file is required'), { statusCode: 400 });
+        throw Object.assign(new Error(kind === 'document' ? 'document file is required' : 'image file is required'), { statusCode: 400 });
     }
-    if (!allowedImageTypes.has(fileInfo.type)) {
+    if (kind === 'document') {
+        const extension = String(fileInfo.filename).split('.').pop().toLowerCase();
+        const isAllowed = allowedDocumentTypes.has(fileInfo.type)
+            || ((!fileInfo.type || fileInfo.type === 'application/octet-stream') && allowedDocumentExtensions.has(extension));
+        if (!isAllowed) {
+            throw Object.assign(new Error('Only PDF, Word, Excel, PowerPoint, ZIP, and RAR documents are allowed'), { statusCode: 400 });
+        }
+    } else if (!allowedImageTypes.has(fileInfo.type)) {
         throw Object.assign(new Error('Only JPG, PNG, and WEBP images are allowed'), { statusCode: 400 });
     }
     if (fileInfo.size > maxUploadBytes) {

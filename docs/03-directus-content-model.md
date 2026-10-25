@@ -287,7 +287,7 @@
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `module_code` | String | 所属模块编码 |
-| `item_type` | Select | `timeline` / `leader` / `org_node` / `link` / `image` |
+| `item_type` | Select | `timeline` / `leader` / `org_node` / `link` / `image` / `honor` |
 | `title` / `subtitle` | String | 条目标题和副标题 |
 | `date_label` | String | 时间轴日期或阶段标签 |
 | `image` | File | 关联 `directus_files` |

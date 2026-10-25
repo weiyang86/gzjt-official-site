@@ -1,5 +1,5 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
-import type { DirectusListResponse, HistoryTimelineItem } from '@/types/cms';
+import type { DirectusListResponse, HistoryTimelineItem, HonorItem } from '@/types/cms';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
@@ -177,6 +177,37 @@ export async function getPublicLeaders() {
     speech: toText(item.content),
     sort: Number(item.sort) || 0,
   })).filter((item) => item.name);
+}
+
+export const honorsModuleCode = 'group-honors';
+export const honorsItemType = 'honor';
+
+const getStringExtra = (value: unknown, key: string) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  const raw = (value as Record<string, unknown>)[key];
+  return typeof raw === 'string' ? raw.trim() : '';
+};
+
+export async function getPublicHonors() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    fields: 'id,module_code,item_type,title,date_label,image,content,link_url,sort,status,extra_json',
+    sort: 'sort,-date_label,id',
+    limit: -1,
+    'filter[module_code][_eq]': honorsModuleCode,
+    'filter[item_type][_eq]': honorsItemType,
+    'filter[status][_eq]': 'enabled',
+  }), { cache: 'no-store', next: { revalidate: false } });
+
+  return (response.data || []).map((item): HonorItem => ({
+    id: String(item.id ?? ''),
+    title: toText(item.title),
+    year: toText(item.date_label),
+    image: buildDirectusAssetUrl(toText(item.image)),
+    description: normalizeTimelineContent(toText(item.content)),
+    attachmentUrl: buildDirectusAssetUrl(toText(item.link_url)),
+    attachmentName: getStringExtra(item.extra_json, 'attachmentName'),
+    sort: Number(item.sort) || 0,
+  })).filter((item) => item.title);
 }
 
 export async function getPublicHomepageLayout() {

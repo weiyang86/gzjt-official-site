@@ -1829,4 +1829,38 @@ code {
 @media(max-width:900px){.home-stats-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.home-stats-heading{align-items:flex-start}.home-stats-heading h2{font-size:25px}.home-stats-total{min-width:80px;padding:10px}.home-stats-list,.home-stats-editor{padding:14px}.home-stats-list-toolbar{align-items:flex-start;flex-direction:column}.home-stats-filters{max-width:100%;overflow-x:auto}.home-stats-fields{grid-template-columns:1fr}.home-stats-editor-heading{align-items:flex-start;flex-direction:column}}
 
+
+/* 任务09：企业荣誉管理复用内容编辑卡片，并补充证书与附件展示样式。 */
+.honors-admin { display: grid; gap: 20px; }
+.honors-admin .section-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.honors-admin .section-title-row h2 { margin: 4px 0 0; color: var(--admin-text); }
+.honors-admin .eyebrow { margin: 0; color: var(--admin-muted); font-size: 12px; }
+.honors-admin .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.honors-admin .form-actions { display: flex; align-items: center; gap: 10px; }
+.honor-admin-media-field { display: grid; gap: 4px; }
+.honor-admin-media-field > label { font-size: 13px; font-weight: 700; }
+.honor-admin-preview { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.honor-admin-preview img { width: 168px; height: 126px; border: 1px solid var(--admin-border); border-radius: 10px; object-fit: cover; background: var(--admin-panel-soft); }
+.honor-admin-attachment { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 8px; padding: 10px 12px; border: 1px dashed var(--admin-border); border-radius: 9px; background: var(--admin-panel-soft); font-size: 13px; }
+.honor-admin-attachment a { color: var(--admin-primary); font-weight: 700; overflow-wrap: anywhere; }
+.honors-admin-list { display: grid; gap: 12px; }
+.honors-admin-item { align-items: center; }
+.honors-admin-thumb { flex: 0 0 104px; width: 104px; height: 78px; border-radius: 9px; object-fit: cover; background: var(--admin-panel); }
+.honors-admin-thumb.is-missing { display: grid; place-items: center; color: var(--admin-muted); font-family: "Source Han Serif SC", "Noto Serif SC", serif; font-size: 26px; }
+.honors-admin-item-copy { flex: 1; min-width: 0; }
+.honors-admin-item-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.honors-admin-item-heading h3 { margin: 0 0 4px; color: var(--admin-text); }
+.honors-admin-item-heading strong { color: var(--admin-muted); font-size: 13px; }
+.honors-admin-item-copy small { color: var(--admin-muted); }
+.honors-admin-actions { align-self: flex-start; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.honors-admin-actions .is-danger { color: #b42318; }
+@media(max-width:720px){
+  .honors-admin .editor-grid { grid-template-columns: 1fr; }
+  .honors-admin .section-title-row, .honors-admin-item-heading { align-items: flex-start; }
+  .honors-admin-item { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; }
+  .honors-admin-thumb { width: 84px; height: 64px; }
+  .honors-admin-item-copy { grid-column: 2; }
+  .honors-admin-actions { grid-column: 2; flex-direction: row; }
+}
+
 .footer-settings-page .admin-tabs{display:flex;gap:8px;padding:6px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-panel-soft);width:max-content}.footer-settings-page .admin-tabs button{border:0;border-radius:8px;padding:10px 18px;background:transparent;color:var(--admin-muted);font:inherit;font-weight:700;cursor:pointer}.footer-settings-page .admin-tabs button.is-active{color:#fff;background:var(--admin-primary);box-shadow:0 4px 12px rgba(180,35,24,.2)}.footer-settings-page .editor-field-wide{grid-column:1 / -1}@media (max-width:640px){.footer-settings-page .admin-tabs{width:100%}.footer-settings-page .admin-tabs button{flex:1}}

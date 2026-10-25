@@ -7,6 +7,7 @@ import { getMergedNewsAdminHref } from './merged-news-channel';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import { LeadershipManager } from './LeadershipManager';
+import { HonorManager } from './HonorManager';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -59,6 +60,34 @@ const publicPlatformQrModule: PageModule = {
   dev_status: 'enabled',
   status: 'enabled',
   sort: 1,
+};
+
+const honorsModuleCode = 'group-honors';
+const honorsModule: PageModule = {
+  id: honorsModuleCode,
+  parent_title: '集团概况',
+  parent_code: 'group-overview',
+  module_title: '企业荣誉',
+  module_code: honorsModuleCode,
+  route_path: '/about/honors',
+  content_type: 'honor_list',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 105,
+};
+
+const withHonorsModule = (groups: PageModuleGroup[]) => {
+  if (groups.some((group) => (group.children || group.modules || []).some((module) => module.module_code === honorsModuleCode))) {
+    return groups;
+  }
+  const groupIndex = groups.findIndex((group) => group.parent_code === 'group-overview');
+  if (groupIndex < 0) {
+    return [...groups, { parent_title: '集团概况', parent_code: 'group-overview', children: [honorsModule] }];
+  }
+  return groups.map((group, index) => index === groupIndex
+    ? { ...group, children: [...(group.children || group.modules || []), honorsModule] }
+    : group);
 };
 
 const emptyPageContent = (moduleCode = ''): PageContent => ({
@@ -990,6 +1019,10 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
     return <LeadershipManager />;
   }
 
+  if (module.module_code === honorsModuleCode || module.content_type === 'honor_list') {
+    return <HonorManager />;
+  }
+
   if (module.module_code === 'org-chart' || module.content_type === 'image_text' || module.content_type === 'org_chart') {
     return <PageContentForm module={module} options={{ showCover: true, showSubtitle: false, showSummary: module.module_code !== 'org-chart' }} />;
   }
@@ -1036,6 +1069,10 @@ export function ContentManagerPage() {
     setSelectedCode(moduleCode);
     setMessage(null);
     setSelectedModule(null);
+    if (moduleCode === honorsModuleCode) {
+      setSelectedModule(honorsModule);
+      return;
+    }
     if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode].includes(moduleCode)) {
       const module = moduleCode === homepageLayoutModuleCode
         ? homepageLayoutModule
@@ -1066,7 +1103,7 @@ export function ContentManagerPage() {
     AdminApi.contentModuleTree()
       .then((result) => {
         if (!isMounted) return;
-        const rows = (result.data || []) as PageModuleGroup[];
+        const rows = withHonorsModule((result.data || []) as PageModuleGroup[]);
         setTree([...rows, {
           parent_title: '首页配置',
           parent_code: 'homepage-settings',
