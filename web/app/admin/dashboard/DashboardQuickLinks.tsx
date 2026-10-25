@@ -16,6 +16,15 @@ type QuickLink = {
 
 const quickLinks: QuickLink[] = [
   {
+    key: 'analytics',
+    icon: '统',
+    title: '访问统计',
+    description: '查看站点 PV、UV、热门页面、来源和关键行为。',
+    href: '/admin/analytics',
+    action: '查看访问统计',
+    variant: 'button',
+  },
+  {
     key: 'articles',
     icon: '新',
     title: '新闻管理',

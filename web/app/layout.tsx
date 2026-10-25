@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: '甘孜州建设投资集团有限公司',
@@ -21,7 +22,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script src="/js/analytics.js" strategy="afterInteractive" />
+      </body>
     </html>
   );
 }

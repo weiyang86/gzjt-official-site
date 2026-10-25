@@ -28,6 +28,27 @@ export type DashboardStats = {
   notice_categories?: number;
 };
 
+export type AnalyticsDailyPoint = { date: string; pv: number; uv: number };
+
+export type AnalyticsRankItem = { key: string; label: string; pv: number; uv: number; share: number };
+
+export type AnalyticsDeviceItem = { key: string; label: string; count: number; share: number };
+
+export type AnalyticsActionItem = { name: string; label: string; count: number };
+
+export type AnalyticsOverview = {
+  summary: { days: number; pv: number; uv: number; todayPv: number; todayUv: number };
+  daily: AnalyticsDailyPoint[];
+  topPages: AnalyticsRankItem[];
+  topReferrers: AnalyticsRankItem[];
+  devices: AnalyticsDeviceItem[];
+  actions: AnalyticsActionItem[];
+  retentionDays: number;
+  generatedAt: string;
+};
+
+export type AnalyticsPurgeResult = { removed: number; retentionDays: number };
+
 export type HomeStat = {
   id: string;
   label: string;
@@ -170,6 +191,15 @@ export const AdminApi = {
   deleteFriendLink: (id: string) => adminFetch(`/admin-api/friend-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   siteSettings: () => adminFetch('/admin-api/site-settings'),
   updateSiteSettings: (payload: unknown) => adminFetch('/admin-api/site-settings', { method: 'PATCH', body: JSON.stringify(payload) }),
+  analytics: (days = 14) => adminFetch<AnalyticsOverview>(`/admin-api/analytics?days=${encodeURIComponent(String(days))}`),
+  updateAnalyticsSettings: (retentionDays: number) => adminFetch<AnalyticsOverview>('/admin-api/analytics', {
+    method: 'PUT',
+    body: JSON.stringify({ retentionDays }),
+  }),
+  purgeAnalytics: () => adminFetch<AnalyticsPurgeResult>('/admin-api/analytics', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'purge' }),
+  }),
   createHomeStat: (payload: Omit<HomeStat, 'id'>) => adminFetch('/admin-api/home-stats', { method: 'POST', body: JSON.stringify(payload) }),
   updateHomeStat: (id: string, payload: Omit<HomeStat, 'id'>) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteHomeStat: (id: string) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'DELETE' }),

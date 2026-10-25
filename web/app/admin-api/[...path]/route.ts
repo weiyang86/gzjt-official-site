@@ -6,6 +6,8 @@ import { allAdminMenuKeys, adminMenuItems, menuKeysWithDashboard, type AdminMenu
 import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from '@/lib/admin/sso';
 import { createArticlePreviewPath } from '@/lib/preview/article-preview';
 import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset, loginTrustedUser } from '@/lib/cms/api-store';
+import { buildAnalyticsReport } from '@/lib/analytics/report';
+import { purgeOldEvents, readRetentionDays, writeRetentionDays } from '@/lib/analytics/store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -401,6 +403,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'navigation') return ['navigation'];
   if (root === 'quick-links') return ['quickLinks'];
   if (root === 'friend-links' || root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
+  if (root === 'analytics') return ['analytics'];
   if (root === 'home-stats') return ['homeStats'];
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
@@ -1842,6 +1845,36 @@ const handleLocalPermissions = async (request: NextRequest, path: string[]) => {
   return null;
 };
 
+const handleLocalAnalytics = async (request: NextRequest) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+
+  const days = new URL(request.url).searchParams.get('days');
+
+  if (request.method === 'GET') {
+    return NextResponse.json({ data: await buildAnalyticsReport(days) });
+  }
+
+  if (request.method === 'PUT') {
+    const body = await request.json() as Record<string, unknown>;
+    const retentionDays = await writeRetentionDays(body.retentionDays);
+    await purgeOldEvents(retentionDays);
+    return NextResponse.json({ data: await buildAnalyticsReport(days) });
+  }
+
+  if (request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    if (body.action !== 'purge') {
+      return NextResponse.json({ error: { message: '不支持的操作' } }, { status: 400 });
+    }
+    const retentionDays = await readRetentionDays();
+    const removed = await purgeOldEvents(retentionDays);
+    return NextResponse.json({ data: { removed, retentionDays } });
+  }
+
+  return null;
+};
+
 const getLocalAdminHandler = async (request: NextRequest, context: RouteContext) => {
   const { path = [] } = await context.params;
   const route = path.join('/');
@@ -1854,6 +1887,7 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (route === 'roles') return await handleLocalRoles(request);
     if (path[0] === 'permissions') return await handleLocalPermissions(request, path);
     if (route === 'dashboard/stats') return await handleLocalDashboardStats(request);
+    if (path[0] === 'analytics') return await handleLocalAnalytics(request);
     if (route === 'channels' && request.method === 'GET') return await handleLocalChannels(request);
     if (path[0] === 'navigation') return await handleLocalNavigation(request, path);
     if (path[0] === 'quick-links') return await handleLocalQuickLinks(request, path);

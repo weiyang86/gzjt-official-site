@@ -1,5 +1,6 @@
 export type AdminMenuKey =
   | 'dashboard'
+  | 'analytics'
   | 'articles'
   | 'categories'
   | 'navigation'
@@ -24,6 +25,7 @@ export type AdminMenuItem = {
 
 export const adminMenuItems: AdminMenuItem[] = [
   { key: 'dashboard', href: '/admin/dashboard', label: '工作台', group: 'content' },
+  { key: 'analytics', href: '/admin/analytics', label: '访问统计', group: 'content' },
   { key: 'articles', href: '/admin/articles', label: '新闻管理', group: 'content' },
   { key: 'categories', href: '/admin/categories', label: '新闻分类', group: 'content' },
   { key: 'navigation', href: '/admin/navigation', label: '导航树管理', group: 'content' },
