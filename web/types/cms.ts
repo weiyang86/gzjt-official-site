@@ -156,6 +156,36 @@ export interface Banner {
   status?: ArticleStatus;
 }
 
+export type ResponsibilityCategory = 'report' | 'case' | 'activity';
+
+export interface ResponsibilityAttachment {
+  id: string;
+  name: string;
+  size?: number;
+}
+
+export interface ResponsibilityItem {
+  id: string;
+  category: ResponsibilityCategory;
+  title: string;
+  summary: string;
+  year: string;
+  image?: string;
+  content: string;
+  linkUrl: string;
+  attachments: ResponsibilityAttachment[];
+  sort: number;
+}
+
+export interface ResponsibilityContent {
+  id: string;
+  title: string;
+  subtitle: string;
+  cover?: string;
+  summary: string;
+  content: string;
+}
+
 export interface BusinessSector {
   id: string;
   title?: string;
