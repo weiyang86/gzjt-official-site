@@ -11,6 +11,7 @@ export type AdminMenuKey =
   | 'noticeCategories'
   | 'noticeEdit'
   | 'content'
+  | 'report'
   | 'articleEdit'
   | 'users'
   | 'permissions';
@@ -35,6 +36,7 @@ export const adminMenuItems: AdminMenuItem[] = [
   { key: 'noticeCategories', href: '/admin/notice-categories', label: '公示公告分类', group: 'content' },
   { key: 'noticeEdit', href: '/admin/notice-edit', label: '新增公示公告', group: 'content' },
   { key: 'content', href: '/admin/content', label: '页面内容管理', group: 'content' },
+  { key: 'report', href: '/admin/report', label: '举报入口设置', group: 'content' },
   { key: 'articleEdit', href: '/admin/article-edit', label: '新增新闻', group: 'content' },
   { key: 'users', href: '/admin/users', label: '人员管理', group: 'system' },
   { key: 'permissions', href: '/admin/permissions', label: '权限管理', group: 'system' },

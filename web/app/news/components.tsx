@@ -93,6 +93,9 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
                             {channel.name}
                           </a>
                         ))}
+                        {itemNavKey === 'cleanGov' ? (
+                          <a href="/clean-gov#report-entry" role="menuitem" key="report-entry">举报入口</a>
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -148,6 +151,7 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
                     {dropdownItems.map((channel) => (
                       <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} key={channel.id}>{channel.name}</a>
                     ))}
+                    {navKeyByChannelName[item.name] === 'cleanGov' ? <a href="/clean-gov#report-entry" key="report-entry">举报入口</a> : null}
                   </div>
                 ) : null}
               </Fragment>

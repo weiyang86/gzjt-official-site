@@ -10,6 +10,8 @@ import {
   getPublicGroupIntro,
   getPublicLeaders,
   getPublicPageBySlug,
+  getPublicReportArticles,
+  getPublicReportConfig,
 } from '@/lib/cms';
 import { getGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import {
@@ -18,7 +20,8 @@ import {
   fallbackCompanyBySlug,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { BusinessSector, Company, PageContent } from '@/types/cms';
+import type { Article, BusinessSector, Company, PageContent } from '@/types/cms';
+import type { ReportConfig } from '@/lib/report/config';
 import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
 type ActiveKey = NavKey;
@@ -276,6 +279,95 @@ function ContactInfoSection({ contactInfo }: { contactInfo: Awaited<ReturnType<t
   );
 }
 
+function ReportEntrySection({ config }: { config: ReportConfig }) {
+  const onlineUrl = /^https?:\/\//i.test(config.onlineUrl) ? config.onlineUrl : '';
+  const entries: Array<{ label: string; node: ReactNode }> = [];
+  if (config.phone) entries.push({ label: '举报电话', node: <a href={`tel:${config.phone}`}>{config.phone}</a> });
+  if (config.email) entries.push({ label: '举报邮箱', node: <a href={`mailto:${config.email}`}>{config.email}</a> });
+  if (config.address) entries.push({ label: '来信来访', node: <span>{config.address}</span> });
+  if (onlineUrl) entries.push({ label: '在线举报', node: <a href={onlineUrl} target="_blank" rel="noopener noreferrer">{config.onlineLabel || '前往在线举报'}</a> });
+  const span = entries.length >= 4 ? 3 : entries.length === 3 ? 4 : entries.length === 2 ? 6 : 12;
+
+  return (
+    <section className="section" id="report-entry" aria-label="举报入口">
+      <div className="content">
+        <div className="section-head reveal is-visible">
+          <div>
+            <div className="kicker"><i aria-hidden="true" /><span>REPORT ENTRY</span></div>
+            <div className="h2">{config.title || '举报入口'}</div>
+            {config.intro ? <p className="lead">{config.intro}</p> : null}
+          </div>
+        </div>
+        {entries.length ? (
+          <div className="grid">
+            {entries.map((entry) => (
+              <article className="card reveal is-visible" key={entry.label} style={{ gridColumn: `span ${span}` }}>
+                <div className="card-pad"><div className="pill">{entry.label}</div>{entry.node}</div>
+              </article>
+            ))}
+          </div>
+        ) : <p className="lead">举报入口联系方式暂未发布，可在后台“举报入口设置”中补充电话、邮箱、来信来访地址或在线举报链接。</p>}
+        {config.notice ? (
+          <div className="detail reveal is-visible" style={{ marginTop: 24 }}>
+            <div className="body" style={{ whiteSpace: 'pre-line' }}>{config.notice}</div>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function DisciplineNewsSection({ articles, channelSlug }: { articles: Article[]; channelSlug: string }) {
+  const dayText = (value?: string) => {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return '--';
+    return String(date.getDate()).padStart(2, '0');
+  };
+  const monthText = (value?: string) => {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return '';
+    return `${date.getMonth() + 1}月`;
+  };
+
+  return (
+    <section className="section" id="discipline-news" aria-label="纪检监察动态">
+      <div className="content">
+        <div className="section-head reveal is-visible">
+          <div>
+            <div className="kicker"><i aria-hidden="true" /><span>DISCIPLINE INSPECTION</span></div>
+            <div className="h2">纪检监察动态</div>
+            <p className="lead">发布集团纪检监察、廉洁教育相关动态与通知。</p>
+          </div>
+          {channelSlug ? <a className="btn" href={`/news?channel=${encodeURIComponent(channelSlug)}`} data-no-transition>查看全部</a> : null}
+        </div>
+        {articles.length ? (
+          <div className="news-list">
+            {articles.map((article) => {
+              const publishValue = article.publishAt || article.publishDate;
+              return (
+                <a className="news-item reveal is-visible" href={`/news/${encodeURIComponent(article.id)}`} key={article.id}>
+                  {publishValue ? (
+                    <span className="news-date-tag">
+                      <span className="nd-day">{dayText(publishValue)}</span>
+                      <span className="nd-month">{monthText(publishValue)}</span>
+                    </span>
+                  ) : null}
+                  <span className="news-content">
+                    <b className="news-title">{article.title}</b>
+                    <span className="news-desc">{article.summary || '查看该资讯详情。'}</span>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="lead">纪检监察内容暂未发布，可在后台“新闻管理”中选择对应栏目发布，发布后将在此展示。</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function CompanyCards({ companies }: { companies: Company[] }) {
   return (
     <section className="section" aria-label="下属公司">
@@ -341,6 +433,8 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   const meta = pageMeta[slug];
   if (!page) notFound();
   const contactInfo = slug === 'contact' ? await getPublicContactInfo() : null;
+  const reportConfig = slug === 'cleanGov' ? await getPublicReportConfig() : null;
+  const reportArticles = reportConfig?.enabled ? await getPublicReportArticles(reportConfig) : [];
 
   return (
     <Shell active={meta.active}>
@@ -348,6 +442,8 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
       <main className="page" aria-label="主要内容">
         <Hero title={page.title || meta.title} kicker={meta.kicker} subtitle={meta.subtitle} cover={page.cover} ctaLabel={meta.cta || '查看内容'} />
         {contactInfo ? <ContactInfoSection contactInfo={contactInfo} /> : null}
+        {reportConfig?.enabled ? <ReportEntrySection config={reportConfig} /> : null}
+        {reportConfig?.enabled ? <DisciplineNewsSection articles={reportArticles} channelSlug={reportConfig.articleChannelSlug} /> : null}
         <ContentSection page={page} />
         {slug === 'projects' ? <ProjectMap /> : null}
       </main>
