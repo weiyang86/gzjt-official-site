@@ -1,5 +1,5 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
-import type { DirectusListResponse } from '@/types/cms';
+import type { DirectusListResponse, PageModuleItem } from '@/types/cms';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
 
@@ -67,7 +67,7 @@ export async function getPublicPageModule(moduleCode: string) {
     'filter[module_code][_eq]': moduleCode,
     'filter[status][_eq]': 'published',
     limit: 1,
-    fields: 'id,module_code,title,cover,content,status',
+    fields: 'id,module_code,title,subtitle,cover,summary,content,status',
   }));
   const item = response.data?.[0];
   if (!item) return null;
@@ -75,9 +75,30 @@ export async function getPublicPageModule(moduleCode: string) {
     id: String(item.id ?? ''),
     moduleCode: toText(item.module_code),
     title: toText(item.title),
+    subtitle: toText(item.subtitle),
     cover: buildDirectusAssetUrl(toText(item.cover)),
+    summary: toText(item.summary),
     content: toText(item.content),
   };
+}
+
+export async function getPublicPageModuleItems(moduleCode: string, itemType: string) {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    'filter[module_code][_eq]': moduleCode,
+    'filter[item_type][_eq]': itemType,
+    'filter[status][_eq]': 'enabled',
+    sort: 'sort,id',
+    limit: -1,
+    fields: 'id,title,subtitle,content,image,sort,status',
+  }));
+  return (response.data || []).map((item): PageModuleItem => ({
+    id: String(item.id ?? ''),
+    title: toText(item.title),
+    subtitle: toText(item.subtitle),
+    content: toText(item.content),
+    image: buildDirectusAssetUrl(toText(item.image)),
+    sort: Number(item.sort) || 0,
+  })).filter((item) => item.title || item.subtitle || item.content || item.image);
 }
 
 export async function getPublicPlatformQrs() {

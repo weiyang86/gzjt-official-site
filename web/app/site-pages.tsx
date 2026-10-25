@@ -9,12 +9,13 @@ import {
   getPublicCompanyBySlug,
   getPublicPageBySlug,
   getPublicPageModule,
+  getPublicPageModuleItems,
 } from '@/lib/cms';
 import {
   fallbackBusinessSectors,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { BusinessSector, Company, PageContent } from '@/types/cms';
+import type { BusinessSector, Company, PageContent, PageModuleContent, PageModuleItem } from '@/types/cms';
 
 type ActiveKey = NavKey;
 type HeroStat = { value: string; label: string };
@@ -189,6 +190,20 @@ async function loadOrgChart() {
   }
 }
 
+const corporateCultureModuleCode = 'corporate-culture';
+
+async function loadCorporateCulture() {
+  try {
+    const [content, items] = await Promise.all([
+      getPublicPageModule(corporateCultureModuleCode),
+      getPublicPageModuleItems(corporateCultureModuleCode, 'culture'),
+    ]);
+    return { content, items };
+  } catch {
+    return { content: null, items: [] as PageModuleItem[] };
+  }
+}
+
 function Hero({ title, kicker, subtitle, cover, ctaHref = '#content', ctaLabel = '查看内容', stats = defaultHeroStats }: {
   title: string;
   kicker: string;
@@ -348,7 +363,8 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   if (!page) notFound();
 
   if (slug === 'about') {
-    return <AboutPage cover={page.cover} />;
+    const culture = await loadCorporateCulture();
+    return <AboutPage cover={page.cover} culture={culture.content} cultureItems={culture.items} />;
   }
 
   return (
@@ -363,9 +379,108 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   );
 }
 
-function AboutPage({ cover }: { cover?: string }) {
+const corporateCultureStyles = `
+.about-culture-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
+.about-culture-card{height:100%}
+.about-culture-card .card-pad{height:100%}
+.about-culture-card.is-accent .card-pad{background:linear-gradient(135deg,#0d2f5a,#1d4e89);color:#fff}
+.about-culture-card.is-accent .pill{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.18)}
+.about-culture-card .culture-title{margin:14px 0 10px;font-size:24px;font-weight:900;color:#0f172a}
+.about-culture-card.is-accent .culture-title{color:#fff}
+.about-culture-card .culture-copy{margin:0;color:rgba(11,18,32,.76);line-height:1.9}
+.about-culture-card .culture-copy p{margin:0 0 12px}
+.about-culture-card .culture-copy p:last-child{margin-bottom:0}
+.about-culture-card.is-accent .culture-copy{color:rgba(255,255,255,.84)}
+.about-culture-overview{max-width:980px;margin:0 0 22px;color:rgba(11,18,32,.72);line-height:2}
+.about-culture-overview p{margin:0 0 12px}
+.about-culture-overview p:last-child{margin-bottom:0}
+.about-culture-media{height:180px;overflow:hidden;background:rgba(13,47,90,.06)}
+.about-culture-media img{width:100%;height:100%;object-fit:cover;display:block}
+.about-mission-panel .culture-copy{max-width:980px;margin:20px 0 0;color:rgba(255,255,255,.78);line-height:2;font-size:16px;text-align:justify}
+.about-mission-panel .culture-copy p{margin:0 0 12px}
+.about-mission-panel .culture-copy p:last-child{margin-bottom:0}
+@media (max-width: 1024px){.about-culture-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width: 768px){.about-culture-grid{grid-template-columns:1fr}.about-culture-card{grid-column:span 1 !important}}
+`;
+
+const cultureCardSpan = (index: number, total: number) => {
+  if (total <= 1) return 12;
+  if (total === 2) return 6;
+  return 4;
+};
+
+function CultureSection({ culture, items }: { culture: PageModuleContent | null; items: PageModuleItem[] }) {
+  const title = culture?.title || '企业文化';
+  const lead = culture?.subtitle || culture?.summary || '';
+  if (items.length) {
+    return (
+      <section className="section about-culture" aria-label="企业文化">
+        <div className="content">
+          <div className="section-head reveal is-visible">
+            <div>
+              <div className="kicker"><i aria-hidden="true" /><span>CULTURE</span></div>
+              <div className="h2">{title}</div>
+              {lead ? <p className="lead">{lead}</p> : null}
+            </div>
+          </div>
+          {culture?.content ? (
+            /<[a-z][\s\S]*>/i.test(culture.content)
+              ? <div className="about-culture-overview" dangerouslySetInnerHTML={{ __html: culture.content }} />
+              : <p className="about-culture-overview">{culture.content}</p>
+          ) : null}
+          <div className="about-culture-grid">
+            {items.map((item, index) => (
+              <article
+                className={`card about-culture-card reveal is-visible${index === 0 ? ' is-accent' : ''}`}
+                key={item.id}
+                style={{ gridColumn: `span ${cultureCardSpan(index, items.length)}` }}
+              >
+                {item.image ? <div className="about-culture-media"><img src={item.image} alt={item.title || title} /></div> : null}
+                <div className="card-pad">
+                  <div className="pill">{item.title || '企业文化'}</div>
+                  <div className="culture-title">{item.subtitle || item.title}</div>
+                  {item.content ? (
+                    /<[a-z][\s\S]*>/i.test(item.content)
+                      ? <div className="culture-copy" dangerouslySetInnerHTML={{ __html: item.content }} />
+                      : <p className="culture-copy">{item.content}</p>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (culture?.content) {
+    return (
+      <section className="section about-mission" aria-label="企业文化">
+        <div className="content">
+          <div className="about-mission-panel reveal is-visible" data-about-tilt>
+            <div>
+              <div className="kicker"><i aria-hidden="true" /><span>CULTURE</span></div>
+              <h2>{title}</h2>
+            </div>
+            {lead ? <p>{lead}</p> : null}
+            {/<[a-z][\s\S]*>/i.test(culture.content)
+              ? <div className="culture-copy" dangerouslySetInnerHTML={{ __html: culture.content }} />
+              : <p className="culture-copy">{culture.content}</p>}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return null;
+}
+
+function AboutPage({ cover, culture, cultureItems }: { cover?: string; culture: PageModuleContent | null; cultureItems: PageModuleItem[] }) {
+  const publishedItems = culture ? cultureItems : [];
+  const hasManagedCulture = Boolean(culture && (culture.content || publishedItems.length));
   return (
     <Shell active="about">
+      <style>{corporateCultureStyles}</style>
       <Breadcrumb title="集团概况" />
       <main className="page" aria-label="主要内容" data-about-page>
         <Hero
@@ -462,18 +577,22 @@ function AboutPage({ cover }: { cover?: string }) {
           </div>
         </section>
 
-        <section className="section about-mission" aria-label="企业使命">
-          <div className="content">
-            <div className="about-mission-panel reveal is-visible" data-about-tilt>
-              <div>
-                <div className="kicker"><i aria-hidden="true" /><span>MISSION AND VISION</span></div>
-                <h2>铺筑人民幸福之路，建造甘孜发展之基</h2>
+        {hasManagedCulture ? (
+          <CultureSection culture={culture} items={publishedItems} />
+        ) : (
+          <section className="section about-mission" aria-label="企业使命">
+            <div className="content">
+              <div className="about-mission-panel reveal is-visible" data-about-tilt>
+                <div>
+                  <div className="kicker"><i aria-hidden="true" /><span>MISSION AND VISION</span></div>
+                  <h2>铺筑人民幸福之路，建造甘孜发展之基</h2>
+                </div>
+                <p>近年来，集团公司紧扣州委“12345”总体工作格局，紧紧围绕集团“1344”发展战略目标，秉承“铺筑人民幸福之路、建造甘孜发展之基”的企业使命，以“赤诚奉献、克难奋进、求实求精、创新有为”的企业精神，按照“科学发展，诚实守信，质效至上，价值创造，守法合规，行稳致远”的经营理念，全力打造涉藏地区交通产业为引领的一流综合性投资运营商。</p>
+                <p>集团将持续为建设和谐美丽现代化新甘孜、加快涉藏地区交通基础设施建设步伐、筑牢中华民族共同体意识贡献建投力量。</p>
               </div>
-              <p>近年来，集团公司紧扣州委“12345”总体工作格局，紧紧围绕集团“1344”发展战略目标，秉承“铺筑人民幸福之路、建造甘孜发展之基”的企业使命，以“赤诚奉献、克难奋进、求实求精、创新有为”的企业精神，按照“科学发展，诚实守信，质效至上，价值创造，守法合规，行稳致远”的经营理念，全力打造涉藏地区交通产业为引领的一流综合性投资运营商。</p>
-              <p>集团将持续为建设和谐美丽现代化新甘孜、加快涉藏地区交通基础设施建设步伐、筑牢中华民族共同体意识贡献建投力量。</p>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
       </main>
     </Shell>

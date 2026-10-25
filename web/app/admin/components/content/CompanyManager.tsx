@@ -285,13 +285,29 @@ export function CompanyManager({ moduleTitle, mode = 'list' }: { moduleTitle?: s
                 <label>封面图</label>
                 <p className="field-tip">列表卡片使用，支持 JPG、PNG、WEBP，单个文件不超过 50MB。</p>
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadImage('cover', event)} disabled={uploadingField === 'cover'} />
-                {form.cover ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="封面预览" /> : null}
+                {form.cover ? (
+                  <div className="cover-preview-wrap">
+                    <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="封面预览" />
+                    <button className="secondary-button" type="button" onClick={() => {
+                      setField('cover', '');
+                      setMessage({ text: '封面图已移除，保存后生效。', type: 'success' });
+                    }}>移除图片</button>
+                  </div>
+                ) : null}
               </div>
               <div className="cover-field">
                 <label>Logo</label>
                 <p className="field-tip">详情页与列表标签使用。</p>
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadImage('logo', event)} disabled={uploadingField === 'logo'} />
-                {form.logo ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.logo)}`} alt="Logo 预览" /> : null}
+                {form.logo ? (
+                  <div className="cover-preview-wrap">
+                    <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.logo)}`} alt="Logo 预览" />
+                    <button className="secondary-button" type="button" onClick={() => {
+                      setField('logo', '');
+                      setMessage({ text: 'Logo 已移除，保存后生效。', type: 'success' });
+                    }}>移除图片</button>
+                  </div>
+                ) : null}
               </div>
               <div className="form-actions span-2">
                 <button className="primary-link-button" type="submit" disabled={isSaving}>{isSaving ? '保存中…' : '保存公司详情'}</button>
@@ -344,13 +360,29 @@ export function CompanyManager({ moduleTitle, mode = 'list' }: { moduleTitle?: s
               <label>封面图</label>
               <p className="field-tip">列表卡片使用，支持 JPG、PNG、WEBP，单个文件不超过 50MB。</p>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadImage('cover', event)} disabled={uploadingField === 'cover'} />
-              {form.cover ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="封面预览" /> : null}
+              {form.cover ? (
+                  <div className="cover-preview-wrap">
+                    <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="封面预览" />
+                    <button className="secondary-button" type="button" onClick={() => {
+                      setField('cover', '');
+                      setMessage({ text: '封面图已移除，保存后生效。', type: 'success' });
+                    }}>移除图片</button>
+                  </div>
+                ) : null}
             </div>
             <div className="cover-field">
               <label>Logo</label>
               <p className="field-tip">详情页与列表标签使用。</p>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadImage('logo', event)} disabled={uploadingField === 'logo'} />
-              {form.logo ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.logo)}`} alt="Logo 预览" /> : null}
+              {form.logo ? (
+                  <div className="cover-preview-wrap">
+                    <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.logo)}`} alt="Logo 预览" />
+                    <button className="secondary-button" type="button" onClick={() => {
+                      setField('logo', '');
+                      setMessage({ text: 'Logo 已移除，保存后生效。', type: 'success' });
+                    }}>移除图片</button>
+                  </div>
+                ) : null}
             </div>
             <label>排序
               <input type="number" step="1" value={String(form.sort ?? 0)} onChange={(event) => setField('sort', Number(event.target.value || 0))} />

@@ -86,6 +86,25 @@ export interface PageContent {
   status: ArticleStatus;
 }
 
+export interface PageModuleContent {
+  id: string;
+  moduleCode: string;
+  title: string;
+  subtitle: string;
+  cover?: string;
+  summary: string;
+  content: string;
+}
+
+export interface PageModuleItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  image?: string;
+  sort: number;
+}
+
 export interface Banner {
   id: string;
   title: string;
