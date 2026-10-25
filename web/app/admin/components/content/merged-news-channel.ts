@@ -30,3 +30,16 @@ export const getMergedNewsAdminHref = (module: PageModule) => {
   const channel = getMergedNewsChannel(module);
   return channel ? `/admin/articles?channel=${encodeURIComponent(channel)}` : '';
 };
+
+/**
+ * 页面模块编码与新闻栏目 slug 不完全一致时，用显式映射保证“前往新闻管理”打开正确栏目。
+ * 科技创新模块沿用历史编码 technology-innovation，门户实际栏目为 business-technology-innovation。
+ */
+const articleChannelSlugByModuleCode: Record<string, string> = {
+  'technology-innovation': 'business-technology-innovation',
+};
+
+export const getArticleChannelSlug = (module: PageModule) => {
+  const code = String(module.module_code || '').trim();
+  return articleChannelSlugByModuleCode[code] || code;
+};

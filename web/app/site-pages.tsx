@@ -4,6 +4,7 @@ import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/componen
 import {
   getPublicArticles,
   getPublicBusinessSectors,
+  getPublicChannels,
   getPublicCompanies,
   getPublicCompanyBySlug,
   getPublicContactInfo,
@@ -20,7 +21,7 @@ import {
   fallbackHistoryTimeline,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { BusinessSector, Company, HistoryTimelineItem, PageContent } from '@/types/cms';
+import type { Article, BusinessSector, Channel, Company, HistoryTimelineItem, PageContent } from '@/types/cms';
 import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
 type ActiveKey = NavKey;
@@ -315,6 +316,92 @@ function SectorCards({ sectors }: { sectors: BusinessSector[] }) {
   );
 }
 
+const innovationChannelSlugs = ['business-technology-innovation', 'technology-innovation'];
+const innovationFallbackHref = `/news?channel=${encodeURIComponent(innovationChannelSlugs[0])}`;
+
+type InnovationSectionData = {
+  items: Article[];
+  total: number;
+  href: string;
+  loadError: boolean;
+};
+
+const formatInnovationDate = (item: Article) => {
+  const value = item.publishAt || item.publishDate || '';
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+async function loadInnovationSection(): Promise<InnovationSectionData> {
+  let href = innovationFallbackHref;
+  try {
+    const channels = await getPublicChannels();
+    const channel = innovationChannelSlugs
+      .map((slug) => channels.find((item) => item.slug === slug))
+      .find((item): item is Channel => Boolean(item))
+      || channels.find((item) => item.name === '科技创新');
+    if (!channel) return { items: [], total: 0, href, loadError: false };
+
+    href = `/news?channel=${encodeURIComponent(channel.slug)}`;
+    const payload = await getPublicArticles(new URLSearchParams({
+      scope: 'news',
+      channelSlug: channel.slug,
+      pageSize: '3',
+    }));
+    return { items: payload.items, total: payload.total, href, loadError: false };
+  } catch {
+    return { items: [], total: 0, href, loadError: true };
+  }
+}
+
+function InnovationSection({ data }: { data: InnovationSectionData }) {
+  return (
+    <section className="section" id="innovation" aria-label="科技创新">
+      <div className="content">
+        <div className="section-head reveal is-visible">
+          <div>
+            <div className="kicker"><i aria-hidden="true" /><span>INNOVATION</span></div>
+            <div className="h2">科技创新</div>
+            <p className="lead">集中展示技术研发成果、创新案例与成果转化进展，点击成果可查看完整内容。</p>
+          </div>
+          <a className="btn" href={data.href}>查看全部</a>
+        </div>
+        {data.items.length ? (
+          <>
+            <div className="grid">
+              {data.items.map((item) => (
+                <a className="card reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id} style={{ gridColumn: 'span 4', display: 'block' }}>
+                  <div style={{ height: 180, overflow: 'hidden' }}><img src={item.cover || fallbackCover} alt={item.title} /></div>
+                  <div className="card-pad">
+                    <div className="pill">{item.newsSubcategory || '科技创新'}</div>
+                    <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{item.title}</div>
+                    <div className="rich" style={{ marginTop: 8 }}>{item.summary || '查看该科技成果详情。'}</div>
+                    <div style={{ marginTop: 12, color: 'rgba(11,18,32,.52)', fontSize: 13 }}>{formatInnovationDate(item)}</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+            {data.total > data.items.length ? <p style={{ margin: '18px 0 0', color: 'rgba(11,18,32,.55)', fontSize: 13 }}>共 {data.total} 项科技成果，点击“查看全部”浏览完整列表。</p> : null}
+          </>
+        ) : (
+          <div className="card" role="status">
+            <div className="card-pad">
+              <div className="pill">{data.loadError ? '加载失败' : '暂无内容'}</div>
+              <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 20 }}>{data.loadError ? '科技创新内容暂时无法加载' : '科技创新内容暂未发布'}</div>
+              <p style={{ margin: '8px 0 0', color: 'rgba(11,18,32,.62)', lineHeight: 1.9 }}>
+                {data.loadError ? '请稍后重试，或进入科技创新栏目查看已发布内容。' : '网站编辑可在后台“新闻管理”中选择“科技创新”栏目发布科技成果，发布后将在此展示。'}
+              </p>
+              <a className="btn btn--primary" href={data.href} style={{ marginTop: 16 }}>进入科技创新栏目</a>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta }) {
   if (slug === 'about') {
     const [groupIntro, historyTimeline] = await Promise.all([
@@ -328,6 +415,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   const meta = pageMeta[slug];
   if (!page) notFound();
   const contactInfo = slug === 'contact' ? await getPublicContactInfo() : null;
+  const innovation = slug === 'projects' ? await loadInnovationSection() : null;
 
   return (
     <Shell active={meta.active}>
@@ -336,6 +424,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
         <Hero title={page.title || meta.title} kicker={meta.kicker} subtitle={meta.subtitle} cover={page.cover} ctaLabel={meta.cta || '查看内容'} />
         {contactInfo ? <ContactInfoSection contactInfo={contactInfo} /> : null}
         <ContentSection page={page} />
+        {innovation ? <InnovationSection data={innovation} /> : null}
         {slug === 'projects' ? <ProjectMap /> : null}
       </main>
     </Shell>

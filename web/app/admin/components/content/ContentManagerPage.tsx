@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
-import { getMergedNewsAdminHref } from './merged-news-channel';
+import { getArticleChannelSlug, getMergedNewsAdminHref } from './merged-news-channel';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import { LeadershipManager } from './LeadershipManager';
@@ -1003,8 +1003,8 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
       <section className="notice-card">
         <p className="eyebrow">{module.content_type}</p>
         <h2>内容来源于新闻管理</h2>
-        <p>该模块使用新闻管理中的文章列表，建议使用栏目 slug：{module.module_code}。</p>
-        <a className="primary-link-button" href={`/admin/articles?channel=${encodeURIComponent(module.module_code || '')}`}>前往新闻管理</a>
+        <p>该模块使用新闻管理中的文章列表，对应栏目 slug：{getArticleChannelSlug(module) || '未配置'}。</p>
+        <a className="primary-link-button" href={`/admin/articles?channel=${encodeURIComponent(getArticleChannelSlug(module))}`}>前往新闻管理</a>
       </section>
     );
   }

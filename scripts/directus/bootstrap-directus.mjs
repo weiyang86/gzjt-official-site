@@ -662,7 +662,7 @@ async function seedData(token) {
     ['党建群团', 'party-mass', '青年工作', 'youth-work', '/pages/party/index.html', 'article_list', false, 504],
     ['项目建设', 'projects', '项目动态', 'project-news', '/pages/projects/index.html', 'article_list', true, 601],
     ['项目建设', 'projects', '安全环保', 'safety-environment', '/pages/projects/index.html', 'article_list', true, 602],
-    ['项目建设', 'projects', '科技创新', 'technology-innovation', '/pages/projects/index.html', 'article_list', true, 603],
+    ['项目建设', 'projects', '科技创新', 'technology-innovation', '/projects#innovation', 'article_list', true, 603],
     ['社会责任', 'responsibility', '社会责任', 'social-responsibility', '/pages/responsibility/index.html', 'single_page', true, 701],
     ['社会责任', 'responsibility', '乡村振兴', 'rural-revitalization', '/pages/responsibility/index.html', 'article_list', false, 702],
     ['社会责任', 'responsibility', '志愿服务', 'volunteer-service', '/pages/responsibility/index.html', 'article_list', false, 703],
