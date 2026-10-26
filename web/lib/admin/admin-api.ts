@@ -117,6 +117,25 @@ export type AdminMessage = {
   created_at: string;
 };
 
+export type AdminManagedLink = {
+  id: string;
+  title: string;
+  url: string;
+  position: string;
+  sort: number;
+  status: string;
+};
+
+export type AdminBusinessSector = {
+  id: string;
+  name: string;
+  slug: string;
+  cover?: string;
+  intro: string;
+  sort: number;
+  status: string;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -247,6 +266,36 @@ export const AdminApi = {
   deleteCompany: (id: string) => adminFetch(`/admin-api/companies/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   topics: () => adminFetch<AdminTopic[]>('/admin-api/topics'),
   projects: () => adminFetch<AdminProject[]>('/admin-api/projects'),
+  quickLinks: () => adminFetch<AdminManagedLink[]>('/admin-api/quick-links'),
+  createQuickLink: (payload: unknown) => adminFetch<AdminManagedLink>('/admin-api/quick-links', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateQuickLink: (id: string, payload: unknown) => adminFetch<AdminManagedLink>(`/admin-api/quick-links/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  deleteQuickLink: (id: string) => adminFetch(`/admin-api/quick-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  friendLinks: () => adminFetch<AdminManagedLink[]>('/admin-api/friend-links'),
+  createFriendLink: (payload: unknown) => adminFetch<AdminManagedLink>('/admin-api/friend-links', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateFriendLink: (id: string, payload: unknown) => adminFetch<AdminManagedLink>(`/admin-api/friend-links/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  deleteFriendLink: (id: string) => adminFetch(`/admin-api/friend-links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  businessSectors: () => adminFetch<AdminBusinessSector[]>('/admin-api/business-sectors'),
+  createBusinessSector: (payload: unknown) => adminFetch<AdminBusinessSector>('/admin-api/business-sectors', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateBusinessSector: (id: string, payload: unknown) => adminFetch<AdminBusinessSector>(`/admin-api/business-sectors/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  deleteBusinessSector: (id: string) => adminFetch(`/admin-api/business-sectors/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   messages: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/messages', params)),
   message: (id: string) => adminFetch<AdminMessage>(`/admin-api/messages/${encodeURIComponent(id)}`),
   updateMessage: (id: string, payload: unknown) => adminFetch<AdminMessage>(`/admin-api/messages/${encodeURIComponent(id)}`, {

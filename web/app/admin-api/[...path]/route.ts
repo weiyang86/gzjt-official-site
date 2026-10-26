@@ -128,6 +128,8 @@ const messageStatusLabels: Record<string, string> = {
   replied: '已回复',
   closed: '已办结',
 };
+const managedLinkFields = 'id,title,url,position,sort,status';
+const businessSectorFields = 'id,name,slug,cover,intro,sort,status';
 
 const globalForAdminSessions = globalThis as typeof globalThis & {
   __gzjtAdminSessions?: Map<string, AdminSession>;
@@ -428,8 +430,11 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'topics') return ['topics'];
   if (root === 'projects') return ['projects'];
   if (root === 'messages') return ['messages'];
-  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics', 'projects'];
-  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics', 'projects'];
+  if (root === 'quick-links') return ['quickLinks'];
+  if (root === 'friend-links') return ['friendLinks'];
+  if (root === 'business-sectors') return ['businessSectors'];
+  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics', 'projects', 'businessSectors'];
+  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics', 'projects', 'businessSectors'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   if (root === 'companies') return ['content'];
@@ -2084,6 +2089,140 @@ const handleLocalProjects = async (request: NextRequest, path: string[]) => {
   return null;
 };
 
+const normalizeManagedLinkInput = (body: Record<string, unknown>) => {
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const url = typeof body.url === 'string' ? body.url.trim() : '';
+  if (!title) throw Object.assign(new Error('请填写链接名称'), { status: 400 });
+  if (title.length > 50) throw Object.assign(new Error('链接名称不能超过 50 个字符'), { status: 400 });
+  if (!url) throw Object.assign(new Error('请填写链接地址'), { status: 400 });
+  if (!/^(https?:\/\/|\/)/i.test(url)) {
+    throw Object.assign(new Error('链接地址只允许 http/https 或站内路径'), { status: 400 });
+  }
+  if (url.length > 500) throw Object.assign(new Error('链接地址不能超过 500 个字符'), { status: 400 });
+  return {
+    title,
+    url,
+    position: typeof body.position === 'string' && body.position.trim() ? body.position.trim() : 'footer',
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status: body.status === 'disabled' ? 'disabled' : 'enabled',
+  };
+};
+
+const handleLocalManagedLinks = async (request: NextRequest, path: string[], collection: 'quick_links' | 'friend_links') => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const basePath = `/items/${collection}`;
+
+  if (!id && request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: unknown[] }>(
+      buildDirectusPath(basePath, { fields: managedLinkFields, sort: 'sort,id', limit: -1 }),
+      token,
+    );
+    return NextResponse.json({ data: result.data || [] });
+  }
+
+  if (!id && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeManagedLinkInput(body);
+    const result = await directusJsonRequest<{ data?: unknown }>(basePath, token, 'POST', payload);
+    return NextResponse.json({ data: result.data || null }, { status: 201 });
+  }
+
+  if (id && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeManagedLinkInput(body);
+    const result = await directusJsonRequest<{ data?: unknown }>(`${basePath}/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+
+  if (id && request.method === 'DELETE') {
+    await directusJsonRequest(`${basePath}/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+
+  return null;
+};
+
+const normalizeBusinessSectorInput = (body: Record<string, unknown>) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!name) throw Object.assign(new Error('请填写板块名称'), { status: 400 });
+  if (name.length > 50) throw Object.assign(new Error('板块名称不能超过 50 个字符'), { status: 400 });
+  if (!slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    throw Object.assign(new Error('slug 只能使用小写英文、数字或中横线'), { status: 400 });
+  }
+  if (slug.length > 60) throw Object.assign(new Error('slug 不能超过 60 个字符'), { status: 400 });
+  return {
+    name,
+    slug,
+    cover: typeof body.cover === 'string' && body.cover.trim() ? body.cover.trim() : null,
+    intro: typeof body.intro === 'string' ? body.intro.trim() : '',
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status: body.status === 'disabled' ? 'disabled' : 'enabled',
+  };
+};
+
+const handleLocalBusinessSectors = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+
+  if (!id && request.method === 'GET') {
+    const result = await directusJsonRequest<{ data?: unknown[] }>(
+      buildDirectusPath('/items/business_sectors', { fields: businessSectorFields, sort: 'sort,id', limit: -1 }),
+      token,
+    );
+    return NextResponse.json({ data: result.data || [] });
+  }
+
+  if (!id && request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeBusinessSectorInput(body);
+    const duplicated = await directusJsonRequest<{ meta?: { filter_count?: number } }>(
+      buildDirectusPath('/items/business_sectors', { fields: 'id', limit: 1, 'filter[slug][_eq]': payload.slug }),
+      token,
+    );
+    if (Number(duplicated.meta?.filter_count || 0)) {
+      throw Object.assign(new Error('slug 已存在，请更换'), { status: 409 });
+    }
+    const result = await directusJsonRequest<{ data?: unknown }>('/items/business_sectors', token, 'POST', payload);
+    return NextResponse.json({ data: result.data || null }, { status: 201 });
+  }
+
+  if (id && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeBusinessSectorInput(body);
+    const rows = await directusJsonRequest<{ data?: Array<{ id?: string }> }>(
+      buildDirectusPath('/items/business_sectors', { fields: 'id', limit: 2, 'filter[slug][_eq]': payload.slug }),
+      token,
+    );
+    const duplicated = (rows.data || []).some((row) => String(row.id || '') !== id);
+    if (duplicated) throw Object.assign(new Error('slug 已存在，请更换'), { status: 409 });
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/business_sectors/${encodeURIComponent(id)}`, token, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+
+  if (id && request.method === 'DELETE') {
+    const articles = await directusJsonRequest<{ meta?: { filter_count?: number } }>(
+      buildDirectusPath('/items/articles', { fields: 'id', limit: 1, 'filter[related_sector][_eq]': id }),
+      token,
+    );
+    if (Number(articles.meta?.filter_count || 0)) {
+      return NextResponse.json(
+        { error: { code: 'SECTOR_IN_USE', message: '该业务板块仍有关联文章，请先调整文章归属或停用板块。' } },
+        { status: 409 },
+      );
+    }
+    await directusJsonRequest(`/items/business_sectors/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+
+  return null;
+};
+
 const messageText = (value: unknown) => (typeof value === 'string' ? value : '');
 
 const mapAdminMessageRow = (row: Record<string, unknown>) => {
@@ -2429,6 +2568,9 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
       return await handleLocalTopics(request, path);
     }
     if (path[0] === 'projects') return await handleLocalProjects(request, path);
+    if (path[0] === 'quick-links') return await handleLocalManagedLinks(request, path, 'quick_links');
+    if (path[0] === 'friend-links') return await handleLocalManagedLinks(request, path, 'friend_links');
+    if (path[0] === 'business-sectors') return await handleLocalBusinessSectors(request, path);
     if (path[0] === 'messages') return await handleLocalMessages(request, path);
     if (path[0] === 'companies') return await handleLocalCompanies(request, path);
     if (route === 'files') return await handleLocalFileUpload(request);

@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     return [
       { source: '/pages/about/index.html', destination: '/about', permanent: false },
       { source: '/pages/disclosure/index.html', destination: '/disclosure', permanent: false },
+      { source: '/disclosure/recruitment/:path*', destination: '/recruitment', permanent: false },
       { source: '/pages/news/index.html', destination: '/news', permanent: false },
       { source: '/pages/business/index.html', destination: '/business-dev', permanent: false },
       { source: '/pages/projects/index.html', destination: '/projects', permanent: false },

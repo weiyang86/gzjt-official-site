@@ -8,6 +8,7 @@ import {
   getPublicBusinessSectors,
   getPublicCompanies,
   getPublicCompanyBySlug,
+  getPublicHonors,
   getPublicPageBySlug,
   getPublicPageModule,
 } from '@/lib/cms';
@@ -365,7 +366,8 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   );
 }
 
-function AboutPage({ cover }: { cover?: string }) {
+async function AboutPage({ cover }: { cover?: string }) {
+  const honors = await getPublicHonors();
   return (
     <Shell active="about">
       <Breadcrumb title="集团概况" />
@@ -430,6 +432,34 @@ function AboutPage({ cover }: { cover?: string }) {
             </div>
           </div>
         </section>
+
+        {honors.items.length ? (
+          <section className="section about-honors" id="honors" aria-label="荣誉资质">
+            <div className="content">
+              <div className="section-head reveal is-visible">
+                <div>
+                  <div className="kicker"><i aria-hidden="true" /><span>HONORS</span></div>
+                  <div className="h2">{honors.content?.title || '荣誉资质'}</div>
+                  <p className="lead">{honors.content?.subtitle || '集团在建设与经营过程中获得的主要荣誉与资质。'}</p>
+                </div>
+              </div>
+              <div className="grid">
+                {honors.items.map((item) => (
+                  <article className="card reveal is-visible" key={item.id} style={{ gridColumn: 'span 4' }}>
+                    {item.image ? (
+                      <div style={{ height: 180, overflow: 'hidden' }}><img src={item.image} alt={item.title} /></div>
+                    ) : null}
+                    <div className="card-pad">
+                      <div className="pill">{item.year || '荣誉'}</div>
+                      <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{item.title}</div>
+                      <div className="rich" style={{ marginTop: 8 }}>{item.issuer || item.description || '荣誉信息待完善。'}</div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="section about-performance" aria-label="建设成果">
           <div className="content">

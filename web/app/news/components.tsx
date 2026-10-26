@@ -1,11 +1,19 @@
 import Script from 'next/script';
 import { Fragment } from 'react';
-import { getPublicChannels } from '@/lib/cms';
+import { getPublicChannels, getPublicFriendLinks, getPublicQuickLinks } from '@/lib/cms';
 import type { Channel } from '@/types/cms';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
 
+const recruitmentChannelHref: Record<string, string> = {
+  'disclosure-recruitment': '/recruitment',
+  'recruitment-social': '/recruitment?type=social',
+  'recruitment-campus': '/recruitment?type=campus',
+  'recruitment-internal-selection': '/recruitment?type=internal',
+};
+
 const channelHref = (channel: Channel) => {
+  if (recruitmentChannelHref[channel.slug]) return recruitmentChannelHref[channel.slug];
   if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') return channel.path || `/${channel.slug}`;
   if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) return `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
   return `/news?channel=${encodeURIComponent(channel.slug)}`;
@@ -139,7 +147,29 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
   );
 }
 
-export function Footer() {
+const fallbackQuickLinks = [
+  { id: 'quick-about', title: '集团概况', url: '/about' },
+  { id: 'quick-business', title: '业务板块', url: '/business' },
+  { id: 'quick-projects', title: '项目展示', url: '/projects' },
+  { id: 'quick-contact', title: '联系我们', url: '/contact' },
+];
+
+const fallbackFriendLinks = [
+  { id: 'friend-gzz', title: '甘孜藏族自治州人民政府', url: 'https://www.gzz.gov.cn/' },
+  { id: 'friend-jtj', title: '甘孜藏族自治州交通运输局', url: 'http://jtj.gzz.gov.cn/' },
+  { id: 'friend-jsj', title: '甘孜藏族自治州住房和城乡建设局', url: 'http://jsj.gzz.gov.cn/' },
+];
+
+const isExternalLink = (url: string) => /^https?:\/\//i.test(url);
+
+export async function Footer() {
+  const [friendLinks, quickLinks] = await Promise.all([
+    getPublicFriendLinks(),
+    getPublicQuickLinks(),
+  ]);
+  const visibleQuickLinks = quickLinks.length ? quickLinks : fallbackQuickLinks;
+  const visibleFriendLinks = friendLinks.length ? friendLinks : fallbackFriendLinks;
+
   return (
     <footer className="footer" aria-label="页脚信息">
       <div className="content">
@@ -150,11 +180,35 @@ export function Footer() {
           </div>
           <div>
             <dl>
+              <dt>快速链接</dt>
+              <dd>
+                {visibleQuickLinks.map((item, index) => (
+                  <span key={item.id}>
+                    <a
+                      href={item.url}
+                      {...(isExternalLink(item.url) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    >
+                      {item.title}
+                    </a>
+                    {index < visibleQuickLinks.length - 1 ? <br /> : null}
+                  </span>
+                ))}
+              </dd>
+            </dl>
+            <dl>
               <dt>友情链接</dt>
               <dd>
-                <a href="https://www.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州人民政府</a><br />
-                <a href="http://jtj.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州交通运输局</a><br />
-                <a href="http://jsj.gzz.gov.cn/" target="_blank" rel="noopener noreferrer">甘孜藏族自治州住房和城乡建设局</a>
+                {visibleFriendLinks.map((item, index) => (
+                  <span key={item.id}>
+                    <a
+                      href={item.url}
+                      {...(isExternalLink(item.url) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    >
+                      {item.title}
+                    </a>
+                    {index < visibleFriendLinks.length - 1 ? <br /> : null}
+                  </span>
+                ))}
               </dd>
             </dl>
           </div>

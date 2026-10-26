@@ -2,8 +2,12 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
+import { BusinessSectorManager } from './BusinessSectorManager';
 import { CompanyManager } from './CompanyManager';
+import { DownloadManager } from './DownloadManager';
+import { HonorManager } from './HonorManager';
 import { PageContentForm, validateImage } from './PageContentForm';
+import { RecruitmentManager } from './RecruitmentManager';
 import { SocialResponsibilityManager } from './SocialResponsibilityManager';
 import type { MessageState, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
@@ -311,6 +315,28 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
     return <SocialResponsibilityManager module={module} />;
   }
 
+  if (module.module_code === 'recruitment') {
+    return <RecruitmentManager module={module} />;
+  }
+
+  if (module.module_code === 'honors') {
+    return (
+      <>
+        <PageContentForm module={module} options={{ showCover: false, showSubtitle: true }} />
+        <HonorManager module={module} />
+      </>
+    );
+  }
+
+  if (module.module_code === 'downloads') {
+    return (
+      <>
+        <PageContentForm module={module} options={{ showCover: false, showSubtitle: true }} />
+        <DownloadManager module={module} />
+      </>
+    );
+  }
+
   if (module.module_code === 'group-history' || module.content_type === 'timeline') {
     return (
       <>
@@ -349,7 +375,7 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   }
 
   if (module.content_type === 'sector_list') {
-    return <section className="notice-card"><p className="eyebrow">{module.content_type}</p><h2>业务板块数据预留</h2><p>该模块内容来源于业务板块数据，具体表单后续接入。</p></section>;
+    return <BusinessSectorManager />;
   }
 
   return (

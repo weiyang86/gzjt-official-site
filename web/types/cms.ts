@@ -149,6 +149,22 @@ export interface SiteMessageStatusView {
   reply: string;
 }
 
+export interface RecruitmentJob {
+  id: string;
+  title: string;
+  department: string;
+  headcount: string;
+  location: string;
+  deadline: string;
+  requirement: string;
+  applyUrl: string;
+  category: RecruitmentCategory;
+  sort: number;
+  status: string;
+}
+
+export type RecruitmentCategory = 'social' | 'campus' | 'internal';
+
 export interface PageContent {
   id: string;
   title: string;
@@ -231,4 +247,49 @@ export interface SiteSettings {
   site_name: string;
   logo?: string;
   footer_text?: string;
+}
+
+export interface QuickLink {
+  id: string;
+  title: string;
+  url: string;
+  position?: string;
+  sort?: number;
+}
+
+export interface FriendLink {
+  id: string;
+  title: string;
+  url: string;
+  position?: string;
+  sort?: number;
+}
+
+export interface HonorItem {
+  id: string;
+  title: string;
+  issuer: string;
+  year: string;
+  image?: string;
+  description: string;
+  sort: number;
+}
+
+export interface HonorContent {
+  title: string;
+  subtitle: string;
+  summary: string;
+  content: string;
+}
+
+export interface DownloadItem {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  fileId: string;
+  url: string;
+  filename: string;
+  filesize: number;
+  sort: number;
 }
