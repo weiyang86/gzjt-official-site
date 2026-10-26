@@ -164,7 +164,7 @@ export function CompanyManager({ moduleTitle, mode = 'list' }: { moduleTitle?: s
       } else {
         await AdminApi.createCompany(payload);
         setMessage({ text: '公司已新增。', type: 'success' });
-        setForm(emptyForm());
+        setForm({ ...emptyForm(), sort: Number(payload.sort) + 1 });
       }
       await loadCompanies();
     } catch (err) {
@@ -331,7 +331,10 @@ export function CompanyManager({ moduleTitle, mode = 'list' }: { moduleTitle?: s
       <section className="editor-card">
           <div className="section-title-row">
             <div><p className="eyebrow">新增 / 编辑</p><h2>{form.id ? '编辑公司' : '新增公司'}</h2></div>
-            <button className="secondary-button" type="button" onClick={resetForm}>清空表单</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="secondary-button" type="button" onClick={resetForm}>新增公司</button>
+              {form.id ? <button className="secondary-button" type="button" onClick={resetForm}>取消编辑</button> : null}
+            </div>
           </div>
           {message ? <div className={`inline-message ${message.type || ''}`.trim()}>{message.text}</div> : null}
           <form className="editor-grid" onSubmit={handleSave}>

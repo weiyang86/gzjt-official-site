@@ -117,6 +117,7 @@ export function RecruitmentManager({ module }: { module: PageModule }) {
   const [message, setMessage] = useState<MessageState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | RecruitmentCategory>('all');
   const editorRef = useRef<CmsRichTextEditorHandle | null>(null);
 
   // 切换岗位或清空表单时同步编辑器内容，避免沿用上一条岗位的正文。
@@ -152,6 +153,19 @@ export function RecruitmentManager({ module }: { module: PageModule }) {
   const nextSort = useMemo(
     () => items.reduce((max, item) => Math.max(max, Number(item.sort) || 0), 0) + 1,
     [items],
+  );
+
+  const categoryCounts = useMemo(() => ({
+    social: items.filter((item) => toCategory(readExtraObject(item).category) === 'social').length,
+    campus: items.filter((item) => toCategory(readExtraObject(item).category) === 'campus').length,
+    internal: items.filter((item) => toCategory(readExtraObject(item).category) === 'internal').length,
+  }), [items]);
+
+  const visibleItems = useMemo(
+    () => categoryFilter === 'all'
+      ? items
+      : items.filter((item) => toCategory(readExtraObject(item).category) === categoryFilter),
+    [items, categoryFilter],
   );
 
   const setField = <K extends keyof JobForm>(key: K, value: JobForm[K]) => {
@@ -232,11 +246,26 @@ export function RecruitmentManager({ module }: { module: PageModule }) {
     }
   };
 
+  const removeItem = async (item: PageContentItem) => {
+    if (!item.id) return;
+    if (!window.confirm(`确认删除岗位“${item.title || '该岗位'}”？删除后不可恢复，只想下线请改用停用。`)) return;
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (form.id === item.id) setForm(emptyForm(nextSort, form.category));
+      setMessage({ text: '招聘岗位已删除。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '删除招聘岗位失败。', type: 'error' });
+    }
+  };
+
   const moveItem = async (item: PageContentItem, direction: -1 | 1) => {
-    const index = items.findIndex((row) => row.id === item.id);
+    // 排序只在同分类岗位之间交换，避免不同分类被打乱。
+    const siblings = items.filter((row) => toCategory(readExtraObject(row).category) === toCategory(readExtraObject(item).category));
+    const index = siblings.findIndex((row) => row.id === item.id);
     const targetIndex = index + direction;
-    if (index < 0 || targetIndex < 0 || targetIndex >= items.length) return;
-    const target = items[targetIndex];
+    if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) return;
+    const target = siblings[targetIndex];
     const currentSort = Number(item.sort) || 0;
     const targetSort = Number(target.sort) || 0;
     try {
@@ -251,7 +280,10 @@ export function RecruitmentManager({ module }: { module: PageModule }) {
       } else {
         // 排序值相同时按当前顺序整体重编号，保证上移/下移生效。
         const next = [...items];
-        [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+        const sourceIndex = next.findIndex((row) => row.id === item.id);
+        const targetItemIndex = next.findIndex((row) => row.id === target.id);
+        if (sourceIndex < 0 || targetItemIndex < 0) return;
+        [next[sourceIndex], next[targetItemIndex]] = [next[targetItemIndex], next[sourceIndex]];
         await Promise.all(next.map((row, rowIndex) => {
           const source = toForm(row);
           return AdminApi.updatePageContentItem(row.id, buildPayload(source, source.content, source.status, readExtraObject(row), rowIndex + 1));
@@ -338,13 +370,22 @@ export function RecruitmentManager({ module }: { module: PageModule }) {
       <section className="editor-card">
         <div className="section-title-row">
           <div><p className="eyebrow">已维护岗位</p><h2>招聘岗位列表</h2></div>
-          <span className="meta">共 {items.length} 个岗位</span>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <label>分类筛选
+              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as 'all' | RecruitmentCategory)}>
+                <option value="all">全部（{items.length}）</option>
+                {categoryOptions.map((option) => <option value={option.value} key={option.value}>{option.label}（{categoryCounts[option.value]}）</option>)}
+              </select>
+            </label>
+            <span className="meta">共 {visibleItems.length} 个岗位</span>
+          </div>
         </div>
-        {isLoading ? <p className="form-help-text">正在加载...</p> : items.length ? (
+        {isLoading ? <p className="form-help-text">正在加载...</p> : visibleItems.length ? (
           <div className="timeline-list">
-            {items.map((item) => {
-              const position = items.findIndex((row) => row.id === item.id);
+            {visibleItems.map((item) => {
               const extra = readExtraObject(item);
+              const siblings = items.filter((row) => toCategory(readExtraObject(row).category) === toCategory(extra.category));
+              const position = siblings.findIndex((row) => row.id === item.id);
               const meta = [
                 item.subtitle ? `部门：${item.subtitle}` : '',
                 toText(extra.headcount) ? `人数：${toText(extra.headcount)}` : '',
@@ -364,17 +405,18 @@ export function RecruitmentManager({ module }: { module: PageModule }) {
                   <div className="table-actions">
                     <button className="text-button" type="button" onClick={() => selectItem(item)}>编辑</button>
                     <button className="text-button" type="button" disabled={position <= 0} onClick={() => moveItem(item, -1)}>上移</button>
-                    <button className="text-button" type="button" disabled={position < 0 || position >= items.length - 1} onClick={() => moveItem(item, 1)}>下移</button>
+                    <button className="text-button" type="button" disabled={position < 0 || position >= siblings.length - 1} onClick={() => moveItem(item, 1)}>下移</button>
                     <button className="text-button" type="button" onClick={() => toggleStatus(item)}>
                       {item.status === 'enabled' ? '停用' : '启用'}
                     </button>
+                    <button className="text-button is-danger" type="button" onClick={() => removeItem(item)}>删除</button>
                   </div>
                 </article>
               );
             })}
           </div>
         ) : (
-          <p className="form-help-text">暂无招聘岗位，请先新增一条岗位。</p>
+          <p className="form-help-text">{categoryFilter === 'all' ? '暂无招聘岗位，请先新增一条岗位。' : '该分类暂无招聘岗位。'}</p>
         )}
       </section>
     </div>

@@ -178,15 +178,6 @@ export type AdminMessage = {
   created_at: string;
 };
 
-export type AdminManagedLink = {
-  id: string;
-  title: string;
-  url: string;
-  position: string;
-  sort: number;
-  status: string;
-};
-
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -428,6 +419,9 @@ export const AdminApi = {
   setBusinessSectorEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/business-sectors/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
     method: 'PATCH',
   }),
+  deleteBusinessSector: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/business-sectors/${encodeURIComponent(id)}`, params), {
+    method: 'DELETE',
+  }),
   downloadCategories: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/download-categories', params)),
   downloadCategory: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/download-categories/${encodeURIComponent(id)}`, params)),
   createDownloadCategory: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/download-categories', params), {
@@ -478,5 +472,8 @@ export const AdminApi = {
   }),
   disablePageContentItem: (id: string) => adminFetch(`/admin-api/page-content-items/${encodeURIComponent(id)}/disable`, {
     method: 'PATCH',
+  }),
+  deletePageContentItem: (id: string) => adminFetch(`/admin-api/page-content-items/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
   }),
 };

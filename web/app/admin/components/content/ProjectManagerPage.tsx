@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import { AdminApi, type AdminProject } from '@/lib/admin/admin-api';
+import { isPresetProjectType, projectTypeOptions } from '@/lib/cms/project-types';
 import { CmsRichTextEditor, type CmsRichTextEditorHandle } from '../editor/CmsRichTextEditor';
 
 type MessageState = { text: string; type: 'success' | 'error' | 'info' } | null;
@@ -21,7 +22,6 @@ type ProjectForm = {
   status: string;
 };
 
-const projectTypes = ['交通工程', '房建工程', '文旅开发', '产业投资'];
 const statusOptions = [
   { value: 'enabled', label: '启用' },
   { value: 'disabled', label: '停用' },
@@ -43,7 +43,7 @@ const maxImageBytes = 50 * 1024 * 1024;
 const emptyForm = (sort = 0): ProjectForm => ({
   id: '',
   name: '',
-  type: '交通工程',
+  type: projectTypeOptions[0],
   location: '',
   summary: '',
   progress: '',
@@ -315,6 +315,19 @@ export function ProjectManagerPage() {
     }
   };
 
+  const removeProject = async (project: AdminProject) => {
+    if (!project.id) return;
+    if (!window.confirm(`确认删除项目“${project.name}”？删除后前台列表、地图和详情页将不再展示，且不可恢复；只想下线请改用停用。`)) return;
+    try {
+      await AdminApi.deletePageContentItem(project.id);
+      if (form.id === project.id) setForm(emptyForm(nextSort));
+      setMessage({ text: '项目已删除。', type: 'success' });
+      await loadProjects();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '删除项目失败。', type: 'error' });
+    }
+  };
+
   const moveProject = async (project: AdminProject, direction: -1 | 1) => {
     const index = visibleItems.findIndex((item) => item.id === project.id);
     const targetIndex = index + direction;
@@ -470,10 +483,26 @@ export function ProjectManagerPage() {
             <input type="text" required maxLength={100} value={form.name} onChange={(event) => setField('name', event.target.value)} />
           </label>
           <label>项目类型
-            <input type="text" list="project-type-options" maxLength={50} value={form.type} onChange={(event) => setField('type', event.target.value)} />
-            <datalist id="project-type-options">
-              {projectTypes.map((type) => <option value={type} key={type} />)}
-            </datalist>
+            <select
+              value={isPresetProjectType(form.type) ? form.type : (form.type ? '__custom__' : '')}
+              onChange={(event) => {
+                const value = event.target.value;
+                setField('type', value === '__custom__' ? '' : value);
+              }}
+            >
+              <option value="">请选择项目类型</option>
+              {projectTypeOptions.map((type) => <option value={type} key={type}>{type}</option>)}
+              <option value="__custom__">其他（手动填写）</option>
+            </select>
+            {!isPresetProjectType(form.type) ? (
+              <input
+                type="text"
+                maxLength={50}
+                placeholder="请输入项目类型"
+                value={form.type}
+                onChange={(event) => setField('type', event.target.value)}
+              />
+            ) : null}
           </label>
           <label>项目位置
             <input type="text" maxLength={100} placeholder="例如：康定市" value={form.location} onChange={(event) => setField('location', event.target.value)} />
@@ -571,6 +600,7 @@ export function ProjectManagerPage() {
                     <button className="text-button" type="button" onClick={() => toggleStatus(project)}>
                       {project.status === 'enabled' ? '停用' : '启用'}
                     </button>
+                    <button className="text-button is-danger" type="button" onClick={() => removeProject(project)}>删除</button>
                   </div>
                 </article>
             ))}

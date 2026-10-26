@@ -228,7 +228,7 @@ export async function Footer() {
   const [siteSettings, friendLinks, quickLinks, contactInfo] = await Promise.all([
     getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicFriendLinks('footer').catch(() => []),
-    getPublicQuickLinks('footer').catch(() => []),
+    getPublicQuickLinks().catch(() => []),
     getPublicContactInfo().catch(() => ({ email: '', phone: '', address: '', mapEmbedUrl: '' })),
   ]);
   const safeName = siteSettings.siteName || '网站';

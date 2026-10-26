@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type MouseEvent } from 'react';
 import type { Project } from '@/types/cms';
+import { projectTypeOptions } from '@/lib/cms/project-types';
 
 type TipState = { text: string; left: number; top: number } | null;
 
@@ -24,7 +25,10 @@ export function ProjectExplorer({ projects }: { projects: Project[] }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  const typeOptions = useMemo(() => Array.from(new Set(projects.map((item) => item.type).filter(Boolean))), [projects]);
+  const typeOptions = useMemo(
+    () => Array.from(new Set([...projectTypeOptions, ...projects.map((item) => item.type).filter(Boolean)])),
+    [projects],
+  );
   const locationOptions = useMemo(() => Array.from(new Set(projects.map((item) => item.location).filter(Boolean))), [projects]);
   const mapProjects = useMemo(() => projects.filter(hasCoordinate), [projects]);
   const filteredProjects = useMemo(() => projects.filter((item) => (

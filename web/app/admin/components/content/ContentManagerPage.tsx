@@ -9,10 +9,13 @@ import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroCon
 import { LeadershipManager } from './LeadershipManager';
 import { HonorManager } from './HonorManager';
 import { BusinessSectorManager } from './BusinessSectorManager';
+import { ProjectManagerPage } from './ProjectManagerPage';
 import { TrainingResourceManager } from './TrainingResourceManager';
 import { CompanyManager } from './CompanyManager';
 import { SocialResponsibilityManager } from './SocialResponsibilityManager';
 import { RecruitmentManager } from './RecruitmentManager';
+import { DownloadManager } from './DownloadManager';
+import { ArticleOwnershipManagerPage } from '../navigation/ArticleOwnershipManagerPage';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -397,7 +400,15 @@ function PageContentForm({ module, options = {} }: {
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadCover} disabled={isUploading} />
               <input type="hidden" value={form.cover || ''} readOnly />
             </div>
-            {form.cover ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="图片预览" /> : null}
+            {form.cover ? (
+              <div className="cover-preview-wrap">
+                <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="图片预览" />
+                <button className="secondary-button" type="button" onClick={() => {
+                  setField('cover', '');
+                  setMessage({ text: '图片已移除，保存后生效。', type: 'success' });
+                }}>移除图片</button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {showSummary ? (
@@ -1143,6 +1154,19 @@ function CultureItemManager({ moduleCode }: { moduleCode: string }) {
     extra_json: row.extra_json || {},
   });
 
+  const removeItem = async (row: PageContentItem) => {
+    if (!row.id) return;
+    if (!window.confirm(`确认删除“${row.title || '该卡片'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    try {
+      await AdminApi.deletePageContentItem(row.id);
+      if (form.id === row.id) setForm({ ...emptyItem(), sort: nextSort() });
+      setMessage({ text: '企业文化卡片已删除。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '删除企业文化卡片失败。', type: 'error' });
+    }
+  };
+
   const toggleItem = async (row: PageContentItem) => {
     const enable = row.status !== 'enabled';
     if (!window.confirm(`确认${enable ? '启用' : '停用'}“${row.title || '该卡片'}”？停用后前台不再展示。`)) return;
@@ -1231,6 +1255,7 @@ function CultureItemManager({ moduleCode }: { moduleCode: string }) {
                   <div className="table-actions">
                     <button className="text-button" type="button" onClick={() => setForm({ ...emptyItem(), ...item, sort: Number(item.sort || 0), status: item.status || 'enabled' })}>编辑</button>
                     <button className="text-button" type="button" onClick={() => toggleItem(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                    <button className="text-button is-danger" type="button" onClick={() => removeItem(item)}>删除</button>
                   </div>
                 </td>
               </tr>
@@ -1306,6 +1331,19 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   }
 
   if (module.content_type === 'article_list') {
+    if (module.module_code === 'company-news') {
+      return (
+        <>
+          <section className="notice-card">
+            <p className="eyebrow">下属公司 · 公司动态</p>
+            <h2>内容来源于新闻管理，按公司归属展示</h2>
+            <p>文章在新闻管理中发布后，还需要在下方列表里把文章归属到对应公司，才会显示在该公司详情页的公司动态中。未归属公司的文章只在集团新闻中展示。</p>
+            <a className="primary-link-button" href="/admin/article-ownership">打开完整文章归属管理</a>
+          </section>
+          <ArticleOwnershipManagerPage />
+        </>
+      );
+    }
     return (
       <section className="notice-card">
         <p className="eyebrow">{module.content_type}</p>
@@ -1320,8 +1358,16 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
     return <CompanyManager moduleTitle={module.module_title} mode={module.module_code === 'company-intro' ? 'intro' : 'list'} />;
   }
 
+  if (module.module_code === 'project-list' || module.content_type === 'project_list') {
+    return <ProjectManagerPage />;
+  }
+
   if (module.content_type === 'sector_list') {
     return <BusinessSectorManager />;
+  }
+
+  if (module.module_code === 'downloads' || module.content_type === 'file_list') {
+    return <DownloadManager />;
   }
 
   return (

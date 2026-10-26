@@ -12,6 +12,14 @@ const categoryOptions: Array<{ value: RecruitmentCategory; label: string }> = [
   { value: 'internal', label: '内部选聘' },
 ];
 
+const categoryMeta: Record<RecruitmentCategory, { label: string; description: string }> = {
+  social: { label: '社会招聘', description: '面向社会公开招聘的专业技术与经营管理岗位。' },
+  campus: { label: '校园招聘', description: '面向高校毕业生发布的储备人才与应届岗位。' },
+  internal: { label: '内部选聘', description: '面向集团内部公开选聘的岗位。' },
+};
+
+const categoryOrder: RecruitmentCategory[] = ['social', 'campus', 'internal'];
+
 const categoryLabel = (value: string) => categoryOptions.find((option) => option.value === value)?.label || '招聘岗位';
 
 type RecruitmentPageProps = {
@@ -75,6 +83,31 @@ function JobCard({ job }: { job: RecruitmentJob }) {
   );
 }
 
+function CategorySection({ category, jobs }: { category: RecruitmentCategory; jobs: RecruitmentJob[] }) {
+  const meta = categoryMeta[category];
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div className="section-head reveal is-visible">
+        <div>
+          <div className="kicker"><i aria-hidden="true" /><span>{category.toUpperCase()}</span></div>
+          <div className="h2" style={{ fontSize: 26 }}>{meta.label}</div>
+          <p className="lead">{meta.description}</p>
+        </div>
+        <span className="meta">共 {jobs.length} 个岗位</span>
+      </div>
+      {jobs.length ? (
+        <div className="grid" style={{ marginTop: 18 }}>
+          {jobs.map((job) => <JobCard job={job} key={job.id} />)}
+        </div>
+      ) : (
+        <div className="detail reveal is-visible">
+          <div className="body"><p>暂无{meta.label}岗位，请稍后查看。</p></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function RecruitmentPage({ searchParams }: RecruitmentPageProps) {
   const params = await searchParams;
   const activeType = getFirst(params.type) || 'all';
@@ -82,6 +115,14 @@ export default async function RecruitmentPage({ searchParams }: RecruitmentPageP
   const visibleJobs = activeType === 'all' ? jobs : jobs.filter((job) => job.category === activeType);
   const locations = new Set(visibleJobs.map((job) => job.location).filter(Boolean)).size;
   const activeLabel = activeType === 'all' ? '在招岗位' : categoryLabel(activeType);
+  const counts = {
+    social: jobs.filter((job) => job.category === 'social').length,
+    campus: jobs.filter((job) => job.category === 'campus').length,
+    internal: jobs.filter((job) => job.category === 'internal').length,
+  };
+  const visibleCategories = activeType === 'all'
+    ? categoryOrder.filter((category) => jobs.some((job) => job.category === category))
+    : categoryOrder.filter((category) => category === activeType);
 
   return (
     <>
@@ -105,29 +146,38 @@ export default async function RecruitmentPage({ searchParams }: RecruitmentPageP
               <div>
                 <div className="kicker"><i aria-hidden="true" /><span>JOB LIST</span></div>
                 <div className="h2">{activeLabel}</div>
-                <p className="lead">点击岗位卡片查看详细要求与报名方式。</p>
+                <p className="lead">按社会招聘、校园招聘、内部选聘分类展示，点击岗位卡片查看详细要求与报名方式。</p>
               </div>
             </div>
-            <div className="tabs" role="tablist" aria-label="招聘分类">
-              <a className={`tab${activeType === 'all' ? ' is-active' : ''}`} href={buildHref('all')}>全部岗位</a>
-              {categoryOptions.map((option) => (
-                <a
-                  className={`tab${activeType === option.value ? ' is-active' : ''}`}
-                  href={buildHref(option.value)}
-                  key={option.value}
-                >
-                  {option.label}
+            <div className="filters reveal is-visible" style={{ justifyContent: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <a className={`btn${activeType === 'all' ? ' btn--primary' : ''}`} href={buildHref('all')} data-no-transition>
+                  全部（{jobs.length}）
                 </a>
-              ))}
-            </div>
-            {visibleJobs.length ? (
-              <div className="grid" style={{ marginTop: 18 }}>
-                {visibleJobs.map((job) => <JobCard job={job} key={job.id} />)}
+                {categoryOrder.map((category) => (
+                  <a
+                    className={`btn${activeType === category ? ' btn--primary' : ''}`}
+                    href={buildHref(category)}
+                    key={category}
+                    data-no-transition
+                  >
+                    {categoryMeta[category].label}（{counts[category]}）
+                  </a>
+                ))}
               </div>
+            </div>
+            {jobs.length ? (
+              visibleCategories.map((category) => (
+                <CategorySection
+                  category={category}
+                  jobs={jobs.filter((job) => job.category === category)}
+                  key={category}
+                />
+              ))
             ) : (
               <div className="detail reveal is-visible" style={{ marginTop: 18 }}>
                 <div className="body">
-                  <p>该分类暂无招聘岗位，请稍后查看。</p>
+                  <p>暂无招聘岗位，请稍后查看。</p>
                 </div>
               </div>
             )}

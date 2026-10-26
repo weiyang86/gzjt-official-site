@@ -59,14 +59,6 @@ const quickLinks: QuickLink[] = [
     action: '进入公告管理',
   },
   {
-    key: 'businessSectors',
-    icon: '板',
-    title: '业务板块',
-    description: '维护业务板块名称、简介、封面和排序。',
-    href: '/admin/business-sectors',
-    action: '管理业务板块',
-  },
-  {
     key: 'content',
     icon: '页',
     title: '页面内容管理',
@@ -83,12 +75,12 @@ const quickLinks: QuickLink[] = [
     action: '管理快捷入口',
   },
   {
-    key: 'friendLinks',
-    icon: '链',
-    title: '友情链接',
-    description: '维护官网页脚友情链接和启停状态。',
-    href: '/admin/friend-links',
-    action: '管理友情链接',
+    key: 'footerSettings',
+    icon: '底',
+    title: '底部导航与友情链接',
+    description: '维护官网页脚信息和友情链接，前台仅展示已启用内容。',
+    href: '/admin/footer-settings',
+    action: '管理页脚与友情链接',
   },
   {
     key: 'messages',

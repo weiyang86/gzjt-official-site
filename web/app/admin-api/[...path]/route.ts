@@ -7,6 +7,7 @@ import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from 
 import { createArticlePreviewPath } from '@/lib/preview/article-preview';
 import { contactInfoModuleCode, normalizeMapEmbedUrl } from '@/lib/cms/homepage-layout';
 import { getPublicContactInfo } from '@/lib/cms/public-content';
+import { cmsPublicFetch } from '@/lib/cms/client';
 import { normalizeSeoConfig, seoConfigModuleCode } from '@/lib/seo/pages';
 import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStoreAsset, loginTrustedUser } from '@/lib/cms/api-store';
 import { normalizeReportConfig, reportConfigModuleCode } from '@/lib/report/config';
@@ -431,7 +432,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'navigation') return ['navigation'];
   if (root === 'quick-links') return ['quickLinks'];
   if (root === 'contact-settings') return ['content', 'footerSettings'];
-  if (root === 'friend-links') return ['friendLinks', 'footerSettings'];
+  if (root === 'friend-links') return ['footerSettings'];
   if (root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
   if (root === 'report-settings') return ['report'];
   if (root === 'seo-settings') return ['seo'];
@@ -439,13 +440,13 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'home-stats') return ['homeStats'];
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'topics') return ['topics'];
-  if (root === 'projects') return ['projects'];
+  if (root === 'projects') return ['content'];
   if (root === 'messages') return ['messages'];
   if (root === 'companies') return ['content'];
-  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'downloads', 'topics', 'projects'];
-  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'downloads', 'topics', 'projects'];
-  if (root === 'downloads' || root === 'download-categories') return ['downloads'];
-  if (root === 'business-sectors') return ['businessSectors', 'content'];
+  if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics'];
+  if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics'];
+  if (root === 'downloads' || root === 'download-categories') return ['content'];
+  if (root === 'business-sectors') return ['content'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   return ['dashboard'];
@@ -1866,6 +1867,12 @@ const handleLocalBusinessSectorRoute = async (request: NextRequest, path: string
     return NextResponse.json({ data: result.data || null });
   }
 
+  if (!action && request.method === 'DELETE') {
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    await directusJsonRequest(`/items/business_sectors/${encodeURIComponent(id)}`, serviceToken, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+
   if (!action && request.method === 'PATCH') {
     const body = await request.json() as Record<string, unknown>;
     const payload = normalizeBusinessSectorInput(body);
@@ -2269,9 +2276,16 @@ const handleLocalPageContentItemsList = async (request: NextRequest) => {
 const handleLocalPageContentItemRoute = async (request: NextRequest, path: string[]) => {
   const id = path[1] ? decodeURIComponent(path[1]) : '';
   const action = path[2] || '';
-  if (!id || request.method !== 'PATCH') return null;
+  if (!id) return null;
   const { session, response } = requireSession(request);
   if (!session) return response;
+
+  if (!action && request.method === 'DELETE') {
+    await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(id)}`, session.accessToken, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+
+  if (request.method !== 'PATCH') return null;
 
   if (action === 'disable') {
     const result = await directusJsonRequest<{ data?: unknown }>(`/items/page_content_items/${encodeURIComponent(id)}`, session.accessToken, 'PATCH', { status: 'disabled' });
@@ -3105,14 +3119,14 @@ const maskAdminPhone = (value: string) => (
   value.length === 11 ? `${value.slice(0, 3)}****${value.slice(7)}` : value
 );
 
-const listMessageRows = async (token: string) => {
-  const result = await directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+const listMessageRows = async () => {
+  // 与前台留言读取使用同一个 CMS 客户端，避免后台列表与前台写入走不同数据通道。
+  const result = await cmsPublicFetch<{ data?: Record<string, unknown>[] }>(
     buildDirectusPath('/items/page_contents', {
       fields: messageFields,
       limit: -1,
       'filter[module_code][_eq]': messageModuleCode,
     }),
-    token,
   );
   return Array.isArray(result.data) ? result.data : [];
 };
@@ -3154,7 +3168,7 @@ const handleLocalMessages = async (request: NextRequest, path: string[]) => {
     const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim().toLowerCase();
     const status = (request.nextUrl.searchParams.get('status') || '').trim();
     const category = (request.nextUrl.searchParams.get('category') || '').trim();
-    const rows = (await listMessageRows(token)).map(mapAdminMessageRow);
+    const rows = (await listMessageRows()).map(mapAdminMessageRow);
 
     const filtered = rows
       .filter((row) => (!status || row.status === status))

@@ -318,6 +318,15 @@ export function CmsRichTextEditor({
     },
   });
 
+  const deleteSelectedImage = () => {
+    const editor = editorInstanceRef.current;
+    if (!editor?.execute) return;
+    // CKEditor 5 的图片功能注册了 deleteImage 命令，仅在选中图片时可执行。
+    if (!editor.commands?.get?.('deleteImage')) return;
+    editor.execute('deleteImage');
+    editor.editing?.view?.focus?.();
+  };
+
   if (bootError) {
     return <div className="rich-editor-error">{bootError}</div>;
   }
@@ -331,6 +340,10 @@ export function CmsRichTextEditor({
   return (
     <div className="rich-editor-shell" style={{ ['--rich-editor-min-height' as any]: `${minHeight}px` }}>
       <div className="rich-editor-toolbar" ref={toolbarHostRef} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: '6px 10px', borderBottom: '1px solid rgba(13,47,90,.12)' }}>
+        <span style={{ fontSize: 12, color: '#546070' }}>选中正文中的图片后可删除</span>
+        <button className="text-button is-danger" type="button" onClick={deleteSelectedImage}>删除选中图片</button>
+      </div>
       <div className="rich-editor-body">
         <CKEditor
           editor={EditorBuild}

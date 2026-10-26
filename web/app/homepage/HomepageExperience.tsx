@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Article, BusinessSector } from '@/types/cms';
+import type { Article, BusinessSector, PageModuleItem } from '@/types/cms';
 import type { ContactInfoConfig, HomepageLayoutConfig, HomepageSectionId } from '@/lib/cms/homepage-layout';
 
 type Props = {
   children: ReactNode;
   articles: Article[];
   cultureArticles: Article[];
+  cultureItems: PageModuleItem[];
   sectors: BusinessSector[];
   qrs: Array<{ id: string; title: string; image: string; sort: number }>;
   quickLinks: Array<{ id: string; title: string; url: string; linkUrl: string }>;
@@ -22,7 +23,7 @@ const articleHref = (article: Article) => `/news/${encodeURIComponent(article.id
 const safeHomepageLink = (value: string) => /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value.trim()) ? value.trim() : '#';
 const isExternalHomepageLink = (value: string) => /^https?:\/\//i.test(value.trim());
 
-export default function HomepageExperience({ children, articles, cultureArticles, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo }: Props) {
+export default function HomepageExperience({ children, articles, cultureArticles, cultureItems, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeIndexRef = useRef(0);
   const lockedRef = useRef(false);
@@ -108,7 +109,26 @@ export default function HomepageExperience({ children, articles, cultureArticles
       <section className="home-screen home-screen--culture" id="culture-topics" key="culture" style={backgroundStyle('culture')}>
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.culture.eyebrow}</span><h2>{sectionContent.culture.title}</h2><p>{sectionContent.culture.subtitle}</p></header>
-          <div className="home-topic-grid">{cultureArticles.slice(0, layout.cultureItemCount).map((article) => <a href={articleHref(article)} key={article.id}><span>专题内容</span><h3>{article.title}</h3><p>{article.subtitle || article.summary || ''}</p><b>查看内容　→</b></a>)}{!cultureArticles.length ? <p className="home-empty">暂无已发布专题内容</p> : null}</div>
+          {cultureItems.length ? (
+            <div className="home-culture-block">
+              <p className="home-culture-block-title">企业文化</p>
+              <div className="home-culture-values">
+                {cultureItems.slice(0, layout.cultureItemCount).map((item) => (
+                  <a href="/about#culture" key={item.id}>
+                    <span>{item.title || '企业文化'}</span>
+                    <strong>{item.subtitle || item.title}</strong>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {cultureArticles.length ? (
+            <div className="home-culture-block">
+              <p className="home-culture-block-title">专题专栏</p>
+              <div className="home-topic-grid">{cultureArticles.slice(0, layout.cultureItemCount).map((article) => <a href={articleHref(article)} key={article.id}><span>专题专栏</span><h3>{article.title}</h3><p>{article.subtitle || article.summary || ''}</p><b>查看内容　→</b></a>)}</div>
+            </div>
+          ) : null}
+          {!cultureItems.length && !cultureArticles.length ? <p className="home-empty">暂无已发布的企业文化与专题内容</p> : null}
         </div>
       </section>
     ),

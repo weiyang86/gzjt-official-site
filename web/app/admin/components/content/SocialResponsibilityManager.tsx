@@ -348,6 +348,18 @@ export function SocialResponsibilityManager({ module }: { module: PageModule }) 
     }
   };
 
+  const removeItem = async (item: PageContentItem) => {
+    if (!window.confirm(`确认删除“${item.title || '该条目'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (form.id === item.id) setForm(emptyForm(nextSort, form.category));
+      setMessage({ text: '责任内容已删除。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '删除责任内容失败。', type: 'error' });
+    }
+  };
+
   const moveItem = async (item: PageContentItem, direction: -1 | 1) => {
     const siblings = visibleItems.filter((row) => row.item_type === item.item_type);
     const index = siblings.findIndex((row) => row.id === item.id);
@@ -555,6 +567,7 @@ export function SocialResponsibilityManager({ module }: { module: PageModule }) 
                     <button className="text-button" type="button" onClick={() => toggleStatus(item)}>
                       {item.status === 'enabled' ? '停用' : '启用'}
                     </button>
+                    <button className="text-button is-danger" type="button" onClick={() => void removeItem(item)}>删除</button>
                   </div>
                 </article>
               );
