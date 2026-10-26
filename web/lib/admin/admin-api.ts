@@ -53,6 +53,19 @@ export type ReportConfigPayload = {
   articlePageSize: number;
 };
 
+export type SeoPageSetting = {
+  title: string;
+  keywords: string;
+  description: string;
+};
+
+export type SeoConfigPayload = {
+  siteName: string;
+  defaultTitle: string;
+  defaultDescription: string;
+  pages: Record<string, SeoPageSetting>;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -193,6 +206,8 @@ export const AdminApi = {
     method: 'PATCH',
     body: JSON.stringify(payload),
   }),
+  seoSettings: () => adminFetch<{ config: SeoConfigPayload; status: string; has_content?: boolean }>('/admin-api/seo-settings'),
+  updateSeoSettings: (payload: { config: SeoConfigPayload; status: string }) => adminFetch('/admin-api/seo-settings', { method: 'PUT', body: JSON.stringify(payload) }),
   createHomeStat: (payload: Omit<HomeStat, 'id'>) => adminFetch('/admin-api/home-stats', { method: 'POST', body: JSON.stringify(payload) }),
   updateHomeStat: (id: string, payload: Omit<HomeStat, 'id'>) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteHomeStat: (id: string) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'DELETE' }),

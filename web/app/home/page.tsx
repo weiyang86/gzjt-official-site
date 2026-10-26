@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import { Drawer, Header } from '../news/components';
 import HomepageExperience from '../homepage/HomepageExperience';
 import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicHomeStats, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings } from '@/lib/cms';
+import { buildSeoMetadata } from '@/lib/cms/seo';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(): Promise<Metadata> {
+  return buildSeoMetadata({
+    path: '/home',
+    keywords: '甘孜州建设投资集团,甘孜建投,官网首页,交通建设,城乡建设',
+  });
+}
 
 export default async function HomePage() {
   const topicQuery = new URLSearchParams({ scope: 'news', channelSlug: 'party-mass', limit: '12' });

@@ -1,9 +1,14 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
+import type { Metadata } from 'next';
 import Script from 'next/script';
 
 export const dynamic = 'force-static';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 const legacyHomePath = path.join(process.cwd(), 'public', 'legacy-static', 'index.html');
 const homeHeroImagePath = path.join(process.cwd(), 'public', 'img', 'index_bg.png');

@@ -1,9 +1,22 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { defaultSeoConfig, getSiteBaseUrl } from '@/lib/seo/pages';
 
 export const metadata: Metadata = {
-  title: '甘孜州建设投资集团有限公司',
-  description: '甘孜州建设投资集团有限公司官方网站',
+  metadataBase: new URL(getSiteBaseUrl()),
+  title: {
+    default: defaultSeoConfig.defaultTitle,
+    template: `%s - ${defaultSeoConfig.siteName}`,
+  },
+  description: defaultSeoConfig.defaultDescription,
+  keywords: ['甘孜州建设投资集团', '甘孜建投', '交通建设', '城乡建设', '基础设施投资'],
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    siteName: defaultSeoConfig.siteName,
+    title: defaultSeoConfig.defaultTitle,
+    description: defaultSeoConfig.defaultDescription,
+  },
 };
 
 export default function RootLayout({
