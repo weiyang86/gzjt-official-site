@@ -46,7 +46,7 @@ function DownloadCard({ resource }: { resource: DownloadResource }) {
       <div className={styles.downloadAction}>
         {resource.fileUrl
           ? <a className="btn btn--primary" href={resource.fileUrl} download={resource.filename || undefined}>下载附件</a>
-          : <span className={styles.unavailable}>附件暂不可用</span>}
+          : <span className={styles.unavailable}>{Number(resource.filesize) > 0 ? '附件暂不可用' : '附件为空，请重新上传'}</span>}
       </div>
     </article>
   );

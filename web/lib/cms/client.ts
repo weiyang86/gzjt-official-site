@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { request as apiStoreRequest, asset as apiStoreAsset } from './api-store';
+import { request as apiStoreRequest, asset as apiStoreAsset, assetAvailability as apiStoreAssetAvailability } from './api-store';
 
 const loadEnvFile = (absPath: string) => {
   if (!fs.existsSync(absPath)) return;
@@ -135,5 +135,13 @@ export async function cmsPublicAssetFetch(assetId: string): Promise<Response> {
   } catch (error) {
     const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 502;
     throw new CmsRequestError(error instanceof Error ? error.message : 'Asset fetch failed', status || 502);
+  }
+}
+
+export async function cmsPublicAssetsAvailable(assetIds: string[]): Promise<Record<string, boolean>> {
+  try {
+    return await apiStoreAssetAvailability(assetIds) as Record<string, boolean>;
+  } catch {
+    return {};
   }
 }

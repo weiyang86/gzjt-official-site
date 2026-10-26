@@ -145,6 +145,27 @@ export interface BusinessSector {
   status?: ArticleStatus;
 }
 
+export interface BusinessInnovationCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  sort: number;
+  status?: string;
+}
+
+export interface BusinessInnovation {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  image: string;
+  category: string;
+  categorySlug: string;
+  slug: string;
+  sort: number;
+}
+
 export interface SiteSettings {
   site_name: string;
   logo?: string;
@@ -168,6 +189,7 @@ export interface DownloadResource {
   categoryName?: string;
   fileId?: string;
   fileUrl?: string;
+  fileAvailable?: boolean;
   filename?: string;
   filesize?: number;
   fileType?: string;

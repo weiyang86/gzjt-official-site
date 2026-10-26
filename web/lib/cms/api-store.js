@@ -286,6 +286,7 @@ async function request(pathname, options = {}) {
 }
 
 async function upload(file) {
+  if (!file || !file.size) throw Object.assign(new Error('不能上传空文件'), { status: 400 });
   const id = crypto.randomUUID();
   const extension = path.extname(file.name).toLowerCase().replace(/[^.a-z0-9]/g, '');
   const filename_disk = `${id}${extension}`;
@@ -302,17 +303,48 @@ async function upload(file) {
     throw error;
   }
 }
+function findAssetMetadata(files, assetId) {
+  // Rich-text HTML imported from Directus stores the old filename_disk base,
+  // while the data API assigns a new rowId to every directus_files record.
+  return files.find(row => row.id === assetId)
+    || files.find(row => path.basename(String(row.filename_disk || ''), path.extname(String(row.filename_disk || ''))) === assetId);
+}
+
 async function asset(id) {
   const assetId = String(id || '').trim();
   const files = (await allRows('directus_files')).map(normalizeRow);
-  // Rich-text HTML imported from Directus stores the old filename_disk base,
-  // while the data API assigns a new rowId to every directus_files record.
-  const metadata = files.find(row => row.id === assetId)
-    || files.find(row => path.basename(String(row.filename_disk || ''), path.extname(String(row.filename_disk || ''))) === assetId);
+  const metadata = findAssetMetadata(files, assetId);
   if (!metadata) throw Object.assign(new Error('Asset not found'), { status: 404 });
   const filename = path.basename(metadata.filename_disk || '');
   if (!filename || filename !== metadata.filename_disk) throw Object.assign(new Error('Invalid asset filename'), { status: 400 });
-  const bytes = await fs.readFile(path.join(uploadDir(), filename));
-  return new Response(bytes, { headers: { 'content-type': metadata.type || 'application/octet-stream', 'content-length': String(bytes.length), 'cache-control': 'public, max-age=3600' } });
+  try {
+    const bytes = await fs.readFile(path.join(uploadDir(), filename));
+    return new Response(bytes, { headers: { 'content-type': metadata.type || 'application/octet-stream', 'content-length': String(bytes.length), 'cache-control': 'public, max-age=3600' } });
+  } catch (error) {
+    if (error && error.code === 'ENOENT') throw Object.assign(new Error('Asset file not found'), { status: 404 });
+    throw error;
+  }
 }
-module.exports = { call, allRows, request, upload, asset, hashPassword, verifyPassword, loginTrustedUser, apiUrl };
+
+async function assetAvailability(ids) {
+  const assetIds = Array.from(new Set((ids || []).map(id => String(id || '').trim()).filter(Boolean)));
+  if (!assetIds.length) return {};
+  const files = (await allRows('directus_files')).map(normalizeRow);
+  const result = {};
+  for (const assetId of assetIds) {
+    const metadata = findAssetMetadata(files, assetId);
+    const filename = path.basename(String(metadata?.filename_disk || ''));
+    if (!metadata || !filename || filename !== metadata.filename_disk) {
+      result[assetId] = false;
+      continue;
+    }
+    try {
+      const stat = await fs.stat(path.join(uploadDir(), filename));
+      result[assetId] = stat.isFile() && stat.size > 0;
+    } catch {
+      result[assetId] = false;
+    }
+  }
+  return result;
+}
+module.exports = { call, allRows, request, upload, asset, assetAvailability, hashPassword, verifyPassword, loginTrustedUser, apiUrl };

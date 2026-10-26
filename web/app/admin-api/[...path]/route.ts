@@ -94,7 +94,7 @@ const businessSectorFields = 'id,name,slug,cover,intro,sort,status';
 const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const pageContentStatuses = new Set(['draft', 'published', 'archived']);
-const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'culture', 'honor', 'article', 'attachment', 'download_category', 'download', 'report', 'case', 'activity', 'project', 'job']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'culture', 'honor', 'article', 'attachment', 'download_category', 'download', 'report', 'case', 'activity', 'project', 'job', 'innovation', 'innovation_category']);
 const pageContentItemStatuses = new Set(['enabled', 'disabled']);
 const downloadCenterModuleCode = 'download-center';
 const downloadCategoryItemType = 'download_category';
@@ -1708,6 +1708,12 @@ const handleLocalFileUpload = async (request: NextRequest) => {
   if (!isImage && !isDocument) {
     return NextResponse.json(
       { error: { code: 'BAD_REQUEST', message: 'Only JPG, PNG, WEBP, PDF, Word, and Excel files are allowed' } },
+      { status: 400 },
+    );
+  }
+  if (file.size <= 0) {
+    return NextResponse.json(
+      { error: { code: 'EMPTY_FILE', message: '不能上传空文件，请选择有内容的文件后重试。' } },
       { status: 400 },
     );
   }

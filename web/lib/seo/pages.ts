@@ -52,6 +52,12 @@ export const seoManagedPages: SeoPageDefinition[] = [
     defaultDescription: '查看甘孜州建设投资集团有限公司的业务板块与产业布局。',
   },
   {
+    path: '/business/innovation',
+    label: '科技创新',
+    defaultTitle: '科技创新',
+    defaultDescription: '展示甘孜州建设投资集团有限公司在工程建设、数字建造与绿色低碳等领域的技术创新成果。',
+  },
+  {
     path: '/projects',
     label: '项目展示',
     defaultTitle: '项目展示',

@@ -5,8 +5,8 @@ import { OrgChartFigure } from './organization/org-chart-figure';
 import { MessageSection } from './contact/message-section';
 import {
   getPublicArticles,
+  getPublicBusinessInnovationCenter,
   getPublicBusinessSectors,
-  getPublicChannels,
   getPublicCompanies,
   getPublicCompanyBySlug,
   getPublicContactInfo,
@@ -28,7 +28,7 @@ import {
   fallbackHistoryTimeline,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { Article, BusinessSector, Channel, Company, HistoryTimelineItem, HonorItem, PageContent, PageModuleContent, PageModuleItem } from '@/types/cms';
+import type { Article, BusinessInnovation, BusinessInnovationCategory, BusinessSector, Company, HistoryTimelineItem, HonorItem, PageContent, PageModuleContent, PageModuleItem } from '@/types/cms';
 import type { ReportConfig } from '@/lib/report/config';
 import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
@@ -404,11 +404,11 @@ const escapeHtml = (value: string) => value
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
-const sectorIntroHtml = (value?: string) => {
-  const intro = String(value || '').trim();
-  if (!intro) return '<p>产业介绍待完善。</p>';
-  if (/<[a-z][^>]*>/i.test(intro)) return intro;
-  return intro.split(/\r?\n/).filter((line) => line.trim()).map((line) => `<p>${escapeHtml(line.trim())}</p>`).join('');
+const paragraphHtml = (value: string | undefined, fallback: string) => {
+  const text = String(value || '').trim();
+  if (!text) return `<p>${fallback}</p>`;
+  if (/<[a-z][^>]*>/i.test(text)) return text;
+  return text.split(/\r?\n/).filter((line) => line.trim()).map((line) => `<p>${escapeHtml(line.trim())}</p>`).join('');
 };
 const sectorHref = (slug: string, basePath: string) => `${basePath}?sector=${encodeURIComponent(slug)}#sector-detail`;
 
@@ -420,7 +420,7 @@ function SectorDetail({ sector }: { sector: BusinessSector }) {
           <div className="pill">产业布局详情</div>
           <h1 style={{ marginTop: 14 }}>{sector.name || sector.title || '产业布局'}</h1>
           {sector.cover ? <img src={sector.cover} alt={sector.name || sector.title || ''} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 16, marginTop: 20 }} /> : null}
-          <div className="body" dangerouslySetInnerHTML={{ __html: sectorIntroHtml(sector.intro || sector.description) }} />
+          <div className="body" dangerouslySetInnerHTML={{ __html: paragraphHtml(sector.intro || sector.description, '产业介绍待完善。') }} />
           <a className="pill" href="#sectors" style={{ display: 'inline-block', marginTop: 8 }}>返回产业布局</a>
         </div>
       </div>
@@ -457,89 +457,201 @@ function SectorCards({ sectors, activeSlug, basePath }: { sectors: BusinessSecto
   );
 }
 
-const innovationChannelSlugs = ['business-technology-innovation', 'technology-innovation'];
-const innovationFallbackHref = `/news?channel=${encodeURIComponent(innovationChannelSlugs[0])}`;
+const businessInnovationBasePath = '/business/innovation';
+const businessInnovationDetailId = 'innovation-detail';
 
-type InnovationSectionData = {
-  items: Article[];
-  total: number;
-  href: string;
+const businessInnovationHref = (item: BusinessInnovation, category?: string) => {
+  const query = new URLSearchParams({ innovation: item.slug || item.id });
+  if (category) query.set('category', category);
+  return `${businessInnovationBasePath}?${query.toString()}#${businessInnovationDetailId}`;
+};
+
+type BusinessInnovationLoadResult = {
+  items: BusinessInnovation[];
+  categories: BusinessInnovationCategory[];
   loadError: boolean;
 };
 
-const formatInnovationDate = (item: Article) => {
-  const value = item.publishAt || item.publishDate || '';
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
-async function loadInnovationSection(): Promise<InnovationSectionData> {
-  let href = innovationFallbackHref;
+async function loadBusinessInnovations(): Promise<BusinessInnovationLoadResult> {
   try {
-    const channels = await getPublicChannels();
-    const channel = innovationChannelSlugs
-      .map((slug) => channels.find((item) => item.slug === slug))
-      .find((item): item is Channel => Boolean(item))
-      || channels.find((item) => item.name === '科技创新');
-    if (!channel) return { items: [], total: 0, href, loadError: false };
-
-    href = `/news?channel=${encodeURIComponent(channel.slug)}`;
-    const payload = await getPublicArticles(new URLSearchParams({
-      scope: 'news',
-      channelSlug: channel.slug,
-      pageSize: '3',
-    }));
-    return { items: payload.items, total: payload.total, href, loadError: false };
+    return { ...(await getPublicBusinessInnovationCenter()), loadError: false };
   } catch {
-    return { items: [], total: 0, href, loadError: true };
+    return { items: [], categories: [], loadError: true };
   }
 }
 
-function InnovationSection({ data }: { data: InnovationSectionData }) {
+const deriveInnovationCategories = (items: BusinessInnovation[]) => {
+  const categories = new Map<string, BusinessInnovationCategory>();
+  items.forEach((item) => {
+    const slug = item.categorySlug || item.category;
+    if (!slug || categories.has(slug)) return;
+    categories.set(slug, {
+      id: `derived-${slug}`,
+      name: item.category || '未分类',
+      slug,
+      description: '',
+      sort: 0,
+    });
+  });
+  return Array.from(categories.values());
+};
+
+function BusinessInnovationCard({ item, category }: { item: BusinessInnovation; category?: string }) {
   return (
-    <section className="section" id="innovation" aria-label="科技创新">
+    <a className="card reveal is-visible" href={businessInnovationHref(item, category)} style={{ gridColumn: 'span 4', display: 'block' }}>
+      <div style={{ height: 180, overflow: 'hidden' }}><img src={item.image || fallbackCover} alt={item.title} /></div>
+      <div className="card-pad">
+        <div className="pill">{item.category || '科技创新'}</div>
+        <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{item.title}</div>
+        <div className="rich" style={{ marginTop: 8 }}>{plainText(item.summary || item.content) || '创新成果介绍待完善。'}</div>
+        <div style={{ marginTop: 12, color: 'var(--blue)', fontWeight: 800, fontSize: 13 }}>查看详情 →</div>
+      </div>
+    </a>
+  );
+}
+
+function BusinessInnovationSection({ data }: { data: BusinessInnovationLoadResult }) {
+  const preview = data.items.slice(0, 3);
+  return (
+    <section className="section" id="business-innovation" aria-label="科技创新">
       <div className="content">
         <div className="section-head reveal is-visible">
           <div>
             <div className="kicker"><i aria-hidden="true" /><span>INNOVATION</span></div>
             <div className="h2">科技创新</div>
-            <p className="lead">集中展示技术研发成果、创新案例与成果转化进展，点击成果可查看完整内容。</p>
+            <p className="lead">展示集团在工程建设、数字建造、绿色低碳等领域的具体创新成果与应用案例。</p>
           </div>
-          <a className="btn" href={data.href}>查看全部</a>
+          <a className="btn" href={businessInnovationBasePath}>查看全部</a>
         </div>
-        {data.items.length ? (
-          <>
-            <div className="grid">
-              {data.items.map((item) => (
-                <a className="card reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id} style={{ gridColumn: 'span 4', display: 'block' }}>
-                  <div style={{ height: 180, overflow: 'hidden' }}><img src={item.cover || fallbackCover} alt={item.title} /></div>
-                  <div className="card-pad">
-                    <div className="pill">{item.newsSubcategory || '科技创新'}</div>
-                    <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{item.title}</div>
-                    <div className="rich" style={{ marginTop: 8 }}>{item.summary || '查看该科技成果详情。'}</div>
-                    <div style={{ marginTop: 12, color: 'rgba(11,18,32,.52)', fontSize: 13 }}>{formatInnovationDate(item)}</div>
-                  </div>
-                </a>
-              ))}
-            </div>
-            {data.total > data.items.length ? <p style={{ margin: '18px 0 0', color: 'rgba(11,18,32,.55)', fontSize: 13 }}>共 {data.total} 项科技成果，点击“查看全部”浏览完整列表。</p> : null}
-          </>
+        {preview.length ? (
+          <div className="grid">
+            {preview.map((item) => <BusinessInnovationCard item={item} key={item.id} />)}
+          </div>
         ) : (
           <div className="card" role="status">
             <div className="card-pad">
               <div className="pill">{data.loadError ? '加载失败' : '暂无内容'}</div>
               <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 20 }}>{data.loadError ? '科技创新内容暂时无法加载' : '科技创新内容暂未发布'}</div>
               <p style={{ margin: '8px 0 0', color: 'rgba(11,18,32,.62)', lineHeight: 1.9 }}>
-                {data.loadError ? '请稍后重试，或进入科技创新栏目查看已发布内容。' : '网站编辑可在后台“新闻管理”中选择“科技创新”栏目发布科技成果，发布后将在此展示。'}
+                {data.loadError ? '请稍后重试，或进入科技创新栏目查看已发布内容。' : '网站编辑可在后台“页面内容管理”中发布创新成果，发布后将在此展示。'}
               </p>
-              <a className="btn btn--primary" href={data.href} style={{ marginTop: 16 }}>进入科技创新栏目</a>
+              <a className="btn btn--primary" href={businessInnovationBasePath} style={{ marginTop: 16 }}>进入科技创新栏目</a>
             </div>
           </div>
         )}
       </div>
     </section>
+  );
+}
+
+function BusinessInnovationDetail({ item, category }: { item: BusinessInnovation; category?: string }) {
+  const backHref = category
+    ? `${businessInnovationBasePath}?${new URLSearchParams({ category }).toString()}#innovations`
+    : `${businessInnovationBasePath}#innovations`;
+  return (
+    <section className="section" id={businessInnovationDetailId} aria-label={`${item.title}详情`}>
+      <div className="content">
+        <div className="detail reveal is-visible">
+          <div className="pill">{item.category || '科技创新'} · 创新成果</div>
+          <h1 style={{ marginTop: 14 }}>{item.title}</h1>
+          {item.image ? <img src={item.image} alt={item.title} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 16, marginTop: 20 }} /> : null}
+          <div className="body" dangerouslySetInnerHTML={{ __html: paragraphHtml(item.content, '创新成果详情待完善。') }} />
+          <a className="pill" href={backHref} style={{ display: 'inline-block', marginTop: 8 }}>返回科技创新</a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export async function BusinessInnovationPage({ selectedSlug, selectedCategory }: {
+  selectedSlug?: string;
+  selectedCategory?: string;
+} = {}) {
+  const data = await loadBusinessInnovations();
+  const selected = selectedSlug
+    ? data.items.find((item) => item.slug === selectedSlug || item.id === selectedSlug)
+    : undefined;
+  const managedCategories = data.categories;
+  const managedSlugs = new Set(managedCategories.map((category) => category.slug));
+  const categories = managedCategories.length ? [...managedCategories] : deriveInnovationCategories(data.items);
+  const uncategorizedSlug = 'uncategorized';
+  if (managedCategories.length && data.items.some((item) => !item.categorySlug || !managedSlugs.has(item.categorySlug))) {
+    categories.push({
+      id: 'derived-uncategorized',
+      name: '未分类',
+      slug: uncategorizedSlug,
+      description: '尚未归入成果分类的创新成果。',
+      sort: 999,
+    });
+  }
+  const activeCategory = selectedCategory
+    ? categories.find((category) => category.slug === selectedCategory || category.name === selectedCategory)
+    : undefined;
+  const visible = activeCategory
+    ? activeCategory.slug === uncategorizedSlug
+      ? data.items.filter((item) => !item.categorySlug || !managedSlugs.has(item.categorySlug))
+      : data.items.filter((item) => (activeCategory.slug && item.categorySlug === activeCategory.slug) || item.category === activeCategory.name)
+    : data.items;
+  const activeOutline = '2px solid rgba(24, 92, 175, .45)';
+
+  return (
+    <Shell active="businessDev" actionHref="/business" actionLabel="产业布局">
+      <Breadcrumb title="科技创新" parents={[{ title: '业务领域', href: '/business' }]} />
+      <main className="page" aria-label="主要内容" data-business-innovation-page>
+        <Hero
+          title="科技创新"
+          kicker="TECHNOLOGY INNOVATION"
+          subtitle="展示集团在工程建设、数字建造、绿色低碳等领域的技术创新成果与产业化应用。"
+          cover="/img/318康定市过境段公路工程项目434互通工程.jpg"
+          ctaHref="#innovations"
+          ctaLabel="查看创新成果"
+        />
+        {selected ? <BusinessInnovationDetail item={selected} category={activeCategory?.slug} /> : null}
+        <section className="section" id="innovations" aria-label="科技创新成果">
+          <div className="content">
+            <div className="section-head reveal is-visible">
+              <div>
+                <div className="kicker"><i aria-hidden="true" /><span>INNOVATION ACHIEVEMENTS</span></div>
+                <div className="h2">创新成果</div>
+                <p className="lead">按创新分类浏览集团在技术研发、成果转化和工程应用方面的具体成果，点击卡片查看详情。</p>
+              </div>
+            </div>
+            {categories.length ? (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }} aria-label="成果分类">
+                <a className="pill" href={`${businessInnovationBasePath}#innovations`} style={{ outline: activeCategory ? undefined : activeOutline }}>全部</a>
+                {categories.map((category) => (
+                  <a
+                    className="pill"
+                    href={`${businessInnovationBasePath}?${new URLSearchParams({ category: category.slug }).toString()}#innovations`}
+                    key={category.id}
+                    style={{ outline: activeCategory?.slug === category.slug ? activeOutline : undefined }}
+                  >
+                    {category.name}
+                  </a>
+                ))}
+              </div>
+            ) : null}
+            {activeCategory?.description ? <p style={{ margin: '0 0 18px', color: 'rgba(11,18,32,.62)', lineHeight: 1.9 }}>{activeCategory.description}</p> : null}
+            {visible.length ? (
+              <div className="grid">
+                {visible.map((item) => <BusinessInnovationCard item={item} category={activeCategory?.slug} key={item.id} />)}
+              </div>
+            ) : (
+              <div className="card" role="status">
+                <div className="card-pad">
+                  <div className="pill">{data.loadError ? '加载失败' : '暂无内容'}</div>
+                  <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 20 }}>{data.loadError ? '科技创新内容暂时无法加载' : activeCategory ? `“${activeCategory.name}”分类下暂无成果` : '暂无已发布的科技创新内容'}</div>
+                  <p style={{ margin: '8px 0 0', color: 'rgba(11,18,32,.62)', lineHeight: 1.9 }}>
+                    {data.loadError ? '请稍后重试，或联系网站管理员检查数据接口。' : '网站编辑可在后台“页面内容管理 → 业务领域 → 科技创新”中维护成果分类并发布创新成果，发布后将在此展示。'}
+                  </p>
+                  <a className="btn btn--primary" href="/business" style={{ marginTop: 16 }}>返回产业布局</a>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    </Shell>
   );
 }
 
@@ -571,7 +683,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   const meta = pageMeta[slug];
   if (!page) notFound();
   const contactInfo = slug === 'contact' ? await getPublicContactInfo() : null;
-  const innovation = slug === 'projects' ? await loadInnovationSection() : null;
+  const businessInnovation = slug === 'projects' ? await loadBusinessInnovations() : null;
   const reportConfig = slug === 'cleanGov' ? await getPublicReportConfig() : null;
   const reportArticles = reportConfig?.enabled ? await getPublicReportArticles(reportConfig) : [];
   const displayPage = slug === 'contact' ? { ...page, content: stripLegacyContactDetails(page.content) } : page;
@@ -585,7 +697,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
         {reportConfig?.enabled ? <ReportEntrySection config={reportConfig} /> : null}
         {reportConfig?.enabled ? <DisciplineNewsSection articles={reportArticles} channelSlug={reportConfig.articleChannelSlug} /> : null}
         {slug === 'contact' && !displayPage.content ? null : <ContentSection page={displayPage} />}
-        {innovation ? <InnovationSection data={innovation} /> : null}
+        {businessInnovation ? <BusinessInnovationSection data={businessInnovation} /> : null}
         {slug === 'projects' ? <ProjectMap /> : null}
         {slug === 'contact' ? <MessageSection /> : null}
       </main>

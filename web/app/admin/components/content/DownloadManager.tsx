@@ -234,6 +234,10 @@ export function DownloadManager() {
       setMessage({ text: '请先上传资料附件。', type: 'error' });
       return;
     }
+    if (Number(resourceForm.filesize || 0) <= 0) {
+      setMessage({ text: '当前附件内容为空，请重新选择有内容的文件上传后再保存。', type: 'error' });
+      return;
+    }
     setIsSavingResource(true);
     setMessage(null);
     const payload = {

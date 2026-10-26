@@ -53,6 +53,7 @@ const supplementalNavItems = [
   { parentSlug: 'group-profile', name: '企业荣誉', slug: 'group-honors', path: '/about/honors' },
   { parentSlug: 'group-profile', name: '企业文化', slug: 'corporate-culture', path: '/about#culture' },
   { parentSlug: 'party-mass', name: '培训资源', slug: 'party-training', path: '/party/training' },
+  { parentSlug: 'business-domain', name: '科技创新', slug: 'business-innovation', path: '/business/innovation' },
 ];
 
 const mergeSupplementalNav = (channels: Channel[]) => {

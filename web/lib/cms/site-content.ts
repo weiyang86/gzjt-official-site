@@ -1,5 +1,5 @@
-import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
-import type { BusinessSector, Company, DirectusListResponse, DownloadCategory, DownloadCenterData, DownloadResource, PageContent } from '@/types/cms';
+import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicAssetsAvailable, cmsPublicFetch } from './client';
+import type { BusinessInnovation, BusinessInnovationCategory, BusinessSector, Company, DirectusListResponse, DownloadCategory, DownloadCenterData, DownloadResource, PageContent } from '@/types/cms';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
 const downloadCenterModuleCode = 'download-center';
@@ -71,6 +71,71 @@ export async function getPublicBusinessSectors() {
   }));
 }
 
+export const businessInnovationModuleCode = 'business-innovation';
+const businessInnovationItemType = 'innovation';
+const businessInnovationCategoryItemType = 'innovation_category';
+
+export async function getPublicBusinessInnovationCategories() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    'filter[module_code][_eq]': businessInnovationModuleCode,
+    'filter[item_type][_eq]': businessInnovationCategoryItemType,
+    'filter[status][_eq]': 'enabled',
+    sort: 'sort,id',
+    limit: -1,
+    fields: 'id,title,subtitle,content,sort,status',
+  }), { cache: 'no-store', next: { revalidate: false } });
+
+  return (response.data || [])
+    .map((item): BusinessInnovationCategory => ({
+      id: String(item.id ?? ''),
+      name: toText(item.title),
+      slug: toText(item.subtitle),
+      description: toText(item.content),
+      sort: Number(item.sort) || 0,
+      status: toText(item.status) || 'enabled',
+    }))
+    .filter((item) => Boolean(item.name && item.slug));
+}
+
+export async function getPublicBusinessInnovations(categories?: BusinessInnovationCategory[]) {
+  const resolvedCategories = categories || await getPublicBusinessInnovationCategories();
+  const categoryBySlug = new Map(resolvedCategories.map((item) => [item.slug, item]));
+  const categoryByName = new Map(resolvedCategories.map((item) => [item.name, item]));
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    'filter[module_code][_eq]': businessInnovationModuleCode,
+    'filter[item_type][_eq]': businessInnovationItemType,
+    'filter[status][_eq]': 'enabled',
+    sort: 'sort,id',
+    limit: -1,
+    fields: 'id,title,subtitle,content,image,sort,status,extra_json',
+  }), { cache: 'no-store', next: { revalidate: false } });
+
+  return (response.data || [])
+    .map((item): BusinessInnovation => {
+      const extra = toExtraJson(item.extra_json);
+      const legacyCategory = toText(extra.category);
+      const categorySlug = toText(extra.category_slug) || categoryByName.get(legacyCategory)?.slug || '';
+      return {
+        id: String(item.id ?? ''),
+        title: toText(item.title),
+        summary: toText(item.subtitle),
+        content: toText(item.content),
+        image: buildDirectusAssetUrl(toText(item.image)),
+        category: categoryBySlug.get(categorySlug)?.name || legacyCategory || '科技创新',
+        categorySlug,
+        slug: toText(extra.slug) || String(item.id ?? ''),
+        sort: Number(item.sort) || 0,
+      };
+    })
+    .filter((item) => Boolean(item.title));
+}
+
+export async function getPublicBusinessInnovationCenter() {
+  const categories = await getPublicBusinessInnovationCategories();
+  const items = await getPublicBusinessInnovations(categories);
+  return { categories, items };
+}
+
 export async function getPublicDownloadCenter(): Promise<DownloadCenterData> {
   const [categoryResponse, resourceResponse] = await Promise.all([
     cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
@@ -104,11 +169,14 @@ export async function getPublicDownloadCenter(): Promise<DownloadCenterData> {
     .sort((left, right) => (Number(left.sort) - Number(right.sort)) || left.id.localeCompare(right.id));
 
   const categoryBySlug = new Map(categories.map((item) => [item.slug, item]));
-  const resources = (resourceResponse.data || [])
+  const resourceRows = resourceResponse.data || [];
+  const availability = await cmsPublicAssetsAvailable(resourceRows.map((item) => toText(item.link_url)).filter(Boolean));
+  const resources = resourceRows
     .map((item): DownloadResource => {
       const extra = toExtraJson(item.extra_json);
       const categorySlug = toText(item.subtitle);
       const fileId = toText(item.link_url);
+      const fileAvailable = Boolean(fileId && availability[fileId]);
       return {
         id: String(item.id ?? ''),
         name: toText(item.title),
@@ -116,7 +184,8 @@ export async function getPublicDownloadCenter(): Promise<DownloadCenterData> {
         categorySlug,
         categoryName: categoryBySlug.get(categorySlug)?.name || '',
         fileId,
-        fileUrl: buildDirectusAssetUrl(fileId),
+        fileUrl: fileAvailable ? buildDirectusAssetUrl(fileId) : '',
+        fileAvailable,
         filename: toText(extra.filename) || toText(item.title) || '附件',
         filesize: Number(extra.filesize) || 0,
         fileType: toText(extra.fileType) || toText(extra.file_type),

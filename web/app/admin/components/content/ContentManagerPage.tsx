@@ -8,6 +8,7 @@ import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homep
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import { LeadershipManager } from './LeadershipManager';
 import { HonorManager } from './HonorManager';
+import { BusinessInnovationManager } from './BusinessInnovationManager';
 import { BusinessSectorManager } from './BusinessSectorManager';
 import { ProjectManagerPage } from './ProjectManagerPage';
 import { TrainingResourceManager } from './TrainingResourceManager';
@@ -45,6 +46,20 @@ const trainingResourceModule: PageModule = {
   dev_status: 'enabled',
   status: 'enabled',
   sort: 505,
+};
+const businessInnovationModuleCode = 'business-innovation';
+const businessInnovationModule: PageModule = {
+  id: businessInnovationModuleCode,
+  parent_title: '业务领域',
+  parent_code: 'business-domain',
+  module_title: '科技创新',
+  module_code: businessInnovationModuleCode,
+  route_path: '/business/innovation',
+  content_type: 'innovation_list',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 2,
 };
 const homepageLayoutModule: PageModule = {
   id: homepageLayoutModuleCode,
@@ -1284,6 +1299,7 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   if (module.module_code === homepageLayoutModuleCode) return <HomepageLayoutManager />;
   if (module.module_code === contactInfoModuleCode) return <ContactInfoManager />;
   if (module.module_code === trainingResourceModuleCode) return <TrainingResourceManager />;
+  if (module.module_code === businessInnovationModuleCode) return <BusinessInnovationManager />;
   if (module.module_code === corporateCultureModuleCode || module.content_type === 'culture') {
     return <><PageContentForm module={module} /><CultureItemManager moduleCode={module.module_code || corporateCultureModuleCode} /></>;
   }
@@ -1393,14 +1409,16 @@ export function ContentManagerPage() {
       setSelectedModule(moduleCode === honorsModuleCode ? honorsModule : corporateCultureModule);
       return;
     }
-    if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode, trainingResourceModuleCode].includes(moduleCode)) {
+    if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode, trainingResourceModuleCode, businessInnovationModuleCode].includes(moduleCode)) {
       const module = moduleCode === homepageLayoutModuleCode
         ? homepageLayoutModule
         : moduleCode === contactInfoModuleCode
           ? contactInfoModule
           : moduleCode === trainingResourceModuleCode
             ? trainingResourceModule
-            : publicPlatformQrModule;
+            : moduleCode === businessInnovationModuleCode
+              ? businessInnovationModule
+              : publicPlatformQrModule;
       setSelectedModule(module);
       return;
     }
@@ -1426,20 +1444,22 @@ export function ContentManagerPage() {
       .then((result) => {
         if (!isMounted) return;
         const rows = withCorporateCultureModule(withHonorsModule((result.data || []) as PageModuleGroup[]));
-        const partyMassIndex = rows.findIndex((group) => group.parent_code === 'party-mass');
         const nextRows = rows.map((group) => ({ ...group, children: [...(group.children || group.modules || [])] }));
-        if (partyMassIndex >= 0) {
-          const group = nextRows[partyMassIndex];
-          if (!group.children?.some((module) => module.module_code === trainingResourceModuleCode)) {
-            group.children = [...(group.children || []), trainingResourceModule];
+        [trainingResourceModule, businessInnovationModule].forEach((module) => {
+          const groupIndex = nextRows.findIndex((group) => group.parent_code === module.parent_code);
+          if (groupIndex >= 0) {
+            const group = nextRows[groupIndex];
+            if (!group.children?.some((item) => item.module_code === module.module_code)) {
+              group.children = [...(group.children || []), module];
+            }
+          } else {
+            nextRows.push({
+              parent_title: module.parent_title,
+              parent_code: module.parent_code,
+              children: [module],
+            });
           }
-        } else {
-          nextRows.push({
-            parent_title: trainingResourceModule.parent_title,
-            parent_code: trainingResourceModule.parent_code,
-            children: [trainingResourceModule],
-          });
-        }
+        });
         setTree([...nextRows, {
           parent_title: '首页配置',
           parent_code: 'homepage-settings',
