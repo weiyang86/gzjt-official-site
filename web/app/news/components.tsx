@@ -1,6 +1,6 @@
 import Script from 'next/script';
 import { Fragment } from 'react';
-import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks, getPublicContactInfo } from '@/lib/cms';
+import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks, getPublicQuickLinks, getPublicContactInfo } from '@/lib/cms';
 import type { Channel } from '@/types/cms';
 import NavigationActiveState from './NavigationActiveState';
 
@@ -212,9 +212,10 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
 }
 
 export async function Footer() {
-  const [siteSettings, friendLinks, contactInfo] = await Promise.all([
+  const [siteSettings, friendLinks, quickLinks, contactInfo] = await Promise.all([
     getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicFriendLinks('footer').catch(() => []),
+    getPublicQuickLinks('footer').catch(() => []),
     getPublicContactInfo().catch(() => ({ email: '', phone: '', address: '', mapEmbedUrl: '' })),
   ]);
   const safeName = siteSettings.siteName || '网站';
@@ -227,6 +228,7 @@ export async function Footer() {
             <p>{contactInfo.address ? `地址：${contactInfo.address}` : '地址暂未配置'}<br />{contactInfo.phone ? `电话：${contactInfo.phone}` : '电话暂未配置'}{contactInfo.email ? <><br />邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></> : null}</p>
           </div>
           <div>
+            {quickLinks.length ? <dl><dt>快速链接</dt><dd className="footer-friend-links">{quickLinks.map((link) => <a href={link.url} target={link.url.startsWith('http') ? '_blank' : undefined} rel={link.url.startsWith('http') ? 'noopener noreferrer' : undefined} key={link.id}>{link.title}</a>)}</dd></dl> : null}
             <dl><dt>友情链接</dt><dd className="footer-friend-links">{friendLinks.length ? friendLinks.map((link) => <a href={link.url} target="_blank" rel="noopener noreferrer" key={link.id}>{link.title}</a>) : <span>暂无友情链接</span>}</dd></dl>
           </div>
         </div>

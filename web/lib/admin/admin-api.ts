@@ -178,6 +178,15 @@ export type AdminMessage = {
   created_at: string;
 };
 
+export type AdminManagedLink = {
+  id: string;
+  title: string;
+  url: string;
+  position: string;
+  sort: number;
+  status: string;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;

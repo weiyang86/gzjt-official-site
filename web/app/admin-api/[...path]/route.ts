@@ -431,7 +431,8 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'navigation') return ['navigation'];
   if (root === 'quick-links') return ['quickLinks'];
   if (root === 'contact-settings') return ['content', 'footerSettings'];
-  if (root === 'friend-links' || root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
+  if (root === 'friend-links') return ['friendLinks', 'footerSettings'];
+  if (root === 'site-settings' || root === 'footer-settings') return ['footerSettings'];
   if (root === 'report-settings') return ['report'];
   if (root === 'seo-settings') return ['seo'];
   if (root === 'analytics') return ['analytics'];
@@ -444,7 +445,8 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'downloads', 'topics', 'projects'];
   if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'downloads', 'topics', 'projects'];
   if (root === 'downloads' || root === 'download-categories') return ['downloads'];
-  if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items' || root === 'business-sectors') return ['content'];
+  if (root === 'business-sectors') return ['businessSectors', 'content'];
+  if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   return ['dashboard'];
 };
@@ -3206,190 +3208,6 @@ const handleLocalMessages = async (request: NextRequest, path: string[]) => {
     };
     await directusJsonRequest(`/items/page_contents/${encodeURIComponent(id)}`, token, 'PATCH', { extra_json: extra });
     return NextResponse.json({ data: mapAdminMessageRow({ ...existing, extra_json: extra }) });
-  }
-
-  return null;
-};
-
-const handleLocalAsset = async (request: NextRequest, path: string[]) => {
-  const id = path[1] ? decodeURIComponent(path[1]) : '';
-  if (!id || request.method !== 'GET') return null;
-  const { session, response } = requireSession(request);
-  if (!session) return response;
-  const assetResponse = await apiStoreAsset(id);
-  return new Response(assetResponse.body, {
-    status: assetResponse.status,
-    statusText: assetResponse.statusText,
-    headers: assetResponse.headers,
-  });
-};
-
-const normalizeUserInput = async (request: NextRequest, isCreate = false) => {
-  const body = await request.json() as Record<string, unknown>;
-  const email = typeof body.email === 'string' ? body.email.trim() : '';
-  const firstName = typeof body.first_name === 'string' ? body.first_name.trim() : '';
-  const lastName = typeof body.last_name === 'string' ? body.last_name.trim() : '';
-  const password = typeof body.password === 'string' ? body.password : '';
-  const status = typeof body.status === 'string' && directusUserStatuses.has(body.status) ? body.status : 'active';
-  const role = typeof body.role === 'string' && body.role.trim() ? body.role.trim() : null;
-  const menuKeys = menuKeysWithDashboard(body.menu_keys);
-  if (!email) throw Object.assign(new Error('email is required'), { status: 400 });
-  if (isCreate && !password) throw Object.assign(new Error('password is required'), { status: 400 });
-  if (password && password.length < 8) throw Object.assign(new Error('password must be at least 8 characters'), { status: 400 });
-  const payload: Record<string, unknown> = {
-    email,
-    first_name: firstName,
-    last_name: lastName,
-    status,
-    role,
-  };
-  if (password) payload.password = password;
-  return { payload, menuKeys };
-};
-
-const upsertUserMenuPermissions = async (token: string, userId: string, menuKeys: AdminMenuKey[]) => {
-  const safeKeys = menuKeysWithDashboard(menuKeys);
-  const serviceToken = await getServiceDirectusToken(token);
-  try {
-    const existing = await findUserMenuPermission(serviceToken, userId);
-    const body = { user: userId, menu_keys: safeKeys, status: 'enabled' };
-    if (existing?.id !== undefined && existing?.id !== null) {
-      const result = await directusJsonRequest<{ data?: unknown }>(
-        `/items/admin_menu_permissions/${encodeURIComponent(String(existing.id))}`,
-        serviceToken,
-        'PATCH',
-        body,
-      );
-      return result.data || null;
-    }
-    const result = await directusJsonRequest<{ data?: unknown }>('/items/admin_menu_permissions', serviceToken, 'POST', body);
-    return result.data || null;
-  } catch (error) {
-    if (isAdminMenuPermissionCollectionError(error)) throw adminMenuPermissionSetupError();
-    throw error;
-  }
-};
-
-const handleLocalRoles = async (request: NextRequest) => {
-  if (request.method !== 'GET') return null;
-  const { session, response } = requireSession(request);
-  if (!session) return response;
-  const serviceToken = await getServiceDirectusToken(session.accessToken);
-  const result = await directusJsonRequest<{ data?: unknown[] }>(
-    buildDirectusPath('/roles', {
-      fields: directusRoleFields,
-      sort: 'name',
-      limit: 100,
-    }),
-    serviceToken,
-  );
-  return NextResponse.json({ data: result.data || [] });
-};
-
-const findAdminUserByEmail = async (token: string, email: string) => {
-  const result = await directusJsonRequest<{ data?: DirectusAdminUser[] }>(
-    buildDirectusPath('/users', {
-      fields: directusUserListFields,
-      limit: 1,
-      'filter[email][_eq]': email,
-    }),
-    token,
-  );
-  return Array.isArray(result.data) ? result.data[0] || null : null;
-};
-
-const listAdminUsers = async (token: string, request: NextRequest) => {
-  const serviceToken = await getServiceDirectusToken(token);
-  const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim();
-  const params: Record<string, string | number | boolean> = {
-    fields: directusUserListFields,
-    sort: 'email',
-    limit: 200,
-  };
-  if (keyword) {
-    params['filter[_or][0][email][_contains]'] = keyword;
-    params['filter[_or][1][first_name][_contains]'] = keyword;
-    params['filter[_or][2][last_name][_contains]'] = keyword;
-  }
-  const result = await directusJsonRequest<{ data?: DirectusAdminUser[] }>(buildDirectusPath('/users', params), serviceToken);
-  return Promise.all((result.data || []).map((user) => decorateAdminUser(serviceToken, user)));
-};
-
-const handleLocalUsers = async (request: NextRequest, path: string[]) => {
-  const id = path[1] ? decodeURIComponent(path[1]) : '';
-  const { session, response } = requireSession(request);
-  if (!session) return response;
-
-  if (!id && request.method === 'GET') {
-    return NextResponse.json({ data: await listAdminUsers(session.accessToken, request) });
-  }
-
-  if (!id && request.method === 'POST') {
-    const serviceToken = await getServiceDirectusToken(session.accessToken);
-    const { payload, menuKeys } = await normalizeUserInput(request, true);
-    try {
-      const created = await directusJsonRequest<{ data?: DirectusAdminUser }>('/users', serviceToken, 'POST', payload);
-      const userId = String(created.data?.id || '');
-      if (userId) await upsertUserMenuPermissions(serviceToken, userId, menuKeys);
-      return NextResponse.json({ data: await decorateAdminUser(serviceToken, created.data || null) }, { status: 201 });
-    } catch (error) {
-      if (!isDirectusUniqueEmailError(error)) throw error;
-      const existing = await findAdminUserByEmail(serviceToken, String(payload.email || ''));
-      if (!existing?.id) throw error;
-      const updatePayload = { ...payload };
-      delete updatePayload.password;
-      const updated = await directusJsonRequest<{ data?: DirectusAdminUser }>(`/users/${encodeURIComponent(existing.id)}`, serviceToken, 'PATCH', updatePayload);
-      await upsertUserMenuPermissions(serviceToken, existing.id, menuKeys);
-      return NextResponse.json({ data: await decorateAdminUser(serviceToken, updated.data || existing) });
-    }
-  }
-
-  if (id && request.method === 'PATCH') {
-    const serviceToken = await getServiceDirectusToken(session.accessToken);
-    const current = await getCurrentDirectusUser(session.accessToken, session.email);
-    const { payload, menuKeys } = await normalizeUserInput(request, false);
-    if (current?.id === id && payload.status && payload.status !== 'active') {
-      throw Object.assign(new Error('不能停用当前登录账号'), { status: 400 });
-    }
-    const updated = await directusJsonRequest<{ data?: DirectusAdminUser }>(`/users/${encodeURIComponent(id)}`, serviceToken, 'PATCH', payload);
-    await upsertUserMenuPermissions(serviceToken, id, menuKeys);
-    return NextResponse.json({ data: await decorateAdminUser(serviceToken, updated.data || null) });
-  }
-
-  if (id && request.method === 'DELETE') {
-    const serviceToken = await getServiceDirectusToken(session.accessToken);
-    const current = await getCurrentDirectusUser(session.accessToken, session.email);
-    if (current?.id === id) {
-      throw Object.assign(new Error('不能停用当前登录账号'), { status: 400 });
-    }
-    const updated = await directusJsonRequest<{ data?: DirectusAdminUser }>(`/users/${encodeURIComponent(id)}`, serviceToken, 'PATCH', { status: 'suspended' });
-    return NextResponse.json({ data: await decorateAdminUser(serviceToken, updated.data || null) });
-  }
-
-  return null;
-};
-
-const handleLocalPermissions = async (request: NextRequest, path: string[]) => {
-  const userId = path[1] ? decodeURIComponent(path[1]) : '';
-  const { session, response } = requireSession(request);
-  if (!session) return response;
-
-  if (!userId && request.method === 'GET') {
-    return NextResponse.json({
-      data: {
-        menus: adminMenuItems,
-        users: await listAdminUsers(session.accessToken, request),
-      },
-    });
-  }
-
-  if (userId && request.method === 'PUT') {
-    const body = await request.json() as Record<string, unknown>;
-    const menuKeys = menuKeysWithDashboard(body.menu_keys);
-    const serviceToken = await getServiceDirectusToken(session.accessToken);
-    await upsertUserMenuPermissions(serviceToken, userId, menuKeys);
-    const user = await directusJsonRequest<{ data?: DirectusAdminUser }>(buildDirectusPath(`/users/${encodeURIComponent(userId)}`, { fields: directusUserListFields }), serviceToken);
-    return NextResponse.json({ data: await decorateAdminUser(serviceToken, user.data || null) });
   }
 
   return null;
