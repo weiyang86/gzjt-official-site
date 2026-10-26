@@ -196,6 +196,10 @@ export const AdminApi = {
     method: 'POST',
     body: formData,
   }),
+  uploadDocument: (formData: FormData) => adminFetch('/admin-api/files?kind=document', {
+    method: 'POST',
+    body: formData,
+  }),
   categories: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/categories', params)),
   category: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/categories/${encodeURIComponent(id)}`, params)),
   createCategory: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/categories', params), {

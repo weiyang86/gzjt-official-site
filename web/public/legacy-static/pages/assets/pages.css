@@ -1465,3 +1465,36 @@
 @media(max-width:576px){
   .about-history-empty{padding:30px 18px;font-size:14px}
 }
+
+/* 任务09：企业荣誉独立页面，证书、年份、说明与附件沿用官网卡片语言。 */
+[data-honors-page] .honors-section{padding-top:58px}
+.honors-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:stretch}
+.honor-card{display:flex;flex-direction:column;overflow:hidden;border-radius:20px;border:1px solid rgba(24,39,63,.09);background:linear-gradient(180deg,#fff,rgba(250,252,255,.94));box-shadow:0 14px 38px rgba(20,35,55,.07);transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease);animation:aboutRise .7s both;animation-delay:calc(var(--i,0) * 70ms)}
+.honor-card:hover{transform:translateY(-4px);border-color:rgba(181,18,36,.22);box-shadow:0 22px 52px rgba(20,35,55,.12)}
+.honor-certificate{position:relative;aspect-ratio:4/3;background:linear-gradient(145deg,#eef2f7,#dfe7f0);overflow:hidden}
+.honor-certificate>a{display:block;width:100%;height:100%}
+.honor-certificate img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease)}
+.honor-card:hover .honor-certificate img{transform:scale(1.04)}
+.honor-year{position:absolute;left:14px;top:14px;padding:5px 12px;border-radius:999px;background:rgba(24,52,90,.88);color:#fff;font-size:13px;font-weight:800;letter-spacing:.05em;box-shadow:0 6px 18px rgba(9,23,42,.2)}
+.honor-certificate-placeholder{display:flex;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#7e8ea2;background:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 10px,rgba(229,236,245,.55) 10px 20px)}
+.honor-certificate-placeholder span{font-family:"Source Han Serif SC","Noto Serif SC","Songti SC","STSong",serif;font-size:22px;font-weight:800}
+.honor-certificate-placeholder small{font-size:13px;letter-spacing:.1em}
+.honor-card-body{display:flex;flex:1;flex-direction:column;padding:20px 22px 24px}
+.honor-card-body h3{margin:0;color:#172338;font-size:19px;line-height:1.5;overflow-wrap:anywhere}
+.honor-card-body p{margin:10px 0 0;color:#5d6878;font-size:14px;line-height:1.85;white-space:pre-line;overflow-wrap:anywhere}
+.honor-attachment{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;margin-top:auto;padding:14px 0 0;color:#a8292f;font-size:14px;font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+.honor-attachment span{padding:3px 8px;border-radius:6px;background:rgba(181,18,36,.09);font-size:12px;letter-spacing:.08em}
+.honor-attachment:hover{color:#c62828;text-decoration:underline}
+.honors-empty{padding:42px 24px;border:1px dashed rgba(13,47,90,.18);border-radius:18px;background:rgba(255,255,255,.72);color:rgba(11,18,32,.62);text-align:center;font-size:15px;line-height:1.9}
+@media(max-width:992px){
+  [data-honors-page] .honors-section{padding-top:38px}
+  .honors-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .honors-grid{grid-template-columns:1fr;gap:18px}
+  .honor-card-body{padding:18px}
+  .honors-empty{padding:30px 18px;font-size:14px}
+}
+@media (prefers-reduced-motion: reduce){
+  .honor-card,.honor-certificate img{animation:none!important;transition:none!important;transform:none!important}
+}

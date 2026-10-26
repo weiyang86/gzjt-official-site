@@ -98,6 +98,17 @@ export interface HistoryTimelineItem {
   sort: number;
 }
 
+export interface HonorItem {
+  id: string;
+  title: string;
+  year: string;
+  image: string;
+  description: string;
+  attachmentUrl: string;
+  attachmentName: string;
+  sort: number;
+}
+
 export interface Banner {
   id: string;
   title: string;

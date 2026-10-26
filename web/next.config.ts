@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
       { source: '/admin/page-modules.html', destination: '/admin/page-modules', permanent: false },
       { source: '/group', destination: '/about', permanent: false },
       { source: '/group/organization/subsidiaries/:path*', destination: '/org', permanent: false },
+      { source: '/group/honors', destination: '/about/honors', permanent: false },
       { source: '/group/:path*', destination: '/about', permanent: false },
       { source: '/news-center', destination: '/news', permanent: false },
       { source: '/news-center/:path*', destination: '/news', permanent: false },
