@@ -1,6 +1,6 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
 import type { DirectusListResponse, HistoryTimelineItem, HonorItem, TrainingResource, TrainingResourceKind } from '@/types/cms';
-import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
+import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, normalizeHomepageLayout, normalizeMapEmbedUrl, homepageLayoutModuleCode, type ContactInfoConfig } from './homepage-layout';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
 
@@ -304,35 +304,47 @@ export async function getPublicHomepageLayout() {
   }
 }
 
-export async function getPublicContactInfo() {
-  try {
-    const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {
+type LegacyContactInfo = Partial<ContactInfoConfig>;
+
+const readLegacyContactInfo = (rawExtra: unknown): LegacyContactInfo | null => {
+  const extra = typeof rawExtra === 'string' ? JSON.parse(rawExtra) as unknown : rawExtra;
+  const value = extra && typeof extra === 'object' && !Array.isArray(extra) && 'contactInfo' in extra
+    ? (extra as Record<string, unknown>).contactInfo
+    : null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const config = value as Record<string, unknown>;
+  return {
+    email: typeof config.email === 'string' ? config.email.trim() : undefined,
+    phone: typeof config.phone === 'string' ? config.phone.trim() : undefined,
+    address: typeof config.address === 'string' ? config.address.trim() : undefined,
+    mapEmbedUrl: typeof config.mapEmbedUrl === 'string' ? normalizeMapEmbedUrl(config.mapEmbedUrl) : undefined,
+  };
+};
+
+export async function getPublicContactInfo(): Promise<ContactInfoConfig> {
+  const [siteSettings, legacyContactInfo] = await Promise.all([
+    getPublicSiteSettings().catch(() => null),
+    cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {
       fields: 'extra_json,status',
       limit: 1,
       'filter[module_code][_eq]': contactInfoModuleCode,
       'filter[status][_eq]': 'published',
-    }), { cache: 'no-store', next: { revalidate: false } });
-    const rawExtra = response.data?.[0]?.extra_json;
-    const extra = typeof rawExtra === 'string' ? JSON.parse(rawExtra) as unknown : rawExtra;
-    const value = extra && typeof extra === 'object' && 'contactInfo' in extra
-      ? (extra as Record<string, unknown>).contactInfo
-      : null;
-    if (value && typeof value === 'object') {
-      const config = value as Partial<typeof defaultContactInfo>;
-      return {
-        email: typeof config.email === 'string' ? config.email : defaultContactInfo.email,
-        phone: typeof config.phone === 'string' ? config.phone : defaultContactInfo.phone,
-        address: typeof config.address === 'string' ? config.address : defaultContactInfo.address,
-      };
-    }
-  } catch {
-    // 新配置尚未发布或 API 暂不可用时，继续使用已有首页联系信息作为兼容回退。
-  }
+    }), { cache: 'no-store', next: { revalidate: false } })
+      .then((response) => readLegacyContactInfo(response.data?.[0]?.extra_json))
+      .catch(() => null),
+  ]);
 
-  const homepage = await getPublicHomepageLayout();
+  // 仅有历史数据时回退首页布局旧字段；一旦保存过联系配置，就尊重空值，允许后台主动清空。
+  const hasSavedContactConfig = (
+    legacyContactInfo !== null
+    || Boolean(siteSettings?.email || siteSettings?.phone || siteSettings?.address)
+  );
+  const homepage = hasSavedContactConfig ? defaultHomepageLayout : await getPublicHomepageLayout();
+
   return {
-    email: defaultContactInfo.email,
-    phone: homepage.contactPhone || defaultContactInfo.phone,
-    address: homepage.contactAddress || defaultContactInfo.address,
+    email: siteSettings?.email.trim() || legacyContactInfo?.email || defaultContactInfo.email,
+    phone: siteSettings?.phone.trim() || legacyContactInfo?.phone || homepage.contactPhone || defaultContactInfo.phone,
+    address: siteSettings?.address.trim() || legacyContactInfo?.address || homepage.contactAddress || defaultContactInfo.address,
+    mapEmbedUrl: legacyContactInfo?.mapEmbedUrl !== undefined ? legacyContactInfo.mapEmbedUrl : defaultContactInfo.mapEmbedUrl,
   };
 }

@@ -1,6 +1,6 @@
 import Script from 'next/script';
 import { Fragment } from 'react';
-import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks } from '@/lib/cms';
+import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks, getPublicContactInfo } from '@/lib/cms';
 import type { Channel } from '@/types/cms';
 import NavigationActiveState from './NavigationActiveState';
 
@@ -199,9 +199,10 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
 }
 
 export async function Footer() {
-  const [siteSettings, friendLinks] = await Promise.all([
+  const [siteSettings, friendLinks, contactInfo] = await Promise.all([
     getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicFriendLinks('footer').catch(() => []),
+    getPublicContactInfo().catch(() => ({ email: '', phone: '', address: '', mapEmbedUrl: '' })),
   ]);
   const safeName = siteSettings.siteName || '网站';
   return (
@@ -210,7 +211,7 @@ export async function Footer() {
         <div className="footer-inner">
           <div>
             <h3>{safeName}</h3>
-            <p>{siteSettings.address ? `地址：${siteSettings.address}` : '地址暂未配置'}<br />{siteSettings.phone ? `电话：${siteSettings.phone}` : '电话暂未配置'}{siteSettings.email ? <><br />邮箱：<a href={`mailto:${siteSettings.email}`}>{siteSettings.email}</a></> : null}</p>
+            <p>{contactInfo.address ? `地址：${contactInfo.address}` : '地址暂未配置'}<br />{contactInfo.phone ? `电话：${contactInfo.phone}` : '电话暂未配置'}{contactInfo.email ? <><br />邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></> : null}</p>
           </div>
           <div>
             <dl><dt>友情链接</dt><dd className="footer-friend-links">{friendLinks.length ? friendLinks.map((link) => <a href={link.url} target="_blank" rel="noopener noreferrer" key={link.id}>{link.title}</a>) : <span>暂无友情链接</span>}</dd></dl>

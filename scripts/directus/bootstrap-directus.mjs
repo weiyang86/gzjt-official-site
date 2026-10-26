@@ -468,7 +468,7 @@ async function seedData(token) {
   await upsertBySlug(token, 'business_sectors', 'transport-tourism', { name: '交旅融合', intro: '交旅融合示例业务板块。', sort: 3, status: 'enabled' });
 
   await upsertBySlug(token, 'pages', 'group-intro', { title: '集团简介', content: '<p>甘孜州建设投资集团有限公司为州属一级国有企业，是甘孜州交通和城乡基础设施建设的重要实施主体与国有资本运营平台。</p>', status: 'published' });
-  await upsertBySlug(token, 'pages', 'contact', { title: '联系我们', content: '<p>地址：四川省康定市榆林街道榆磨路60号</p><p>电话：0836-2876659</p><p>欢迎通过业务咨询、合作对接等方式与我们取得联系。</p>', status: 'published' });
+  await upsertBySlug(token, 'pages', 'contact', { title: '联系我们', content: '<p>欢迎通过业务咨询、合作对接等方式与我们取得联系。联系方式由后台“联系我们配置”统一维护。</p>', status: 'published' });
 
   const newsArticles = [
     {

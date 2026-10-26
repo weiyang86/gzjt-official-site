@@ -1,5 +1,7 @@
 'use client';
 
+import type { ContactInfoConfig } from '@/lib/cms/homepage-layout';
+
 export type AdminQuery = Record<string, string | number | boolean | null | undefined>;
 
 export type AdminRole = {
@@ -186,6 +188,11 @@ export const AdminApi = {
   updateSiteSettings: (payload: unknown) => adminFetch('/admin-api/site-settings', { method: 'PATCH', body: JSON.stringify(payload) }),
   reportSettings: () => adminFetch<{ config: ReportConfigPayload; status: string; has_content?: boolean }>('/admin-api/report-settings'),
   updateReportSettings: (payload: { config: ReportConfigPayload; status: string }) => adminFetch('/admin-api/report-settings', { method: 'PUT', body: JSON.stringify(payload) }),
+  contactSettings: () => adminFetch<ContactInfoConfig>('/admin-api/contact-settings'),
+  updateContactSettings: (payload: ContactInfoConfig) => adminFetch<ContactInfoConfig>('/admin-api/contact-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
   createHomeStat: (payload: Omit<HomeStat, 'id'>) => adminFetch('/admin-api/home-stats', { method: 'POST', body: JSON.stringify(payload) }),
   updateHomeStat: (id: string, payload: Omit<HomeStat, 'id'>) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteHomeStat: (id: string) => adminFetch(`/admin-api/home-stats/${encodeURIComponent(id)}`, { method: 'DELETE' }),
