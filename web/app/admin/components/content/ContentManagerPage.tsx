@@ -9,6 +9,7 @@ import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroCon
 import { LeadershipManager } from './LeadershipManager';
 import { HonorManager } from './HonorManager';
 import { BusinessSectorManager } from './BusinessSectorManager';
+import { TrainingResourceManager } from './TrainingResourceManager';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -24,6 +25,20 @@ const itemStatusOptions = [
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const maxImageBytes = 50 * 1024 * 1024;
 const publicPlatformQrModuleCode = 'global-public-platform-qr';
+const trainingResourceModuleCode = 'training-resources';
+const trainingResourceModule: PageModule = {
+  id: trainingResourceModuleCode,
+  parent_title: '党建群团',
+  parent_code: 'party-mass',
+  module_title: '培训资源',
+  module_code: trainingResourceModuleCode,
+  route_path: '/party/training',
+  content_type: 'resource_list',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 505,
+};
 const homepageLayoutModule: PageModule = {
   id: homepageLayoutModuleCode,
   parent_title: '首页配置',
@@ -996,6 +1011,7 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   if (module.module_code === publicPlatformQrModuleCode) return <PublicPlatformQrManager />;
   if (module.module_code === homepageLayoutModuleCode) return <HomepageLayoutManager />;
   if (module.module_code === contactInfoModuleCode) return <ContactInfoManager />;
+  if (module.module_code === trainingResourceModuleCode) return <TrainingResourceManager />;
 
   if (!module.admin_enabled) {
     return (
@@ -1074,12 +1090,14 @@ export function ContentManagerPage() {
       setSelectedModule(honorsModule);
       return;
     }
-    if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode].includes(moduleCode)) {
+    if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode, trainingResourceModuleCode].includes(moduleCode)) {
       const module = moduleCode === homepageLayoutModuleCode
         ? homepageLayoutModule
         : moduleCode === contactInfoModuleCode
           ? contactInfoModule
-          : publicPlatformQrModule;
+          : moduleCode === trainingResourceModuleCode
+            ? trainingResourceModule
+            : publicPlatformQrModule;
       setSelectedModule(module);
       return;
     }
@@ -1105,7 +1123,21 @@ export function ContentManagerPage() {
       .then((result) => {
         if (!isMounted) return;
         const rows = withHonorsModule((result.data || []) as PageModuleGroup[]);
-        setTree([...rows, {
+        const partyMassIndex = rows.findIndex((group) => group.parent_code === 'party-mass');
+        const nextRows = rows.map((group) => ({ ...group, children: [...(group.children || group.modules || [])] }));
+        if (partyMassIndex >= 0) {
+          const group = nextRows[partyMassIndex];
+          if (!group.children?.some((module) => module.module_code === trainingResourceModuleCode)) {
+            group.children = [...(group.children || []), trainingResourceModule];
+          }
+        } else {
+          nextRows.push({
+            parent_title: trainingResourceModule.parent_title,
+            parent_code: trainingResourceModule.parent_code,
+            children: [trainingResourceModule],
+          });
+        }
+        setTree([...nextRows, {
           parent_title: '首页配置',
           parent_code: 'homepage-settings',
           children: [homepageLayoutModule],

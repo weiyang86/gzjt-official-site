@@ -1,5 +1,5 @@
 import { buildDirectusAssetUrl, buildDirectusPath, cmsPublicFetch } from './client';
-import type { DirectusListResponse, HistoryTimelineItem, HonorItem } from '@/types/cms';
+import type { DirectusListResponse, HistoryTimelineItem, HonorItem, TrainingResource, TrainingResourceKind } from '@/types/cms';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, normalizeHomepageLayout, homepageLayoutModuleCode } from './homepage-layout';
 
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
@@ -208,6 +208,75 @@ export async function getPublicHonors() {
     attachmentName: getStringExtra(item.extra_json, 'attachmentName'),
     sort: Number(item.sort) || 0,
   })).filter((item) => item.title);
+}
+
+export const trainingResourceModuleCode = 'training-resources';
+const trainingResourceKinds = new Set<TrainingResourceKind>(['article', 'attachment', 'link']);
+
+const parseExtraJson = (value: unknown): Record<string, unknown> => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+const safeHttpUrl = (value: string) => {
+  if (!value) return '';
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? value : '';
+  } catch {
+    return '';
+  }
+};
+
+const mapTrainingResource = (item: Record<string, unknown>): TrainingResource | null => {
+  const kind = toText(item.item_type) as TrainingResourceKind;
+  if (!trainingResourceKinds.has(kind)) return null;
+  const extra = parseExtraJson(item.extra_json);
+  const fileId = toText(extra.file_id) || toText(extra.fileId);
+  const linkUrl = toText(item.link_url);
+  const attachmentUrl = fileId ? buildDirectusAssetUrl(fileId) : '';
+  return {
+    id: String(item.id ?? ''),
+    kind,
+    title: toText(item.title),
+    summary: toText(item.subtitle),
+    dateLabel: toText(item.date_label),
+    content: toText(item.content),
+    image: buildDirectusAssetUrl(toText(item.image)),
+    // 外部链接只接受 http/https；附件链接由后台文件 ID 生成，避免前台出现无效跳转。
+    url: kind === 'attachment' ? attachmentUrl : kind === 'link' ? safeHttpUrl(linkUrl) : '',
+    fileName: toText(extra.filename) || toText(extra.file_name),
+    fileSize: Number(extra.filesize) || 0,
+    sort: Number(item.sort) || 0,
+  };
+};
+
+export async function getPublicTrainingResources() {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
+    fields: 'id,item_type,title,subtitle,date_label,image,content,link_url,sort,status,extra_json',
+    sort: 'sort,id',
+    limit: -1,
+    'filter[module_code][_eq]': trainingResourceModuleCode,
+    'filter[status][_eq]': 'enabled',
+  }), { cache: 'no-store', next: { revalidate: false } });
+
+  return (response.data || [])
+    .map(mapTrainingResource)
+    .filter((item): item is TrainingResource => Boolean(item && item.title));
+}
+
+export async function getPublicTrainingResourceById(id: string) {
+  if (!id) return null;
+  const resources = await getPublicTrainingResources();
+  return resources.find((item) => item.id === id) || null;
 }
 
 export async function getPublicHomepageLayout() {

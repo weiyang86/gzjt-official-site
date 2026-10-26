@@ -109,6 +109,22 @@ export interface HonorItem {
   sort: number;
 }
 
+export type TrainingResourceKind = 'article' | 'attachment' | 'link';
+
+export interface TrainingResource {
+  id: string;
+  kind: TrainingResourceKind;
+  title: string;
+  summary: string;
+  dateLabel: string;
+  content: string;
+  image: string;
+  url: string;
+  fileName: string;
+  fileSize: number;
+  sort: number;
+}
+
 export interface Banner {
   id: string;
   title: string;

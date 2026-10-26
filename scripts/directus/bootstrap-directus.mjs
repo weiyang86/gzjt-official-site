@@ -155,7 +155,7 @@ const fields = {
     stringField('module_title', true),
     stringField('module_code', true),
     stringField('route_path'),
-    selectField('content_type', ['single_page', 'timeline', 'image_text', 'org_chart', 'leader_list', 'honor_list', 'article_list', 'company_list', 'sector_list', 'contact_info', 'static_placeholder'], 'static_placeholder'),
+    selectField('content_type', ['single_page', 'timeline', 'image_text', 'org_chart', 'leader_list', 'honor_list', 'article_list', 'resource_list', 'company_list', 'sector_list', 'contact_info', 'static_placeholder'], 'static_placeholder'),
     booleanField('admin_enabled', false),
     selectField('dev_status', ['developing', 'enabled', 'disabled'], 'developing'),
     textField('placeholder_text', 'input-multiline', '正在开发中'),
@@ -403,6 +403,18 @@ async function seedData(token) {
     const id = await upsertBySlug(token, 'channels', slug, { name, type: 'list', path: `/channels/${slug}`, sort: channelIds.size + 1, visible: true, status: 'enabled', is_news_category: true, description: `${name}分类` });
     channelIds.set(slug, id);
   }
+
+  await upsertBySlug(token, 'channels', 'party-training', {
+    name: '培训资源',
+    type: 'link',
+    path: '/party/training',
+    parent: channelIds.get('party-mass'),
+    sort: 1,
+    visible: true,
+    status: 'enabled',
+    is_news_category: false,
+    description: '培训文章、资料附件与外部学习链接',
+  });
 
   for (let i = 1; i <= 3; i += 1) {
     await upsertByTitle(token, 'banners', `首页轮播示例 ${i}`, {
@@ -659,6 +671,7 @@ async function seedData(token) {
     ['党建群团', 'party-mass', '群团工作', 'mass-work', '/pages/party/index.html', 'article_list', false, 502],
     ['党建群团', 'party-mass', '工会工作', 'union-work', '/pages/party/index.html', 'article_list', false, 503],
     ['党建群团', 'party-mass', '青年工作', 'youth-work', '/pages/party/index.html', 'article_list', false, 504],
+    ['党建群团', 'party-mass', '培训资源', 'training-resources', '/party/training', 'resource_list', true, 505],
     ['项目建设', 'projects', '项目动态', 'project-news', '/pages/projects/index.html', 'article_list', true, 601],
     ['项目建设', 'projects', '安全环保', 'safety-environment', '/pages/projects/index.html', 'article_list', true, 602],
     ['项目建设', 'projects', '科技创新', 'technology-innovation', '/projects#innovation', 'article_list', true, 603],

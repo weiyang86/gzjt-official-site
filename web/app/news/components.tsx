@@ -31,12 +31,12 @@ const navKeyByChannelName: Record<string, NavKey> = {
 };
 
 /**
- * 独立功能页不属于资讯栏目，但需要在既有栏目树下提供入口。
- * 企业荣誉挂在“集团概况”下，不再从“集团历程”区块进入。
+ * 独立功能页不属于资讯栏目，但需要在既有栏目树下提供入口；
  * CMS 已存在相同 slug 或 path 的栏目时自动跳过，避免重复菜单。
  */
 const supplementalNavItems = [
   { parentSlug: 'group-profile', name: '企业荣誉', slug: 'group-honors', path: '/about/honors' },
+  { parentSlug: 'party-mass', name: '培训资源', slug: 'party-training', path: '/party/training' },
 ];
 
 const mergeSupplementalNav = (channels: Channel[]) => {
