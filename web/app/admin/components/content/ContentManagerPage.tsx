@@ -28,6 +28,7 @@ const itemStatusOptions = [
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const maxImageBytes = 50 * 1024 * 1024;
 const publicPlatformQrModuleCode = 'global-public-platform-qr';
+const corporateCultureModuleCode = 'corporate-culture';
 const trainingResourceModuleCode = 'training-resources';
 const trainingResourceModule: PageModule = {
   id: trainingResourceModuleCode,
@@ -96,6 +97,20 @@ const honorsModule: PageModule = {
   sort: 105,
 };
 
+const corporateCultureModule: PageModule = {
+  id: corporateCultureModuleCode,
+  parent_title: '集团概况',
+  parent_code: 'group-overview',
+  module_title: '企业文化',
+  module_code: corporateCultureModuleCode,
+  route_path: '/about',
+  content_type: 'culture',
+  admin_enabled: true,
+  dev_status: 'enabled',
+  status: 'enabled',
+  sort: 106,
+};
+
 const withHonorsModule = (groups: PageModuleGroup[]) => {
   if (groups.some((group) => (group.children || group.modules || []).some((module) => module.module_code === honorsModuleCode))) {
     return groups;
@@ -106,6 +121,19 @@ const withHonorsModule = (groups: PageModuleGroup[]) => {
   }
   return groups.map((group, index) => index === groupIndex
     ? { ...group, children: [...(group.children || group.modules || []), honorsModule] }
+    : group);
+};
+
+const withCorporateCultureModule = (groups: PageModuleGroup[]) => {
+  if (groups.some((group) => (group.children || group.modules || []).some((module) => module.module_code === corporateCultureModuleCode))) {
+    return groups;
+  }
+  const groupIndex = groups.findIndex((group) => group.parent_code === 'group-overview');
+  if (groupIndex < 0) {
+    return [...groups, { parent_title: '集团概况', parent_code: 'group-overview', children: [corporateCultureModule] }];
+  }
+  return groups.map((group, index) => index === groupIndex
+    ? { ...group, children: [...(group.children || group.modules || []), corporateCultureModule] }
     : group);
 };
 
@@ -152,6 +180,19 @@ const moduleConfig = (module: PageModule) => {
       introText: '管理集团简介、经营指标、企业宗旨与使命。结构化配置保存在现有 page_contents.extra_json；初始值沿用当前官网文案，保存并发布后前台生效。',
       coverLabel: '企业简介封面图',
       contentLabel: '企业简介正文',
+    };
+  }
+  if (module.module_code === corporateCultureModuleCode || module.content_type === 'culture') {
+    return {
+      ...base,
+      introText: '企业文化基础信息保存到现有 page_contents；使命、愿景、企业精神等卡片保存到现有 page_content_items。前台读取已发布的基础信息和已启用卡片。',
+      titleLabel: '栏目名称',
+      subtitleLabel: '栏目引导语',
+      summaryLabel: '栏目摘要',
+      contentLabel: '栏目总述（可选）',
+      showCover: false,
+      bodyRows: 5,
+      submitText: '保存页面基础信息',
     };
   }
   if (module.module_code === 'group-history') {
@@ -310,7 +351,7 @@ function PageContentForm({ module, options = {} }: {
       await AdminApi.savePageContent(moduleCode, {
         title: String(form.title || '').trim(),
         subtitle: String(form.subtitle || '').trim(),
-        cover: form.cover || null,
+        cover: moduleCode === corporateCultureModuleCode ? null : (form.cover || null),
         summary: String(form.summary || '').trim(),
         content: String(form.content || ''),
         extra_json: form.extra_json || {},
@@ -996,6 +1037,213 @@ function HomepageLayoutManager() {
   );
 }
 
+function CultureItemManager({ moduleCode }: { moduleCode: string }) {
+  const emptyItem = (): PageContentItem => ({
+    id: '',
+    module_code: moduleCode,
+    item_type: 'culture',
+    title: '',
+    subtitle: '',
+    content: '',
+    image: null,
+    sort: 0,
+    status: 'enabled',
+    extra_json: {},
+  });
+  const [items, setItems] = useState<PageContentItem[]>([]);
+  const [form, setForm] = useState<PageContentItem>(emptyItem);
+  const [message, setMessage] = useState<MessageState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const loadItems = async () => {
+    setIsLoading(true);
+    try {
+      const result = await AdminApi.pageContentItems({ module_code: moduleCode, item_type: 'culture' });
+      setItems((result.data || []) as PageContentItem[]);
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '企业文化卡片加载失败。', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const error = validateImage(file);
+    if (error) {
+      setMessage({ text: error, type: 'error' });
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file as File);
+      const result = await AdminApi.uploadFile(formData);
+      const uploaded = (result.data || {}) as UploadPayload;
+      if (!uploaded.id) throw new Error('上传成功但未返回文件 ID。');
+      setForm((prev) => ({ ...prev, image: uploaded.id }));
+      setMessage({ text: '图片上传成功，保存卡片后生效。', type: 'success' });
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '图片上传失败。', type: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const nextSort = () => items.reduce((max, item) => Math.max(max, Number(item.sort) || 0), 0) + 1;
+
+  const saveItem = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!String(form.title || '').trim()) {
+      setMessage({ text: '请填写卡片标签，例如“使命”。', type: 'error' });
+      return;
+    }
+    setIsSaving(true);
+    setMessage(null);
+    const payload = {
+      module_code: moduleCode,
+      item_type: 'culture',
+      title: String(form.title || '').trim(),
+      subtitle: String(form.subtitle || '').trim(),
+      content: String(form.content || ''),
+      image: form.image || null,
+      sort: form.id ? (Number(form.sort) || 0) : (Number(form.sort) || nextSort()),
+      status: form.status || 'enabled',
+      extra_json: form.extra_json || {},
+    };
+    try {
+      if (form.id) await AdminApi.updatePageContentItem(form.id, payload);
+      else await AdminApi.createPageContentItem(payload);
+      setForm({ ...emptyItem(), sort: Number(payload.sort) + 1 });
+      setMessage({ text: '企业文化卡片已保存。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '保存企业文化卡片失败。', type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const itemPayload = (row: PageContentItem, sort: number) => ({
+    module_code: moduleCode,
+    item_type: 'culture',
+    title: row.title || '',
+    subtitle: row.subtitle || '',
+    content: row.content || '',
+    image: row.image || null,
+    sort,
+    status: row.status || 'enabled',
+    extra_json: row.extra_json || {},
+  });
+
+  const toggleItem = async (row: PageContentItem) => {
+    const enable = row.status !== 'enabled';
+    if (!window.confirm(`确认${enable ? '启用' : '停用'}“${row.title || '该卡片'}”？停用后前台不再展示。`)) return;
+    try {
+      await AdminApi.updatePageContentItem(row.id, itemPayload({
+        ...row,
+        status: enable ? 'enabled' : 'disabled',
+      }, Number(row.sort || 0)));
+      if (form.id === row.id) setForm(emptyItem());
+      setMessage({ text: `企业文化卡片已${enable ? '启用' : '停用'}。`, type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '操作失败。', type: 'error' });
+    }
+  };
+
+  const moveItem = async (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    const next = [...items];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+    try {
+      await Promise.all(next.map((row, rowIndex) => AdminApi.updatePageContentItem(row.id, itemPayload(row, rowIndex + 1))));
+      setMessage({ text: '排序已更新。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '排序调整失败。', type: 'error' });
+    }
+  };
+
+  return (
+    <section className="editor-card">
+      <div className="section-title-row">
+        <div><p className="eyebrow">page_content_items · culture</p><h2>企业文化卡片</h2></div>
+        <button className="secondary-button" type="button" onClick={() => setForm({ ...emptyItem(), sort: nextSort() })}>新增卡片</button>
+      </div>
+      <p className="form-help-text">每张卡片对应一个文化条目，例如使命、愿景、价值观、企业精神。标签写入 title，主标题写入 subtitle，说明写入 content，图片可选；排序值越小越靠前，上移、下移后按 1、2、3 重新编号并立即保存。</p>
+      {message ? <div className={`inline-message ${message.type || ''}`.trim()}>{message.text}</div> : null}
+      <form className="editor-grid" onSubmit={saveItem}>
+        <label>卡片标签<input type="text" placeholder="例如：使命" value={form.title || ''} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} /></label>
+        <label>主标题<input type="text" placeholder="例如：铺筑人民幸福之路 建造甘孜发展之基" value={form.subtitle || ''} onChange={(event) => setForm((prev) => ({ ...prev, subtitle: event.target.value }))} /></label>
+        <label className="span-2">说明文字<textarea rows={4} value={form.content || ''} onChange={(event) => setForm((prev) => ({ ...prev, content: event.target.value }))} /></label>
+        <div className="cover-field span-2">
+          <label>卡片图片（可选）</label>
+          <p className="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 50MB。</p>
+          <div className="cover-upload-row"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={isUploading} /></div>
+          {form.image ? (
+            <div className="cover-preview-wrap">
+              <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.image)}`} alt="卡片图片预览" />
+              <button className="secondary-button" type="button" onClick={() => {
+                setForm((prev) => ({ ...prev, image: null }));
+                setMessage({ text: '图片已移除，保存卡片后生效。', type: 'success' });
+              }}>移除图片</button>
+            </div>
+          ) : null}
+        </div>
+        <label>排序<input type="number" value={String(form.sort ?? 0)} onChange={(event) => setForm((prev) => ({ ...prev, sort: Number(event.target.value) || 0 }))} /></label>
+        <label>状态<select value={form.status || 'enabled'} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}>{itemStatusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+        <div className="form-actions span-2">
+          <button className="primary-link-button" type="submit" disabled={isSaving || isUploading}>{isSaving ? '正在保存...' : form.id ? '保存修改' : '添加卡片'}</button>
+          {form.id ? <button type="button" className="secondary-button" onClick={() => setForm({ ...emptyItem(), sort: nextSort() })}>取消编辑</button> : null}
+        </div>
+      </form>
+      <div className="table-wrap">
+        <table className="admin-table">
+          <thead><tr><th>标签</th><th>主标题</th><th>状态</th><th>排序</th><th>操作</th></tr></thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={5}>正在加载...</td></tr>
+            ) : items.length ? items.map((item, index) => (
+              <tr key={item.id}>
+                <td>
+                  {item.image ? <img className="cover-preview" style={{ width: 64, height: 40, marginRight: 8, verticalAlign: 'middle' }} src={`/admin-api/assets/${encodeURIComponent(item.image)}`} alt={item.title || '企业文化卡片'} /> : null}
+                  {item.title || '未填写标签'}
+                </td>
+                <td>{item.subtitle || '未填写主标题'}</td>
+                <td><span className={`status-badge ${item.status === 'enabled' ? 'status-published' : 'status-archived'}`}>{item.status === 'enabled' ? '启用' : '停用'}</span></td>
+                <td>
+                  <div className="table-actions">
+                    <button className="text-button" type="button" onClick={() => moveItem(index, -1)} disabled={index === 0}>上移</button>
+                    <span>{Number(item.sort || 0)}</span>
+                    <button className="text-button" type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1}>下移</button>
+                  </div>
+                </td>
+                <td>
+                  <div className="table-actions">
+                    <button className="text-button" type="button" onClick={() => setForm({ ...emptyItem(), ...item, sort: Number(item.sort || 0), status: item.status || 'enabled' })}>编辑</button>
+                    <button className="text-button" type="button" onClick={() => toggleItem(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                  </div>
+                </td>
+              </tr>
+            )) : (
+              <tr><td colSpan={5}>暂无企业文化卡片，请先新增。</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function ContentModuleEditor({ module }: { module: PageModule | null }) {
   if (!module) {
     return (
@@ -1011,6 +1259,9 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   if (module.module_code === homepageLayoutModuleCode) return <HomepageLayoutManager />;
   if (module.module_code === contactInfoModuleCode) return <ContactInfoManager />;
   if (module.module_code === trainingResourceModuleCode) return <TrainingResourceManager />;
+  if (module.module_code === corporateCultureModuleCode || module.content_type === 'culture') {
+    return <><PageContentForm module={module} /><CultureItemManager moduleCode={module.module_code || corporateCultureModuleCode} /></>;
+  }
 
   if (!module.admin_enabled) {
     return (
@@ -1092,8 +1343,8 @@ export function ContentManagerPage() {
     setSelectedCode(moduleCode);
     setMessage(null);
     setSelectedModule(null);
-    if (moduleCode === honorsModuleCode) {
-      setSelectedModule(honorsModule);
+    if (moduleCode === honorsModuleCode || moduleCode === corporateCultureModuleCode) {
+      setSelectedModule(moduleCode === honorsModuleCode ? honorsModule : corporateCultureModule);
       return;
     }
     if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode, trainingResourceModuleCode].includes(moduleCode)) {
@@ -1128,7 +1379,7 @@ export function ContentManagerPage() {
     AdminApi.contentModuleTree()
       .then((result) => {
         if (!isMounted) return;
-        const rows = withHonorsModule((result.data || []) as PageModuleGroup[]);
+        const rows = withCorporateCultureModule(withHonorsModule((result.data || []) as PageModuleGroup[]));
         const partyMassIndex = rows.findIndex((group) => group.parent_code === 'party-mass');
         const nextRows = rows.map((group) => ({ ...group, children: [...(group.children || group.modules || [])] }));
         if (partyMassIndex >= 0) {

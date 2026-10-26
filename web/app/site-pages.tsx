@@ -16,6 +16,7 @@ import {
   getPublicLeaders,
   getPublicPageBySlug,
   getPublicPageModule,
+  getPublicPageModuleItems,
   getPublicReportArticles,
   getPublicReportConfig,
 } from '@/lib/cms';
@@ -27,7 +28,7 @@ import {
   fallbackHistoryTimeline,
   fallbackPageBySlug,
 } from '@/lib/cms/fallback-site';
-import type { Article, BusinessSector, Channel, Company, HistoryTimelineItem, HonorItem, PageContent } from '@/types/cms';
+import type { Article, BusinessSector, Channel, Company, HistoryTimelineItem, HonorItem, PageContent, PageModuleContent, PageModuleItem } from '@/types/cms';
 import type { ReportConfig } from '@/lib/report/config';
 import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
@@ -542,14 +543,29 @@ function InnovationSection({ data }: { data: InnovationSectionData }) {
   );
 }
 
+const corporateCultureModuleCode = 'corporate-culture';
+
+async function loadCorporateCulture() {
+  try {
+    const [content, items] = await Promise.all([
+      getPublicPageModule(corporateCultureModuleCode),
+      getPublicPageModuleItems(corporateCultureModuleCode, 'culture'),
+    ]);
+    return { content, items };
+  } catch {
+    return { content: null, items: [] as PageModuleItem[] };
+  }
+}
+
 export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta }) {
   if (slug === 'about') {
-    const [groupIntro, historyTimeline] = await Promise.all([
+    const [groupIntro, historyTimeline, culture] = await Promise.all([
       getPublicGroupIntro().catch(() => null),
       getPublicHistoryTimeline().catch(() => null),
+      loadCorporateCulture(),
     ]);
     // 接口失败时沿用原静态时间轴；接口正常但无启用条目时展示空状态，确保后台启停生效。
-    return <AboutPage page={groupIntro} timeline={historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline)} />;
+    return <AboutPage page={groupIntro} timeline={historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline)} culture={culture.content} cultureItems={culture.items} />;
   }
   const page = await loadPage(slug);
   const meta = pageMeta[slug];
@@ -691,16 +707,113 @@ export async function HonorsPage() {
   );
 }
 
-function AboutPage({ page, timeline }: { page: PageContent | null; timeline: HistoryTimelineItem[] }) {
+const corporateCultureStyles = `
+#culture{scroll-margin-top:calc(var(--site-header-offset,88px) + 18px)}
+.about-culture-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
+.about-culture-card{height:100%}
+.about-culture-card .card-pad{height:100%}
+.about-culture-card.is-accent .card-pad{background:linear-gradient(135deg,#0d2f5a,#1d4e89);color:#fff}
+.about-culture-card.is-accent .pill{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.18)}
+.about-culture-card .culture-title{margin:14px 0 10px;font-size:24px;font-weight:900;color:#0f172a}
+.about-culture-card.is-accent .culture-title{color:#fff}
+.about-culture-card .culture-copy{margin:0;color:rgba(11,18,32,.76);line-height:1.9}
+.about-culture-card .culture-copy p{margin:0 0 12px}
+.about-culture-card .culture-copy p:last-child{margin-bottom:0}
+.about-culture-card.is-accent .culture-copy{color:rgba(255,255,255,.84)}
+.about-culture-overview{max-width:980px;margin:0 0 22px;color:rgba(11,18,32,.72);line-height:2}
+.about-culture-overview p{margin:0 0 12px}
+.about-culture-overview p:last-child{margin-bottom:0}
+.about-culture-media{height:180px;overflow:hidden;background:rgba(13,47,90,.06)}
+.about-culture-media img{width:100%;height:100%;object-fit:cover;display:block}
+.about-mission-panel .culture-copy{max-width:980px;margin:20px 0 0;color:rgba(255,255,255,.78);line-height:2;font-size:16px;text-align:justify}
+.about-mission-panel .culture-copy p{margin:0 0 12px}
+.about-mission-panel .culture-copy p:last-child{margin-bottom:0}
+@media (max-width: 1024px){.about-culture-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width: 768px){.about-culture-grid{grid-template-columns:1fr}.about-culture-card{grid-column:span 1 !important}}
+`;
+
+const cultureCardSpan = (total: number) => (total <= 1 ? 12 : total === 2 ? 6 : 4);
+
+function CultureSection({ culture, items }: { culture: PageModuleContent | null; items: PageModuleItem[] }) {
+  const title = culture?.title || '企业文化';
+  const lead = culture?.subtitle || culture?.summary || '';
+  if (items.length) {
+    return (
+      <section id="culture" className="section about-culture" aria-label="企业文化">
+        <div className="content">
+          <div className="section-head reveal is-visible">
+            <div>
+              <div className="kicker"><i aria-hidden="true" /><span>CULTURE</span></div>
+              <div className="h2">{title}</div>
+              {lead ? <p className="lead">{lead}</p> : null}
+            </div>
+          </div>
+          {culture?.content ? (
+            /<[a-z][\s\S]*>/i.test(culture.content)
+              ? <div className="about-culture-overview" dangerouslySetInnerHTML={{ __html: culture.content }} />
+              : <p className="about-culture-overview">{culture.content}</p>
+          ) : null}
+          <div className="about-culture-grid">
+            {items.map((item, index) => (
+              <article className={`card about-culture-card reveal is-visible${index === 0 ? ' is-accent' : ''}`} key={item.id} style={{ gridColumn: `span ${cultureCardSpan(items.length)}` }}>
+                {item.image ? <div className="about-culture-media"><img src={item.image} alt={item.title || title} /></div> : null}
+                <div className="card-pad">
+                  <div className="pill">{item.title || '企业文化'}</div>
+                  <div className="culture-title">{item.subtitle || item.title}</div>
+                  {item.content ? (
+                    /<[a-z][\s\S]*>/i.test(item.content)
+                      ? <div className="culture-copy" dangerouslySetInnerHTML={{ __html: item.content }} />
+                      : <p className="culture-copy">{item.content}</p>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (culture && (culture.content || lead)) {
+    return (
+      <section id="culture" className="section about-mission" aria-label="企业文化">
+        <div className="content">
+          <div className="about-mission-panel reveal is-visible" data-about-tilt>
+            <div>
+              <div className="kicker"><i aria-hidden="true" /><span>CULTURE</span></div>
+              <h2>{title}</h2>
+            </div>
+            {lead ? <p>{lead}</p> : null}
+            {culture.content ? (
+              /<[a-z][\s\S]*>/i.test(culture.content)
+                ? <div className="culture-copy" dangerouslySetInnerHTML={{ __html: culture.content }} />
+                : <p className="culture-copy">{culture.content}</p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
+  return null;
+}
+
+function AboutPage({ page, timeline, culture, cultureItems }: {
+  page: PageContent | null;
+  timeline: HistoryTimelineItem[];
+  culture: PageModuleContent | null;
+  cultureItems: PageModuleItem[];
+}) {
   const config = getGroupIntroConfig(page?.extra_json) as GroupIntroConfig;
   const heroStats = Array.isArray(config.heroStats) ? config.heroStats.filter((item): item is GroupIntroStat => Boolean(item?.value && item?.label)) : [];
   const achievements = Array.isArray(config.achievements) ? config.achievements.filter((item): item is GroupIntroAchievement => Boolean(item?.value && item?.label)) : [];
   const profileBadges = Array.isArray(config.profileBadges) ? config.profileBadges.filter(Boolean) : [];
   const performanceParagraphs = Array.isArray(config.performanceParagraphs) ? config.performanceParagraphs.filter(Boolean) : [];
   const missionParagraphs = Array.isArray(config.missionParagraphs) ? config.missionParagraphs.filter(Boolean) : [];
+  const hasManagedCulture = Boolean(culture && (culture.content || culture.subtitle || culture.summary || cultureItems.length));
   const hasProfile = Boolean(page?.content?.trim());
   return (
     <Shell active="about">
+      <style>{corporateCultureStyles}</style>
       <Breadcrumb title="集团概况" />
       <main className="page" aria-label="主要内容" data-about-page>
         <Hero
@@ -741,7 +854,7 @@ function AboutPage({ page, timeline }: { page: PageContent | null; timeline: His
           </div>
         </section>
 
-        <section className="section about-history" aria-label="发展沿革">
+        <section id="history" className="section about-history" aria-label="发展沿革">
           <div className="content">
             <div className="section-head reveal is-visible">
               <div>
@@ -793,7 +906,7 @@ function AboutPage({ page, timeline }: { page: PageContent | null; timeline: His
           </div>
         </section> : null}
 
-        {config.missionTitle || missionParagraphs.length ? <section className="section about-mission" aria-label="企业使命">
+        {hasManagedCulture ? <CultureSection culture={culture} items={cultureItems} /> : (config.missionTitle || missionParagraphs.length ? <section id="culture" className="section about-mission" aria-label="企业使命">
           <div className="content">
             <div className="about-mission-panel reveal is-visible" data-about-tilt>
               <div>
@@ -803,7 +916,7 @@ function AboutPage({ page, timeline }: { page: PageContent | null; timeline: His
               {missionParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
             </div>
           </div>
-        </section> : null}
+        </section> : <span id="culture" />)}
 
       </main>
     </Shell>

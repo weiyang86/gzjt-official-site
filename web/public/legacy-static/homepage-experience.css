@@ -49,6 +49,8 @@ html:has(.home-experience), html:has(.home-experience) body{height:100%;overflow
 .home-experience .site-header{top:0;bottom:auto;border-top:0;border-bottom:1px solid rgba(255,255,255,.4);box-shadow:0 12px 30px rgba(5,22,42,.2)}
 .home-experience .site-header::before{top:auto;bottom:-2px}
 .home-experience .site-header .nav-dropdown{top:calc(100% + 8px);bottom:auto}
+.home-experience .site-header .nav{overflow:visible}
+@media(max-width:1100px){.home-experience .site-header .nav{display:none}.home-experience .site-header .header-actions{display:flex;margin-left:auto}.home-experience .site-header .menu-toggle{display:inline-flex}}
 .home-hero-backdrop{position:absolute;inset:-4px;z-index:0;background-size:cover;background-position:center;filter:blur(2px) brightness(.72);transform:scale(1.012)}
 .home-hero-copy,.home-hero-down{z-index:2}
 .home-hero-banner-hit-area{position:absolute;inset:0 0 74px;z-index:1}
