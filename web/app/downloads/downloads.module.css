@@ -1,0 +1,160 @@
+.categoryBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 20px;
+}
+
+.categoryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.categoryLink:hover {
+  border-color: rgba(198, 40, 40, .35);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+
+.categoryLink span {
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(13, 47, 90, .08);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.categoryLinkActive {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.categoryLinkActive:hover {
+  color: #fff;
+}
+
+.categoryLinkActive span {
+  background: rgba(255, 255, 255, .2);
+  color: #fff;
+}
+
+.categoryIntro {
+  margin: 0 0 22px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.downloadList {
+  display: grid;
+  gap: 14px;
+}
+
+.downloadCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 249, 251, .9));
+  box-shadow: 0 12px 30px rgba(13, 47, 90, .07);
+}
+
+.downloadTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.fileType {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.downloadCard h3 {
+  margin: 10px 0 6px;
+  color: var(--ink);
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.downloadDescription {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.downloadMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.downloadMeta span {
+  overflow-wrap: anywhere;
+}
+
+.downloadAction {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.unavailable {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.emptyState {
+  padding: 34px 24px;
+  border: 1px dashed rgba(13, 47, 90, .22);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .65);
+  color: var(--muted);
+  line-height: 1.8;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .downloadCard {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .downloadAction {
+    justify-items: stretch;
+  }
+
+  .downloadAction a {
+    width: 100%;
+    text-align: center;
+  }
+
+  .categoryLink {
+    padding: 9px 13px;
+    font-size: 13px;
+  }
+}

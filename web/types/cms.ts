@@ -150,3 +150,32 @@ export interface SiteSettings {
   logo?: string;
   footer_text?: string;
 }
+
+export interface DownloadCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  sort?: number;
+  status?: 'enabled' | 'disabled' | string;
+}
+
+export interface DownloadResource {
+  id: string;
+  name: string;
+  description?: string;
+  categorySlug: string;
+  categoryName?: string;
+  fileId?: string;
+  fileUrl?: string;
+  filename?: string;
+  filesize?: number;
+  fileType?: string;
+  sort?: number;
+  status?: 'enabled' | 'disabled' | string;
+}
+
+export interface DownloadCenterData {
+  categories: DownloadCategory[];
+  resources: DownloadResource[];
+}

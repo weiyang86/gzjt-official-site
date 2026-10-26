@@ -21,6 +21,7 @@ const isProtectedAdminPath = (pathname: string) => (
   || pathname === '/admin/notice-edit.html'
   || pathname === '/admin/content'
   || pathname === '/admin/content.html'
+  || pathname === '/admin/downloads'
   || pathname === '/admin/page-modules'
   || pathname === '/admin/page-modules.html'
 );
@@ -83,6 +84,7 @@ export const config = {
     '/admin/notice-edit.html',
     '/admin/content',
     '/admin/content.html',
+    '/admin/downloads',
     '/admin/page-modules',
     '/admin/page-modules.html',
   ],
