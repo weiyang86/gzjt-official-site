@@ -26,6 +26,7 @@ export default function NavigationActiveState({ active }: { active?: NavKey }) {
             ? (!channelSlug && !url.searchParams.get('channel')) || linkChannel === currentChannel
             : !url.searchParams.get('channel') && (!url.hash || url.hash === window.location.hash));
         const isPathAncestor = url.pathname !== '/'
+          && !url.hash
           && pathname.startsWith(`${url.pathname.replace(/\/+$/, '')}/`)
           && !url.searchParams.get('channel');
 

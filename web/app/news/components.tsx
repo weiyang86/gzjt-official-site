@@ -13,9 +13,15 @@ const recruitmentChannelHref: Record<string, string> = {
   'recruitment-internal-selection': '/recruitment?type=internal',
 };
 
+const groupProfileChannelHref: Record<string, string> = {
+  'group-history': '/about#history',
+  'group-leadership': '/group/leadership',
+};
+
 const channelHref = (channel: Channel, includeChildren = false) => {
   let href = '';
-  if (recruitmentChannelHref[channel.slug]) href = recruitmentChannelHref[channel.slug];
+  if (groupProfileChannelHref[channel.slug]) href = groupProfileChannelHref[channel.slug];
+  else if (recruitmentChannelHref[channel.slug]) href = recruitmentChannelHref[channel.slug];
   else if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') href = channel.path || `/${channel.slug}`;
   else if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) href = `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
   else href = `/news?channel=${encodeURIComponent(channel.slug)}`;
@@ -45,6 +51,7 @@ const navKeyByChannelName: Record<string, NavKey> = {
  */
 const supplementalNavItems = [
   { parentSlug: 'group-profile', name: '企业荣誉', slug: 'group-honors', path: '/about/honors' },
+  { parentSlug: 'group-profile', name: '企业文化', slug: 'corporate-culture', path: '/about#culture' },
   { parentSlug: 'party-mass', name: '培训资源', slug: 'party-training', path: '/party/training' },
 ];
 
@@ -134,11 +141,14 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
                       </a>
                       <div className="nav-dropdown" role="menu" data-source="server">
                         {hasNewsTopic ? <a href="/topics" className={active === 'topics' ? 'is-active' : undefined} aria-current={active === 'topics' ? 'page' : undefined} role="menuitem" style={{ paddingLeft: 14 }}>专题专栏</a> : null}
-                        {dropdownItems.map((channel) => (
-                          <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} role="menuitem" key={channel.id}>
-                            {channel.name}
-                          </a>
-                        ))}
+                        {dropdownItems.map((channel) => {
+                          const href = channelHref(channel, navigation.children(channel.id).length > 0);
+                          return (
+                            <a href={href} data-no-transition={href.includes('#') ? true : undefined} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} role="menuitem" key={channel.id}>
+                              {channel.name}
+                            </a>
+                          );
+                        })}
                         {itemNavKey === 'cleanGov' ? (
                           <a href="/clean-gov#report-entry" role="menuitem" key="report-entry">举报入口</a>
                         ) : null}
@@ -198,9 +208,10 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
                 {dropdownItems.length || hasNewsTopic ? (
                   <div className="drawer-submenu" data-source="server">
                     {hasNewsTopic ? <a href="/topics" className={_props.active === 'topics' ? 'is-active' : undefined} aria-current={_props.active === 'topics' ? 'page' : undefined} style={{ paddingLeft: 16 }}>专题专栏</a> : null}
-                    {dropdownItems.map((channel) => (
-                      <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} key={channel.id}>{channel.name}</a>
-                    ))}
+                    {dropdownItems.map((channel) => {
+                      const href = channelHref(channel, navigation.children(channel.id).length > 0);
+                      return <a href={href} data-no-transition={href.includes('#') ? true : undefined} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} key={channel.id}>{channel.name}</a>;
+                    })}
                     {navKeyByChannelName[item.name] === 'cleanGov' ? <a href="/clean-gov#report-entry" key="report-entry">举报入口</a> : null}
                   </div>
                 ) : null}
