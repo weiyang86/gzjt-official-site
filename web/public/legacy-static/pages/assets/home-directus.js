@@ -85,7 +85,8 @@
       const bannerHref = String(banner.linkUrl || '').trim()
       const targetHref = bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '/home'
       if (link) {
-        link.setAttribute('href', targetHref)
+        // The hero call-to-action always enters the full home page; the slide title keeps its article link.
+        link.setAttribute('href', '/home')
         if (banner.linkLabel) link.innerHTML = `${escapeHtml(banner.linkLabel)} <span class="btn-arrow" aria-hidden="true">→</span>`
       }
       ;[title, subtitle].forEach((element) => {
