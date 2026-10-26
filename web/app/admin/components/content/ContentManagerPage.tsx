@@ -8,6 +8,7 @@ import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homep
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import { LeadershipManager } from './LeadershipManager';
 import { HonorManager } from './HonorManager';
+import { BusinessSectorManager } from './BusinessSectorManager';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -1047,7 +1048,7 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
   }
 
   if (module.content_type === 'sector_list') {
-    return <section className="notice-card"><p className="eyebrow">{module.content_type}</p><h2>业务板块数据预留</h2><p>该模块内容来源于业务板块数据，具体表单后续接入。</p></section>;
+    return <BusinessSectorManager />;
   }
 
   return (

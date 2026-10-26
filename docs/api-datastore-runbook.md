@@ -4,7 +4,7 @@
 
 ## 本地运行
 
-先启动已导入数据的 API 服务，再在 `web/` 目录运行 `npm ci` 和 `npm run dev:site`。Windows 上若没有 npm 命令，可直接运行 `pnpm exec next dev --webpack`。开发模式（`pnpm dev` 或 `pnpm run dev:site`）默认使用 `http://localhost:8008/_plugins/gw/curd`；生产模式（先 `pnpm run build`，再 `pnpm run start`）默认使用 `http://192.168.0.221:8000/_plugins/gw/curd`。设置 `CMS_DATA_API_URL` 可以覆盖任一默认值。文件从 `web/.data/cms-uploads` 读取；可用 `CMS_UPLOAD_DIR` 覆盖。
+先启动已导入数据的 API 服务，再在 `web/` 目录运行 `npm ci` 和 `npm run dev:site`。Windows 上若没有 npm 命令，可直接运行 `pnpm exec next dev --webpack`。开发模式（`pnpm dev` 或 `pnpm run dev:site`）默认使用 `http://localhost:8008/_plugins/gw/curd`；生产模式（先 `pnpm run build`，再 `pnpm run start`）默认使用 `http://192.168.0.221:8000/_plugins/gw/curd`。设置 `CMS_DATA_API_URL` 可以覆盖任一默认值；若填写 `https://portal.gzjtjt.cn/_plugins` 这类网关根地址，适配层会自动追加 `/gw/curd`。文件从 `web/.data/cms-uploads` 读取；可用 `CMS_UPLOAD_DIR` 覆盖。
 
 ## 生产部署
 

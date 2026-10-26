@@ -2,6 +2,13 @@ import { BusinessPage } from '../site-pages';
 
 export const dynamic = 'force-dynamic';
 
-export default function Page() {
-  return <BusinessPage />;
+type BusinessPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ searchParams }: BusinessPageProps) {
+  const params = await searchParams;
+  const rawSector = params.sector;
+  const sector = Array.isArray(rawSector) ? rawSector[0] : rawSector;
+  return <BusinessPage selectedSlug={sector} />;
 }

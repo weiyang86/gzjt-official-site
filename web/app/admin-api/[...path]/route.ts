@@ -82,6 +82,8 @@ type CountResponse = {
 const articleStatuses = new Set(['draft', 'published', 'archived']);
 const categoryStatuses = new Set(['enabled', 'disabled']);
 const categoryTypes = new Set(['list', 'page', 'link', 'module', 'news', 'notice']);
+const businessSectorStatuses = new Set(['enabled', 'disabled']);
+const businessSectorFields = 'id,name,slug,cover,intro,sort,status';
 const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const pageContentStatuses = new Set(['draft', 'published', 'archived']);
@@ -405,7 +407,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content'];
   if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content'];
-  if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
+  if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items' || root === 'business-sectors') return ['content'];
   if (root === 'page-modules' && second === 'grouped') return ['content'];
   return ['dashboard'];
 };
@@ -542,6 +544,52 @@ const normalizeCategoryInput = (body: Record<string, unknown>, isCreate = false,
     payload.status = status;
   }
   return payload;
+};
+
+const buildBusinessSectorListPath = (request: NextRequest) => {
+  const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim();
+  const status = (request.nextUrl.searchParams.get('status') || '').trim();
+  const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get('limit') || '200', 10);
+  const requestedPage = Number.parseInt(request.nextUrl.searchParams.get('page') || '1', 10);
+  const params: Record<string, string | number | boolean> = {
+    fields: businessSectorFields,
+    sort: 'sort,id',
+    limit: Math.min(200, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 200)),
+    page: Math.max(1, Number.isFinite(requestedPage) ? requestedPage : 1),
+    meta: 'filter_count',
+  };
+  if (keyword) {
+    params['filter[_and][0][_or][0][name][_contains]'] = keyword;
+    params['filter[_and][0][_or][1][slug][_contains]'] = keyword;
+    params['filter[_and][0][_or][2][intro][_contains]'] = keyword;
+  }
+  if (status && businessSectorStatuses.has(status)) {
+    params[`filter[_and][${keyword ? 1 : 0}][status][_eq]`] = status;
+  }
+  return buildDirectusPath('/items/business_sectors', params);
+};
+
+const getBusinessSectorDetailPath = (id: string) => buildDirectusPath(`/items/business_sectors/${encodeURIComponent(id)}`, {
+  fields: businessSectorFields,
+});
+
+const normalizeBusinessSectorInput = (body: Record<string, unknown>) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!name) throw Object.assign(new Error('板块名称不能为空。'), { status: 400 });
+  if (!slug) throw Object.assign(new Error('板块标识不能为空。'), { status: 400 });
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    throw Object.assign(new Error('板块标识只能使用小写字母、数字和连字符。'), { status: 400 });
+  }
+  const status = typeof body.status === 'string' && businessSectorStatuses.has(body.status) ? body.status : 'enabled';
+  return {
+    name,
+    slug,
+    cover: typeof body.cover === 'string' ? body.cover.trim() : '',
+    intro: typeof body.intro === 'string' ? body.intro : '',
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
+    status,
+  };
 };
 
 const buildCategoryUsagePath = (id: string) => buildDirectusPath('/items/articles', {
@@ -1521,6 +1569,56 @@ const handleLocalCategoryRoute = async (request: NextRequest, path: string[]) =>
   return null;
 };
 
+const handleLocalBusinessSectorList = async (request: NextRequest) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  if (request.method === 'GET') {
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    const result = await directusJsonRequest<{ data?: unknown[]; meta?: { filter_count?: number; total_count?: number } }>(buildBusinessSectorListPath(request), serviceToken);
+    return NextResponse.json({ data: result.data || [], meta: result.meta || {} });
+  }
+  if (request.method === 'POST') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeBusinessSectorInput(body);
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    const result = await directusJsonRequest<{ data?: unknown }>('/items/business_sectors', serviceToken, 'POST', payload);
+    return NextResponse.json({ data: result.data || null }, { status: 201 });
+  }
+  return null;
+};
+
+const handleLocalBusinessSectorRoute = async (request: NextRequest, path: string[]) => {
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  const action = path[2] || '';
+  if (!id) return null;
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+
+  if (!action && request.method === 'GET') {
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    const result = await directusJsonRequest<{ data?: unknown }>(getBusinessSectorDetailPath(id), serviceToken);
+    return NextResponse.json({ data: result.data || null });
+  }
+
+  if (!action && request.method === 'PATCH') {
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeBusinessSectorInput(body);
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/business_sectors/${encodeURIComponent(id)}`, serviceToken, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+
+  if ((action === 'enable' || action === 'disable') && request.method === 'PATCH') {
+    const serviceToken = await getServiceDirectusToken(session.accessToken);
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/business_sectors/${encodeURIComponent(id)}`, serviceToken, 'PATCH', {
+      status: action === 'enable' ? 'enabled' : 'disabled',
+    });
+    return NextResponse.json({ data: result.data || null });
+  }
+
+  return null;
+};
+
 const handleLocalPageModuleList = async (request: NextRequest, grouped = false) => {
   if (request.method !== 'GET') return null;
   const { session, response } = requireSession(request);
@@ -1866,6 +1964,8 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (route === 'files') return await handleLocalFileUpload(request);
     if (route === 'categories') return await handleLocalCategoryList(request);
     if (path[0] === 'categories') return await handleLocalCategoryRoute(request, path);
+    if (route === 'business-sectors') return await handleLocalBusinessSectorList(request);
+    if (path[0] === 'business-sectors') return await handleLocalBusinessSectorRoute(request, path);
     if (route === 'page-modules') return await handleLocalPageModuleList(request);
     if (route === 'page-modules/grouped') return await handleLocalPageModuleList(request, true);
     if (path[0] === 'page-modules') return await handleLocalPageModuleRoute(request, path);

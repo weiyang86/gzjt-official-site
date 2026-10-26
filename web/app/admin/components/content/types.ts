@@ -54,6 +54,16 @@ export type PageContentItem = {
   extra_json?: Record<string, unknown>;
 };
 
+export type BusinessSectorAdminItem = {
+  id: string;
+  name?: string;
+  slug?: string;
+  cover?: string | null;
+  intro?: string;
+  sort?: number | string;
+  status?: 'enabled' | 'disabled' | string;
+};
+
 export type UploadPayload = {
   id?: string;
   filename?: string;

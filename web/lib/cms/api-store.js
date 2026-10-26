@@ -5,8 +5,13 @@ const { hash, verify } = require('@node-rs/argon2');
 
 const developmentDataApiUrl = 'http://localhost:8008/_plugins/gw/curd';
 const productionDataApiUrl = 'http://192.168.0.221:8000/_plugins/gw/curd';
-const apiUrl = () => process.env.CMS_DATA_API_URL
-  || (process.env.NODE_ENV === 'production' ? productionDataApiUrl : developmentDataApiUrl);
+const resolveDataApiUrl = (value) => {
+  const normalized = String(value || '').trim().replace(/\/+$/, '');
+  if (!normalized) return normalized;
+  return /\/_plugins$/i.test(normalized) ? `${normalized}/gw/curd` : normalized;
+};
+const apiUrl = () => resolveDataApiUrl(process.env.CMS_DATA_API_URL
+  || (process.env.NODE_ENV === 'production' ? productionDataApiUrl : developmentDataApiUrl));
 const uploadDir = () => process.env.CMS_UPLOAD_DIR || path.resolve(process.cwd(), '.data/cms-uploads');
 const sessions = globalThis.__gzjtApiSessions || new Map();
 globalThis.__gzjtApiSessions = sessions;
