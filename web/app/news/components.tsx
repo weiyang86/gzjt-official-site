@@ -121,18 +121,19 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
             </a>
             <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
               <a href={homeHref} className={active === 'home' ? 'is-active' : undefined} aria-current={active === 'home' ? 'page' : undefined} data-nav-key="home" data-no-transition>首页</a>
-              <a href="/topics" className={active === 'topics' ? 'is-active' : undefined} aria-current={active === 'topics' ? 'page' : undefined} data-no-transition>专题专栏</a>
               {navigation.roots.map((item) => {
                 const dropdownItems = item.slug === 'contact-us-nav' ? [] : navigation.children(item.id);
                 const itemNavKey = navKeyByChannelName[item.name];
                 const descendantSlugs = navigation.descendantSlugs(item.id).join(',');
-                if (dropdownItems.length) {
+                const hasNewsTopic = item.slug === 'news-center';
+                if (dropdownItems.length || hasNewsTopic) {
                   return (
                     <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.id}>
                       <a href={channelHref(item, dropdownItems.length > 0)} className={active === itemNavKey ? 'is-active' : undefined} data-nav-key={itemNavKey} data-channel-slug={item.slug} data-descendant-slugs={descendantSlugs} aria-haspopup="true" aria-expanded="false">
                         {item.name}
                       </a>
                       <div className="nav-dropdown" role="menu" data-source="server">
+                        {hasNewsTopic ? <a href="/topics" className={active === 'topics' ? 'is-active' : undefined} aria-current={active === 'topics' ? 'page' : undefined} role="menuitem" style={{ paddingLeft: 14 }}>专题专栏</a> : null}
                         {dropdownItems.map((channel) => (
                           <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} role="menuitem" key={channel.id}>
                             {channel.name}
@@ -186,16 +187,17 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
         <div className="drawer-links" aria-label="移动端导航链接">
           <a href={_props.homeHref || '/home'} className={_props.active === 'home' ? 'is-active' : undefined} aria-current={_props.active === 'home' ? 'page' : undefined} data-nav-key="home" data-no-transition>首页</a>
           <a href="/search">站内搜索</a>
-          <a href="/topics" className={_props.active === 'topics' ? 'is-active' : undefined} aria-current={_props.active === 'topics' ? 'page' : undefined}>专题专栏</a>
           {navigation.roots.map((item) => {
             const dropdownItems = item.slug === 'contact-us-nav' ? [] : navigation.children(item.id);
+            const hasNewsTopic = item.slug === 'news-center';
             return (
               <Fragment key={item.id}>
                 <a href={channelHref(item, dropdownItems.length > 0)} className={_props.active === navKeyByChannelName[item.name] ? 'is-active' : undefined} data-nav-key={navKeyByChannelName[item.name]} data-channel-slug={item.slug} data-descendant-slugs={navigation.descendantSlugs(item.id).join(',')}>
                   {item.name}
                 </a>
-                {dropdownItems.length ? (
+                {dropdownItems.length || hasNewsTopic ? (
                   <div className="drawer-submenu" data-source="server">
+                    {hasNewsTopic ? <a href="/topics" className={_props.active === 'topics' ? 'is-active' : undefined} aria-current={_props.active === 'topics' ? 'page' : undefined} style={{ paddingLeft: 16 }}>专题专栏</a> : null}
                     {dropdownItems.map((channel) => (
                       <a href={channelHref(channel, navigation.children(channel.id).length > 0)} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} key={channel.id}>{channel.name}</a>
                     ))}
