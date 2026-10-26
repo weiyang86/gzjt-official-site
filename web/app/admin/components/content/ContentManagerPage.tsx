@@ -12,6 +12,7 @@ import { BusinessSectorManager } from './BusinessSectorManager';
 import { TrainingResourceManager } from './TrainingResourceManager';
 import { CompanyManager } from './CompanyManager';
 import { SocialResponsibilityManager } from './SocialResponsibilityManager';
+import { RecruitmentManager } from './RecruitmentManager';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -1021,6 +1022,13 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
     );
   }
 
+  if (module.module_code === 'social-responsibility') {
+    return <SocialResponsibilityManager module={module} />;
+  }
+
+  if (module.module_code === 'recruitment') {
+    return <RecruitmentManager module={module} />;
+  }
   if (module.module_code === 'group-history' || module.content_type === 'timeline') {
     return (
       <>

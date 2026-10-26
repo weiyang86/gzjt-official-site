@@ -6,9 +6,17 @@ import NavigationActiveState from './NavigationActiveState';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact' | 'downloads' | 'topics';
 
+const recruitmentChannelHref: Record<string, string> = {
+  'disclosure-recruitment': '/recruitment',
+  'recruitment-social': '/recruitment?type=social',
+  'recruitment-campus': '/recruitment?type=campus',
+  'recruitment-internal-selection': '/recruitment?type=internal',
+};
+
 const channelHref = (channel: Channel, includeChildren = false) => {
   let href = '';
-  if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') href = channel.path || `/${channel.slug}`;
+  if (recruitmentChannelHref[channel.slug]) href = recruitmentChannelHref[channel.slug];
+  else if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') href = channel.path || `/${channel.slug}`;
   else if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) href = `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
   else href = `/news?channel=${encodeURIComponent(channel.slug)}`;
   return includeChildren && href.startsWith('/news?') ? `${href}&includeChildren=true` : href;
