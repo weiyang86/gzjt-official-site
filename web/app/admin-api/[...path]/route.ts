@@ -85,7 +85,7 @@ const categoryTypes = new Set(['list', 'page', 'link', 'module', 'news', 'notice
 const pageModuleDevStatuses = new Set(['developing', 'enabled', 'disabled']);
 const pageModuleStatuses = new Set(['enabled', 'disabled']);
 const pageContentStatuses = new Set(['draft', 'published', 'archived']);
-const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'culture', 'article', 'report', 'case', 'activity']);
+const pageContentItemTypes = new Set(['timeline', 'leader', 'org_node', 'link', 'image', 'culture', 'article', 'report', 'case', 'activity', 'job']);
 const pageContentItemStatuses = new Set(['enabled', 'disabled']);
 const directusUserStatuses = new Set(['active', 'invited', 'draft', 'suspended', 'archived']);
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -111,6 +111,23 @@ const projectModuleCode = 'project-list';
 const projectItemType = 'project';
 const projectFields = 'id,module_code,item_type,title,subtitle,image,content,sort,status,extra_json';
 const projectStatuses = new Set(['enabled', 'disabled']);
+const messageModuleCode = 'site-message';
+const messageFields = 'id,module_code,title,subtitle,summary,content,extra_json,status';
+const messageStatuses = new Set(['pending', 'processing', 'replied', 'closed']);
+const messageCategories = new Set(['consult', 'suggest', 'complaint', 'report', 'other']);
+const messageCategoryLabels: Record<string, string> = {
+  consult: '咨询',
+  suggest: '建议',
+  complaint: '投诉',
+  report: '举报',
+  other: '其他',
+};
+const messageStatusLabels: Record<string, string> = {
+  pending: '待受理',
+  processing: '处理中',
+  replied: '已回复',
+  closed: '已办结',
+};
 
 const globalForAdminSessions = globalThis as typeof globalThis & {
   __gzjtAdminSessions?: Map<string, AdminSession>;
@@ -410,6 +427,7 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
   if (root === 'article-ownership') return ['articleOwnership'];
   if (root === 'topics') return ['topics'];
   if (root === 'projects') return ['projects'];
+  if (root === 'messages') return ['messages'];
   if (root === 'files') return ['articleEdit', 'noticeEdit', 'content', 'topics', 'projects'];
   if (root === 'assets') return ['articles', 'articleEdit', 'noticeArticles', 'noticeEdit', 'content', 'topics', 'projects'];
   if (root === 'page-modules' || root === 'content-modules' || root === 'page-contents' || root === 'page-content-items') return ['content'];
@@ -2066,6 +2084,145 @@ const handleLocalProjects = async (request: NextRequest, path: string[]) => {
   return null;
 };
 
+const messageText = (value: unknown) => (typeof value === 'string' ? value : '');
+
+const mapAdminMessageRow = (row: Record<string, unknown>) => {
+  const extra = readJsonObject(row.extra_json);
+  const status = typeof extra.status === 'string' && messageStatuses.has(extra.status) ? extra.status : 'pending';
+  const category = typeof extra.category === 'string' && messageCategories.has(extra.category) ? extra.category : 'other';
+  return {
+    id: String(row.id || ''),
+    name: messageText(extra.name),
+    phone: messageText(extra.phone),
+    email: messageText(extra.email),
+    category,
+    category_label: messageCategoryLabels[category] || '其他',
+    content: messageText(row.content),
+    status,
+    status_label: messageStatusLabels[status] || status,
+    reply: messageText(extra.reply),
+    note: messageText(extra.note),
+    handler: messageText(extra.handler),
+    handled_at: messageText(extra.handled_at),
+    track_code: messageText(extra.track_code),
+    client_ip: messageText(extra.client_ip),
+    source_path: messageText(extra.source_path),
+    created_at: messageText(extra.created_at),
+  };
+};
+
+const maskAdminPhone = (value: string) => (
+  value.length === 11 ? `${value.slice(0, 3)}****${value.slice(7)}` : value
+);
+
+const listMessageRows = async (token: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown>[] }>(
+    buildDirectusPath('/items/page_contents', {
+      fields: messageFields,
+      limit: -1,
+      'filter[module_code][_eq]': messageModuleCode,
+    }),
+    token,
+  );
+  return Array.isArray(result.data) ? result.data : [];
+};
+
+const getMessageRow = async (token: string, id: string) => {
+  const result = await directusJsonRequest<{ data?: Record<string, unknown> }>(
+    buildDirectusPath(`/items/page_contents/${encodeURIComponent(id)}`, { fields: messageFields }),
+    token,
+  );
+  const row = result.data || null;
+  if (!row || String(row.module_code || '') !== messageModuleCode) {
+    throw Object.assign(new Error('留言不存在'), { status: 404 });
+  }
+  return row;
+};
+
+const normalizeMessageUpdateInput = (body: Record<string, unknown>) => {
+  const status = typeof body.status === 'string' && messageStatuses.has(body.status) ? body.status : '';
+  if (!status) throw Object.assign(new Error('无效的处理状态'), { status: 400 });
+  const reply = typeof body.reply === 'string' ? body.reply.trim() : '';
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  if (status === 'replied' && !reply) throw Object.assign(new Error('状态改为已回复时必须填写公开回复'), { status: 400 });
+  if (reply.length > 1000) throw Object.assign(new Error('公开回复不能超过 1000 个字符'), { status: 400 });
+  if (note.length > 500) throw Object.assign(new Error('内部备注不能超过 500 个字符'), { status: 400 });
+  return { status, reply, note };
+};
+
+const handleLocalMessages = async (request: NextRequest, path: string[]) => {
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const token = await getServiceDirectusToken(session.accessToken);
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+
+  if (!id && request.method === 'GET') {
+    const { page, limit } = normalizePagination(
+      request.nextUrl.searchParams.get('page'),
+      request.nextUrl.searchParams.get('limit'),
+    );
+    const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim().toLowerCase();
+    const status = (request.nextUrl.searchParams.get('status') || '').trim();
+    const category = (request.nextUrl.searchParams.get('category') || '').trim();
+    const rows = (await listMessageRows(token)).map(mapAdminMessageRow);
+
+    const filtered = rows
+      .filter((row) => (!status || row.status === status))
+      .filter((row) => (!category || row.category === category))
+      .filter((row) => (
+        !keyword
+        || row.name.toLowerCase().includes(keyword)
+        || row.phone.includes(keyword)
+        || row.content.toLowerCase().includes(keyword)
+        || row.track_code.toLowerCase().includes(keyword)
+      ))
+      .sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)));
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const items = filtered.slice(start, start + limit).map((row) => ({
+      id: row.id,
+      name: row.name,
+      phone_masked: maskAdminPhone(row.phone),
+      email: row.email,
+      category: row.category,
+      category_label: row.category_label,
+      content_excerpt: row.content.replace(/\s+/g, ' ').slice(0, 60),
+      status: row.status,
+      status_label: row.status_label,
+      handler: row.handler,
+      handled_at: row.handled_at,
+      track_code: row.track_code,
+      created_at: row.created_at,
+    }));
+
+    return NextResponse.json({ data: items, meta: { filter_count: total, page, limit } });
+  }
+
+  if (id && request.method === 'GET') {
+    const row = await getMessageRow(token, id);
+    return NextResponse.json({ data: mapAdminMessageRow(row) });
+  }
+
+  if (id && request.method === 'PATCH') {
+    const existing = await getMessageRow(token, id);
+    const body = await request.json() as Record<string, unknown>;
+    const payload = normalizeMessageUpdateInput(body);
+    const extra = {
+      ...readJsonObject(existing.extra_json),
+      status: payload.status,
+      reply: payload.reply,
+      note: payload.note,
+      handler: session.email || '',
+      handled_at: new Date().toISOString(),
+    };
+    await directusJsonRequest(`/items/page_contents/${encodeURIComponent(id)}`, token, 'PATCH', { extra_json: extra });
+    return NextResponse.json({ data: mapAdminMessageRow({ ...existing, extra_json: extra }) });
+  }
+
+  return null;
+};
+
 const handleLocalAsset = async (request: NextRequest, path: string[]) => {
   const id = path[1] ? decodeURIComponent(path[1]) : '';
   if (!id || request.method !== 'GET') return null;
@@ -2272,6 +2429,7 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
       return await handleLocalTopics(request, path);
     }
     if (path[0] === 'projects') return await handleLocalProjects(request, path);
+    if (path[0] === 'messages') return await handleLocalMessages(request, path);
     if (path[0] === 'companies') return await handleLocalCompanies(request, path);
     if (route === 'files') return await handleLocalFileUpload(request);
     if (route === 'categories') return await handleLocalCategoryList(request);

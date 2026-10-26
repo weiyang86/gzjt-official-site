@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/components';
 import { OrgChartFigure } from './organization/org-chart-figure';
+import { MessageSection } from './contact/message-section';
 import {
   getPublicArticles,
   getPublicBusinessSectors,
@@ -358,6 +359,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
         <Hero title={page.title || meta.title} kicker={meta.kicker} subtitle={meta.subtitle} cover={page.cover} ctaLabel={meta.cta || '查看内容'} />
         <ContentSection page={page} />
         {slug === 'projects' ? <ProjectMap /> : null}
+        {slug === 'contact' ? <MessageSection /> : null}
       </main>
     </Shell>
   );

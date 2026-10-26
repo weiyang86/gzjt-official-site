@@ -77,6 +77,46 @@ export type AdminProject = {
   status: string;
 };
 
+export type AdminMessageStatus = 'pending' | 'processing' | 'replied' | 'closed';
+
+export type AdminMessageCategory = 'consult' | 'suggest' | 'complaint' | 'report' | 'other';
+
+export type AdminMessageListItem = {
+  id: string;
+  name: string;
+  phone_masked: string;
+  email: string;
+  category: AdminMessageCategory;
+  category_label: string;
+  content_excerpt: string;
+  status: AdminMessageStatus;
+  status_label: string;
+  handler: string;
+  handled_at: string;
+  track_code: string;
+  created_at: string;
+};
+
+export type AdminMessage = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  category: AdminMessageCategory;
+  category_label: string;
+  content: string;
+  status: AdminMessageStatus;
+  status_label: string;
+  reply: string;
+  note: string;
+  handler: string;
+  handled_at: string;
+  track_code: string;
+  client_ip: string;
+  source_path: string;
+  created_at: string;
+};
+
 export type AdminApiPayload<T> = {
   ok?: boolean;
   data?: T;
@@ -207,6 +247,12 @@ export const AdminApi = {
   deleteCompany: (id: string) => adminFetch(`/admin-api/companies/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   topics: () => adminFetch<AdminTopic[]>('/admin-api/topics'),
   projects: () => adminFetch<AdminProject[]>('/admin-api/projects'),
+  messages: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/messages', params)),
+  message: (id: string) => adminFetch<AdminMessage>(`/admin-api/messages/${encodeURIComponent(id)}`),
+  updateMessage: (id: string, payload: unknown) => adminFetch<AdminMessage>(`/admin-api/messages/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
   createProject: (payload: unknown) => adminFetch<AdminProject>('/admin-api/projects', {
     method: 'POST',
     body: JSON.stringify(payload),

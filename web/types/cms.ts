@@ -119,6 +119,36 @@ export interface Project {
   status: string;
 }
 
+export type MessageCategory = 'consult' | 'suggest' | 'complaint' | 'report' | 'other';
+
+export type MessageStatus = 'pending' | 'processing' | 'replied' | 'closed';
+
+export interface SiteMessage {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  category: MessageCategory;
+  content: string;
+  status: MessageStatus;
+  reply: string;
+  note: string;
+  handler: string;
+  handledAt: string;
+  trackCode: string;
+  clientIp: string;
+  sourcePath: string;
+  createdAt: string;
+}
+
+export interface SiteMessageStatusView {
+  status: MessageStatus;
+  statusLabel: string;
+  createdAt: string;
+  handledAt: string;
+  reply: string;
+}
+
 export interface PageContent {
   id: string;
   title: string;
