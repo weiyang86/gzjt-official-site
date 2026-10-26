@@ -8,5 +8,6 @@ export * from './seo';
 export * from './site-content';
 export * from './projects';
 export * from './recruitment';
+export * from './messages';
 export * from './responsibility';
 export * from './topics';

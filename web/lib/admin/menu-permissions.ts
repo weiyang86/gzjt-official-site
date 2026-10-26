@@ -10,6 +10,7 @@ export type AdminMenuKey =
   | 'articleOwnership'
   | 'topics'
   | 'projects'
+  | 'messages'
   | 'noticeArticles'
   | 'noticeCategories'
   | 'noticeEdit'
@@ -40,6 +41,7 @@ export const adminMenuItems: AdminMenuItem[] = [
   { key: 'articleOwnership', href: '/admin/article-ownership', label: '文章归属管理', group: 'content' },
   { key: 'topics', href: '/admin/topics', label: '专题管理', group: 'content' },
   { key: 'projects', href: '/admin/projects', label: '项目管理', group: 'content' },
+  { key: 'messages', href: '/admin/messages', label: '留言管理', group: 'content' },
   { key: 'noticeArticles', href: '/admin/notice-articles', label: '公示公告管理', group: 'content' },
   { key: 'noticeCategories', href: '/admin/notice-categories', label: '公示公告分类', group: 'content' },
   { key: 'noticeEdit', href: '/admin/notice-edit', label: '新增公示公告', group: 'content' },

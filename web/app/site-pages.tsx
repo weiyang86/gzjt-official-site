@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/components';
 import { OrgChartFigure } from './organization/org-chart-figure';
+import { MessageSection } from './contact/message-section';
 import {
   getPublicArticles,
   getPublicBusinessSectors,
@@ -570,6 +571,7 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
         {slug === 'contact' && !displayPage.content ? null : <ContentSection page={displayPage} />}
         {innovation ? <InnovationSection data={innovation} /> : null}
         {slug === 'projects' ? <ProjectMap /> : null}
+        {slug === 'contact' ? <MessageSection /> : null}
       </main>
     </Shell>
   );
