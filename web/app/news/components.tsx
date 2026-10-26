@@ -5,7 +5,15 @@ import type { Channel } from '@/types/cms';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact';
 
+const recruitmentChannelHref: Record<string, string> = {
+  'disclosure-recruitment': '/recruitment',
+  'recruitment-social': '/recruitment?type=social',
+  'recruitment-campus': '/recruitment?type=campus',
+  'recruitment-internal-selection': '/recruitment?type=internal',
+};
+
 const channelHref = (channel: Channel) => {
+  if (recruitmentChannelHref[channel.slug]) return recruitmentChannelHref[channel.slug];
   if (channel.type === 'link' || channel.type === 'page' || channel.type === 'module') return channel.path || `/${channel.slug}`;
   if (channel.type === 'notice' || channel.path?.startsWith('/disclosure')) return `/disclosure?channel=${encodeURIComponent(channel.slug)}`;
   return `/news?channel=${encodeURIComponent(channel.slug)}`;

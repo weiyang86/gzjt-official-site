@@ -119,6 +119,22 @@ export interface Project {
   status: string;
 }
 
+export interface RecruitmentJob {
+  id: string;
+  title: string;
+  department: string;
+  headcount: string;
+  location: string;
+  deadline: string;
+  requirement: string;
+  applyUrl: string;
+  category: RecruitmentCategory;
+  sort: number;
+  status: string;
+}
+
+export type RecruitmentCategory = 'social' | 'campus' | 'internal';
+
 export interface PageContent {
   id: string;
   title: string;

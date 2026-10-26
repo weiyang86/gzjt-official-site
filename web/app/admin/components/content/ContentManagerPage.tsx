@@ -5,6 +5,7 @@ import { AdminApi } from '@/lib/admin/admin-api';
 import { CompanyManager } from './CompanyManager';
 import { PageContentForm, validateImage } from './PageContentForm';
 import { SocialResponsibilityManager } from './SocialResponsibilityManager';
+import { RecruitmentManager } from './RecruitmentManager';
 import type { MessageState, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
 import { getMergedNewsAdminHref } from './merged-news-channel';
 
@@ -309,6 +310,10 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
 
   if (module.module_code === 'social-responsibility') {
     return <SocialResponsibilityManager module={module} />;
+  }
+
+  if (module.module_code === 'recruitment') {
+    return <RecruitmentManager module={module} />;
   }
 
   if (module.module_code === 'group-history' || module.content_type === 'timeline') {
