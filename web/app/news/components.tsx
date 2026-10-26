@@ -58,16 +58,18 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
             </a>
             <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
               <a href="/" data-no-transition>首页</a>
-              <a href="/topics" data-no-transition>专题专栏</a>
               {navigation.roots.map((item) => {
                 const dropdownItems = navigation.descendants(item.id);
-                if (dropdownItems.length) {
+                if (dropdownItems.length || item.slug === 'news-center') {
                   return (
                     <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.id}>
                       <a href={channelHref(item)} aria-haspopup="true" aria-expanded="false">
                         {item.name}
                       </a>
                       <div className="nav-dropdown" role="menu" data-source="server">
+                        {item.slug === 'news-center' ? (
+                          <a href="/topics" role="menuitem" style={{ paddingLeft: 14 }}>专题专栏</a>
+                        ) : null}
                         {dropdownItems.map(({ channel, depth }) => (
                           <a href={channelHref(channel)} role="menuitem" key={channel.id} style={{ paddingLeft: 14 + (depth - 1) * 10 }}>
                             {channel.name}
@@ -115,16 +117,17 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
         </div>
         <div className="drawer-links" aria-label="移动端导航链接">
           <a href="/" data-no-transition>首页</a>
-          <a href="/topics">专题专栏</a>
           {navigation.roots.map((item) => {
             const dropdownItems = navigation.descendants(item.id);
+            const hasNewsTopic = item.slug === 'news-center';
             return (
               <Fragment key={item.id}>
                 <a href={channelHref(item)}>
                   {item.name}
                 </a>
-                {dropdownItems.length ? (
+                {dropdownItems.length || hasNewsTopic ? (
                   <div className="drawer-submenu" data-source="server">
+                    {hasNewsTopic ? <a href="/topics" style={{ paddingLeft: 16 }}>专题专栏</a> : null}
                     {dropdownItems.map(({ channel, depth }) => (
                       <a href={channelHref(channel)} key={channel.id} style={{ paddingLeft: 16 + (depth - 1) * 10 }}>{channel.name}</a>
                     ))}
