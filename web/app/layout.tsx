@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { defaultSeoConfig, getSiteBaseUrl } from '@/lib/seo/pages';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteBaseUrl()),
@@ -34,7 +35,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script src="/js/analytics.js" strategy="afterInteractive" />
+      </body>
     </html>
   );
 }
