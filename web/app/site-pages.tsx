@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/components';
+import { OrgChartFigure } from './organization/org-chart-figure';
 import {
   getPublicArticles,
   getPublicBusinessSectors,
@@ -13,6 +14,7 @@ import {
   getPublicHonors,
   getPublicLeaders,
   getPublicPageBySlug,
+  getPublicPageModule,
   getPublicReportArticles,
   getPublicReportConfig,
 } from '@/lib/cms';
@@ -215,12 +217,18 @@ export function Shell({ active, children, actionHref = 'https://gjy.gzjtjt.cn/',
   );
 }
 
-export function Breadcrumb({ title }: { title: string }) {
+export function Breadcrumb({ title, parents = [] }: { title: string; parents?: Array<{ title: string; href: string }> }) {
   return (
     <div className="breadcrumb" aria-label="面包屑导航">
       <div className="content">
         <div className="crumb-inner">
           <a href="/home" data-no-transition>首页</a>
+          {parents.map((parent) => (
+            <span key={parent.href} style={{ display: 'contents' }}>
+              <span className="crumb-sep">›</span>
+              <a href={parent.href} data-no-transition>{parent.title}</a>
+            </span>
+          ))}
           <span className="crumb-sep">›</span>
           <span>{title}</span>
         </div>
@@ -849,6 +857,39 @@ function CompanyNewsPager({ slug, page, pageSize, total }: { slug: string; page:
       ))}
       <a className={`page-btn page-btn--nav${current >= pages ? ' is-disabled' : ''}`} href={href(Math.min(pages, current + 1))} aria-disabled={current >= pages ? 'true' : undefined}>下一页 <span aria-hidden="true">›</span></a>
     </nav>
+  );
+}
+
+async function loadOrgChart() {
+  try {
+    return await getPublicPageModule('org-chart');
+  } catch {
+    return null;
+  }
+}
+
+export async function OrganizationPage() {
+  const orgChart = await loadOrgChart();
+  const title = orgChart?.title || '组织架构';
+  const cover = orgChart?.cover || '';
+
+  return (
+    <Shell active="about">
+      <Breadcrumb title="组织架构" />
+      <main className="page" aria-label="主要内容">
+        <Hero title="组织架构" kicker="ORGANIZATION" subtitle="形成集团总部、专业子公司、项目公司的组织体系，保障战略落地与专业化运营。" cover="/img/雅砻江大桥.jpg" ctaHref="#org-chart" ctaLabel="查看架构图" />
+        <section className="section" id="org-chart" aria-label="组织架构图">
+          <div className="content">
+            <div className="section-head reveal is-visible"><div><div className="kicker"><i aria-hidden="true" /><span>ORGANIZATION CHART</span></div><div className="h2">{title}</div></div></div>
+            <div className="detail reveal is-visible">
+              {cover ? <OrgChartFigure src={cover} title={title} /> : <div className="body"><p>组织架构图待补充，请稍后查看。</p></div>}
+              {orgChart?.content ? <div className="body" dangerouslySetInnerHTML={{ __html: orgChart.content }} /> : null}
+              <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 12 }}><a className="btn" href="/org" data-no-transition>查看下属公司</a></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </Shell>
   );
 }
 

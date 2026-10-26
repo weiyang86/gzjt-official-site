@@ -97,6 +97,24 @@ export async function getPublicSiteSettings() {
   };
 }
 
+export async function getPublicPageModule(moduleCode: string) {
+  const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_contents', {
+    'filter[module_code][_eq]': moduleCode,
+    'filter[status][_eq]': 'published',
+    limit: 1,
+    fields: 'id,module_code,title,cover,content,status',
+  }));
+  const item = response.data?.[0];
+  if (!item) return null;
+  return {
+    id: String(item.id ?? ''),
+    moduleCode: toText(item.module_code),
+    title: toText(item.title),
+    cover: buildDirectusAssetUrl(toText(item.cover)),
+    content: toText(item.content),
+  };
+}
+
 export async function getPublicPlatformQrs() {
   const response = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/page_content_items', {
     fields: 'id,title,image,sort,status',

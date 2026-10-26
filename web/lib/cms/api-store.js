@@ -3,7 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { hash, verify } = require('@node-rs/argon2');
 
-const developmentDataApiUrl = 'http://localhost:8008/_plugins/gw/curd';
+const developmentDataApiUrl = 'https://portal.gzjtjt.cn/_plugins/gw/curd';
 const productionDataApiUrl = 'http://192.168.0.221:8000/_plugins/gw/curd';
 const resolveDataApiUrl = (value) => {
   const normalized = String(value || '').trim().replace(/\/+$/, '');

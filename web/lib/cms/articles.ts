@@ -37,7 +37,7 @@ const toAssetValue = (value: unknown) => {
   return '';
 };
 
-const normalizeRichTextAssetUrls = (html: string) => {
+export const normalizeRichTextAssetUrls = (html: string) => {
   if (!html) return '';
 
   const rewriteUrl = (value: string) => normalizePublicAssetUrl(value) || value;
@@ -112,6 +112,22 @@ const mapPublicArticleSummary = (item: Record<string, unknown>, channelMap = new
     main_channels: mainChannels,
   };
 };
+
+export async function getPublicArticlesByIds(ids: string[]): Promise<Article[]> {
+  const uniqueIds = Array.from(new Set(ids.map((item) => String(item || '').trim()).filter(Boolean)));
+  if (!uniqueIds.length) return [];
+
+  const allChannels = await getPublicChannels();
+  const channelMap = new Map(allChannels.map((item) => [String(item.id), item]));
+  const articles = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/articles', {
+    fields: 'id,title,subtitle,cover,cover_url,summary,source,author,publish_at,status,is_top,is_home_recommend,sort,news_subcategory,main_channel,main_channel.id,main_channel.name,main_channel.slug',
+    limit: -1,
+    'filter[id][_in]': uniqueIds.join(','),
+    'filter[status][_eq]': 'published',
+  }), realtimeCmsInit);
+
+  return (Array.isArray(articles?.data) ? articles.data : []).map((item) => mapPublicArticleSummary(item, channelMap));
+}
 
 const getScope = (searchParams: URLSearchParams): PublicScope => {
   const type = (searchParams.get('type') || '').trim();

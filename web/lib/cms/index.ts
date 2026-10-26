@@ -6,3 +6,6 @@ export * from './report';
 export * from './search';
 export * from './seo';
 export * from './site-content';
+export * from './projects';
+export * from './responsibility';
+export * from './topics';

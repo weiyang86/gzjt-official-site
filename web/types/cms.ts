@@ -179,3 +179,95 @@ export interface DownloadCenterData {
   categories: DownloadCategory[];
   resources: DownloadResource[];
 }
+
+
+export interface Topic {
+  id: string;
+  slug: string;
+  moduleCode: string;
+  title: string;
+  subtitle?: string;
+  cover?: string;
+  summary?: string;
+  content?: string;
+  status: ArticleStatus;
+  sort: number;
+  articleCount?: number;
+}
+
+export interface TopicArticle {
+  id: string;
+  articleId: string;
+  title: string;
+  summary?: string;
+  status?: string;
+  publishAt?: string;
+  cover?: string;
+  sort: number;
+  itemStatus: 'enabled' | 'disabled';
+  missing?: boolean;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  summary: string;
+  progress: string;
+  image?: string;
+  detail: string;
+  mapX?: number;
+  mapY?: number;
+  sort: number;
+  status: string;
+}
+
+export interface PageModuleContent {
+  id: string;
+  moduleCode: string;
+  title: string;
+  subtitle: string;
+  cover?: string;
+  summary: string;
+  content: string;
+}
+
+export interface PageModuleItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  image?: string;
+  sort: number;
+}
+
+export type ResponsibilityCategory = 'report' | 'case' | 'activity';
+
+export interface ResponsibilityAttachment {
+  id: string;
+  name: string;
+  size?: number;
+}
+
+export interface ResponsibilityItem {
+  id: string;
+  category: ResponsibilityCategory;
+  title: string;
+  summary: string;
+  year: string;
+  image?: string;
+  content: string;
+  linkUrl: string;
+  attachments: ResponsibilityAttachment[];
+  sort: number;
+}
+
+export interface ResponsibilityContent {
+  id: string;
+  title: string;
+  subtitle: string;
+  cover?: string;
+  summary: string;
+  content: string;
+}

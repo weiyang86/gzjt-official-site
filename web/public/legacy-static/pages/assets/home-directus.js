@@ -82,7 +82,17 @@
         subtitle.style.letterSpacing = '1px'
         subtitle.style.lineHeight = '1.6'
       }
-      if (link) link.setAttribute('href', '/home')
+      const bannerHref = String(banner.linkUrl || '').trim()
+      const targetHref = bannerHref && bannerHref !== '/' ? safeHref(bannerHref) : '/home'
+      if (link) {
+        link.setAttribute('href', targetHref)
+        if (banner.linkLabel) link.innerHTML = `${escapeHtml(banner.linkLabel)} <span class="btn-arrow" aria-hidden="true">→</span>`
+      }
+      ;[title, subtitle].forEach((element) => {
+        if (!element) return
+        element.style.cursor = 'pointer'
+        element.onclick = () => { window.location.href = targetHref }
+      })
       dots?.querySelectorAll('button').forEach((button, buttonIndex) => button.setAttribute('aria-current', buttonIndex === index ? 'true' : 'false'))
     }
     if (dots && banners.length > 1) {
