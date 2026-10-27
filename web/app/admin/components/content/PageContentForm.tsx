@@ -193,7 +193,15 @@ export function PageContentForm({ module, options = {} }: {
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadCover} disabled={isUploading} />
               <input type="hidden" value={form.cover || ''} readOnly />
             </div>
-            {form.cover ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="图片预览" /> : null}
+            {form.cover ? (
+              <div className="cover-preview-wrap">
+                <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(form.cover)}`} alt="图片预览" />
+                <button className="secondary-button" type="button" onClick={() => {
+                  setField('cover', '');
+                  setMessage({ text: '图片已移除，保存后生效。', type: 'success' });
+                }}>移除图片</button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {showSummary ? (

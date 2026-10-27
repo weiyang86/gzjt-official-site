@@ -87,19 +87,6 @@ export default async function ProjectsPage() {
       </div>
       <main className="page" aria-label="主要内容">
         <ProjectsHero page={page} />
-        <section className="section" id="content" aria-label="项目展示说明">
-          <div className="content">
-            <div className="section-head reveal is-visible">
-              <div>
-                <div className="kicker"><i aria-hidden="true" /><span>CONTENT</span></div>
-                <div className="h2">{page.title || '项目展示'}</div>
-              </div>
-            </div>
-            <div className="detail reveal is-visible">
-              <div className="body" dangerouslySetInnerHTML={{ __html: page.content || '<p>暂无内容。</p>' }} />
-            </div>
-          </div>
-        </section>
         <ProjectExplorer projects={projects} />
       </main>
       <Footer />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { AdminApi, type AdminProject } from '@/lib/admin/admin-api';
 import { isPresetProjectType, projectTypeOptions } from '@/lib/cms/project-types';
 import { CmsRichTextEditor, type CmsRichTextEditorHandle } from '../editor/CmsRichTextEditor';
@@ -27,16 +27,6 @@ const statusOptions = [
   { value: 'disabled', label: '停用' },
 ];
 const fallbackProjectImage = '/img/雅砻江大桥.jpg';
-const statChipStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '4px 10px',
-  borderRadius: 999,
-  background: 'rgba(13,47,90,.08)',
-  color: '#0d4f89',
-  fontSize: 13,
-};
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const maxImageBytes = 50 * 1024 * 1024;
 
@@ -110,7 +100,6 @@ export function ProjectManagerPage() {
   const [form, setForm] = useState<ProjectForm>(() => emptyForm());
   const [statusFilter, setStatusFilter] = useState('all');
   const [message, setMessage] = useState<MessageState>(null);
-  const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -126,7 +115,6 @@ export function ProjectManagerPage() {
 
   const loadProjects = async () => {
     setIsLoading(true);
-    setLoadError('');
     try {
       const result = await AdminApi.projects();
       const rows = (result.data || []) as AdminProject[];
@@ -134,7 +122,6 @@ export function ProjectManagerPage() {
       return rows;
     } catch (err) {
       const text = err instanceof Error ? err.message : '项目列表加载失败。';
-      setLoadError(text);
       setMessage({ text, type: 'error' });
       setItems([]);
       return [] as AdminProject[];
@@ -158,24 +145,7 @@ export function ProjectManagerPage() {
   );
 
   const mappedItems = useMemo(() => items.filter(hasCoordinate), [items]);
-  const unmappedItems = useMemo(() => items.filter((item) => !hasCoordinate(item)), [items]);
   const enabledCount = useMemo(() => items.filter((item) => item.status === 'enabled').length, [items]);
-  const typeCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    items.forEach((item) => {
-      const key = item.type?.trim() || '未填写类型';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-CN'));
-  }, [items]);
-  const locationCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    items.forEach((item) => {
-      const key = item.location?.trim() || '未填写位置';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-CN'));
-  }, [items]);
 
   const setField = <K extends keyof ProjectForm>(key: K, value: ProjectForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -190,21 +160,6 @@ export function ProjectManagerPage() {
     setForm(toForm(project));
     setMessage(null);
     document.getElementById('project-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const applyMapCoordinate = (event: MouseEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-    const y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
-    setForm((current) => ({ ...current, map_x: x.toFixed(1), map_y: y.toFixed(1) }));
-    setMessage({ text: '地图坐标已填入表单，保存后生效。', type: 'info' });
-  };
-
-  const locateOnMap = (project: AdminProject) => {
-    setForm(toForm(project));
-    setMessage({ text: '已载入项目，请在上方地图上点击位置设置坐标。', type: 'info' });
-    document.getElementById('project-map')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const uploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -373,105 +328,6 @@ export function ProjectManagerPage() {
         <p>当前已维护 {items.length} 个项目，其中启用 {enabledCount} 个、停用 {items.length - enabledCount} 个，已设置地图坐标 {mappedItems.length} 个。</p>
       </section>
 
-      <section className="editor-card" id="project-map">
-        <div className="section-title-row">
-          <div><p className="eyebrow">项目地图预览</p><h2>项目分布</h2></div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span className="status-badge status-published">{mappedItems.length} / {items.length} 个已定位</span>
-            <button className="primary-link-button" type="button" onClick={() => {
-              resetForm();
-              document.getElementById('project-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}>新增项目</button>
-            <button className="secondary-button" type="button" onClick={() => document.getElementById('project-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>查看项目列表</button>
-          </div>
-        </div>
-        <p className="form-help-text">地图读取项目列表数据：红点为已启用项目，灰点为已停用项目；点击点位载入编辑，点击地图空白处可为当前表单项目设置坐标（新增项目也可直接选点）。</p>
-        {loadError ? <div className="inline-message error">{loadError}</div> : null}
-        <div
-          onClick={applyMapCoordinate}
-          style={{
-            position: 'relative',
-            maxWidth: 1000,
-            margin: '0 auto',
-            aspectRatio: '1672 / 941',
-            background: 'rgba(13,47,90,.04)',
-            borderRadius: 16,
-            overflow: 'hidden',
-            cursor: 'crosshair',
-          }}
-        >
-          <img
-            src="/img/map.png?v=20261025"
-            alt="甘孜州项目分布地图"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
-          />
-          {mappedItems.map((project) => {
-            const x = coordinateOf(project.map_x);
-            const y = coordinateOf(project.map_y);
-            if (x === null || y === null) return null;
-            const active = form.id === project.id;
-            return (
-              <button
-                key={project.id}
-                type="button"
-                title={`${project.name}${project.location ? ` · ${project.location}` : ''}（点击编辑）`}
-                aria-label={`编辑项目：${project.name}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  selectProject(project);
-                }}
-                style={{
-                  position: 'absolute',
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: active ? 18 : 14,
-                  height: active ? 18 : 14,
-                  transform: 'translate(-50%, -50%)',
-                  borderRadius: '50%',
-                  border: '2px solid #fff',
-                  background: project.status === 'enabled' ? '#ff3b3b' : '#94a3b8',
-                  boxShadow: active ? '0 0 0 6px rgba(13,79,137,.28)' : '0 0 0 4px rgba(255,59,59,.16)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  zIndex: active ? 3 : 2,
-                }}
-              />
-            );
-          })}
-          {form.map_x !== '' && form.map_y !== '' && Number.isFinite(Number(form.map_x)) && Number.isFinite(Number(form.map_y)) ? (
-            <span
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                left: `${Math.min(100, Math.max(0, Number(form.map_x)))}%`,
-                top: `${Math.min(100, Math.max(0, Number(form.map_y)))}%`,
-                width: 10,
-                height: 10,
-                transform: 'translate(-50%, -50%)',
-                borderRadius: '50%',
-                background: '#0d4f89',
-                border: '2px solid #fff',
-                boxShadow: '0 0 0 3px rgba(13,79,137,.25)',
-                pointerEvents: 'none',
-                zIndex: 4,
-              }}
-            />
-          ) : null}
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-          <span style={statChipStyle}>已定位 <b>{mappedItems.length}</b></span>
-          <span style={statChipStyle}>未定位 <b>{unmappedItems.length}</b></span>
-          {typeCounts.map(([type, count]) => <span style={statChipStyle} key={`type-${type}`}>类型·{type} <b>{count}</b></span>)}
-          {locationCounts.map(([location, count]) => <span style={statChipStyle} key={`location-${location}`}>位置·{location} <b>{count}</b></span>)}
-        </div>
-        {unmappedItems.length ? (
-          <p className="form-help-text" style={{ marginTop: 10 }}>
-            未设置坐标：{unmappedItems.map((item) => item.name).join('、')}
-          </p>
-        ) : null}
-        {items.length ? null : <p className="form-help-text" style={{ marginTop: 10 }}>暂无项目数据，请先在下方新增项目。</p>}
-      </section>
-
       <section className="editor-card" id="project-editor">
         <div className="section-title-row">
           <div><p className="eyebrow">新增 / 编辑</p><h2>{form.id ? '编辑项目' : '新增项目'}</h2></div>
@@ -524,7 +380,7 @@ export function ProjectManagerPage() {
           <label>地图纵向坐标
             <input type="number" min={0} max={100} step={0.1} placeholder="0-100，可空" value={form.map_y} onChange={(event) => setField('map_y', event.target.value)} />
           </label>
-          <p className="field-tip span-2" style={{ marginTop: -4 }}>可直接在上方“项目分布”地图上点击选点，坐标会自动填入；新增项目也可以先选点再保存。</p>
+          <p className="field-tip span-2" style={{ marginTop: -4 }}>坐标范围为 0–100，横向、纵向需同时填写；留空表示该项目不在前台地图上显示点位。</p>
           <label className="span-2">项目简介
             <textarea rows={3} maxLength={500} value={form.summary} onChange={(event) => setField('summary', event.target.value)} />
           </label>
@@ -594,7 +450,6 @@ export function ProjectManagerPage() {
                   </div>
                   <div className="table-actions">
                     <button className="text-button" type="button" onClick={() => selectProject(project)}>编辑</button>
-                    <button className="text-button" type="button" onClick={() => locateOnMap(project)}>{hasCoordinate(project) ? '调整点位' : '去定位'}</button>
                     <button className="text-button" type="button" disabled={visibleIndex <= 0} onClick={() => moveProject(project, -1)}>上移</button>
                     <button className="text-button" type="button" disabled={visibleIndex >= visibleItems.length - 1} onClick={() => moveProject(project, 1)}>下移</button>
                     <button className="text-button" type="button" onClick={() => toggleStatus(project)}>

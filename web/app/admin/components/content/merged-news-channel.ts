@@ -7,10 +7,11 @@ const mergedNewsChannelByKey: Record<string, string> = {
   '/party': 'party-mass',
   '/party-masses': 'party-mass',
   '党建群团': 'party-mass',
-  // 群团工作及工会、青年分类：后台入口统一进入新闻管理对应栏目维护内容。
+  // 群团工作及工会、青年、统战分类：后台入口统一进入新闻管理对应栏目维护内容。
   'mass-work': 'party-mass',
   'union-work': 'party-union-work',
   'youth-work': 'party-youth-work',
+  'united-front-work': 'party-united-front-work',
   businessDynamics: 'business-news',
   'business-news': 'business-news',
   '/business-dynamics': 'business-news',
