@@ -21,8 +21,13 @@ const formatDate = (value?: string) => {
 };
 
 function getArticleScope(article: Article): PreviewScope {
-  const channel = article.mainChannel || article.main_channel;
-  return channel && isNoticeChannel(channel) ? 'notice' : 'news';
+  const primaryChannel = article.mainChannel || article.main_channel;
+  const channels = article.mainChannels?.length
+    ? article.mainChannels
+    : article.main_channels?.length
+      ? article.main_channels
+      : primaryChannel ? [primaryChannel] : [];
+  return channels.some(isNoticeChannel) ? 'notice' : 'news';
 }
 
 function labelFor(article: Article) {
@@ -35,11 +40,13 @@ function labelFor(article: Article) {
 export default async function PublicArticlePreviewPage({ searchParams }: PreviewPageProps) {
   const params = await searchParams;
   const id = getFirst(params.id) || '';
-  const scope = getFirst(params.scope) === 'notice' ? 'notice' : 'news';
+  const requestedScope: PreviewScope = getFirst(params.scope) === 'notice' ? 'notice' : 'news';
+  const expiresValue = getFirst(params.exp) || '';
   const expiresAt = Number.parseInt(getFirst(params.exp) || '', 10);
   const signature = getFirst(params.sig) || '';
+  const isLegacySignedLink = Boolean(signature || expiresValue);
 
-  if (!verifyArticlePreviewAccess(id, scope, expiresAt, signature)) {
+  if (isLegacySignedLink && !verifyArticlePreviewAccess(id, requestedScope, expiresAt, signature)) {
     notFound();
   }
 
@@ -47,7 +54,7 @@ export default async function PublicArticlePreviewPage({ searchParams }: Preview
   if (!article) notFound();
 
   const actualScope = getArticleScope(article);
-  if (actualScope !== scope) notFound();
+  if (isLegacySignedLink && actualScope !== requestedScope) notFound();
 
   const publishValue = article.publishAt || article.publishDate;
   const sectionLabel = actualScope === 'notice' ? '公示公告' : '新闻中心';

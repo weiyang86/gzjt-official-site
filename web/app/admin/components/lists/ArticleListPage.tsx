@@ -135,7 +135,7 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
       const nextPreviewItem = normalizePreviewArticle(articleResult.data);
       if (!nextPreviewItem) throw new Error(copy.previewNotFound);
       setPreviewItem(nextPreviewItem);
-      AdminApi.articlePreviewLink(id, { scope })
+      AdminApi.articlePreviewLink(id)
         .then((previewLinkResult) => setPreviewShareUrl(previewLinkResult.data?.url || ''))
         .catch(() => setPreviewShareUrl(''));
     } catch (err) {
