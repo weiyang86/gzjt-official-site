@@ -56,10 +56,21 @@ export const getClientIp = (headers: Headers) => {
 
 export const isSameOriginRequest = (headers: Headers) => {
   const origin = headers.get('origin');
-  const host = headers.get('host');
   if (!origin) return true;
   try {
-    return new URL(origin).host === host;
+    const originUrl = new URL(origin);
+    const requestHosts = [
+      headers.get('x-forwarded-host')?.split(',')[0].trim(),
+      headers.get('host'),
+    ].filter((host): host is string => Boolean(host));
+
+    return requestHosts.some((host) => {
+      try {
+        return new URL(`${originUrl.protocol}//${host}`).host === originUrl.host;
+      } catch {
+        return false;
+      }
+    });
   } catch {
     return false;
   }
