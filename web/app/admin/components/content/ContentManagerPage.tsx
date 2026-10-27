@@ -553,6 +553,18 @@ function TimelineManager({ module }: { module: PageModule }) {
     }
   };
 
+  const removeItem = async (item: PageContentItem) => {
+    if (!window.confirm(`确认删除“${item.title || '该时间轴条目'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (form.id === item.id) reset();
+      setMessage({ text: '时间轴条目已删除。', type: 'success' });
+      await loadItems();
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '删除条目失败，请稍后重试。', type: 'error' });
+    }
+  };
+
   return (
     <section className="editor-card timeline-editor-card">
       <div className="section-title-row">
@@ -585,6 +597,7 @@ function TimelineManager({ module }: { module: PageModule }) {
             <div className="table-actions">
               <button className="text-button" type="button" onClick={() => setForm({ ...emptyTimelineItem(moduleCode), ...item, sort: Number(item.sort || 0), status: item.status || 'enabled' })}>编辑</button>
               <button className="text-button" type="button" onClick={() => disableItem(item.id)}>停用</button>
+              <button className="text-button is-danger" type="button" onClick={() => void removeItem(item)}>删除</button>
             </div>
           </article>
         )) : '暂无时间轴条目，请先新增一条发展历程。'}

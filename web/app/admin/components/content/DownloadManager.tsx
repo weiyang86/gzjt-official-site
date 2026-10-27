@@ -261,6 +261,19 @@ export function DownloadManager() {
     }
   };
 
+  const removeCategory = async (item: DownloadCategoryAdmin) => {
+    if (!window.confirm(`确认删除分类“${item.name || '该资料分类'}”？删除后不可恢复；分类下仍有资料时需先调整资料分类。`)) return;
+    setMessage(null);
+    try {
+      await AdminApi.deleteDownloadCategory(item.id);
+      if (categoryForm.id === item.id) setCategoryForm(emptyCategory());
+      setMessage({ text: '该资料分类已删除。', type: 'success' });
+      await loadAll();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '删除资料分类失败，请稍后重试。', type: 'error' });
+    }
+  };
+
   const editResource = (item: DownloadResourceAdmin) => {
     setResourceForm({
       ...emptyResource(),
@@ -284,6 +297,19 @@ export function DownloadManager() {
     }
   };
 
+
+  const removeResource = async (item: DownloadResourceAdmin) => {
+    if (!window.confirm(`确认删除资料“${item.name || '该资料'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    setMessage(null);
+    try {
+      await AdminApi.deleteDownload(item.id);
+      if (resourceForm.id === item.id) setResourceForm(emptyResource());
+      setMessage({ text: '该资料已删除。', type: 'success' });
+      await loadAll();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '删除资料失败，请稍后重试。', type: 'error' });
+    }
+  };
 
   return (
     <div className="leadership-admin">
@@ -359,6 +385,7 @@ export function DownloadManager() {
                 <div className="table-actions leadership-admin-actions">
                   <button className="text-button" type="button" onClick={() => editCategory(item)}>编辑</button>
                   <button className={`text-button${item.status === 'enabled' ? ' is-danger' : ''}`.trim()} type="button" onClick={() => void toggleCategoryEnabled(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                  <button className="text-button is-danger" type="button" onClick={() => void removeCategory(item)}>删除</button>
                 </div>
               </article>
             ))}
@@ -386,6 +413,7 @@ export function DownloadManager() {
                 <div className="table-actions leadership-admin-actions">
                   <button className="text-button" type="button" onClick={() => editResource(item)}>编辑</button>
                   <button className={`text-button${item.status === 'enabled' ? ' is-danger' : ''}`.trim()} type="button" onClick={() => void toggleResourceEnabled(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                  <button className="text-button is-danger" type="button" onClick={() => void removeResource(item)}>删除</button>
                 </div>
               </article>
             ))}

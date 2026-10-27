@@ -249,6 +249,25 @@ export function BusinessInnovationManager() {
     }
   };
 
+  const removeCategory = async (item: PageContentItem) => {
+    const count = items.filter((achievement) => categoryOf(achievement, categories).slug === textOf(item.subtitle)).length;
+    if (count) {
+      setMessage({ text: `该分类下仍有 ${count} 条成果，请先调整成果分类后再删除。`, type: 'error' });
+      return;
+    }
+    if (!window.confirm(`确认删除分类“${item.title || '该成果分类'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    setMessage(null);
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (categoryForm.id === item.id) resetCategoryForm();
+      if (categorySlug === textOf(item.subtitle)) setCategorySlug('');
+      setMessage({ text: '该成果分类已删除。', type: 'success' });
+      await loadAll();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '删除成果分类失败。', type: 'error' });
+    }
+  };
+
   const save = async (event: FormEvent) => {
     event.preventDefault();
     const title = textOf(form.title).trim();
@@ -345,6 +364,19 @@ export function BusinessInnovationManager() {
     };
   };
 
+  const removeAchievement = async (item: PageContentItem) => {
+    if (!window.confirm(`确认删除“${item.title || '该创新成果'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    setMessage(null);
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (form.id === item.id) resetForm();
+      setMessage({ text: '该创新成果已删除。', type: 'success' });
+      await loadAll();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '删除创新成果失败。', type: 'error' });
+    }
+  };
+
   const toggleStatus = async (item: PageContentItem) => {
     const nextStatus = item.status === 'enabled' ? 'disabled' : 'enabled';
     if (nextStatus === 'disabled' && !window.confirm('确认停用这条创新成果？停用后将不再显示在前台。')) return;
@@ -400,6 +432,7 @@ export function BusinessInnovationManager() {
               <div className="table-actions leadership-admin-actions">
                 <button className="text-button" type="button" onClick={() => editCategory(item)}>编辑</button>
                 <button className={`text-button${item.status === 'enabled' ? ' is-danger' : ''}`.trim()} type="button" onClick={() => void toggleCategory(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                <button className="text-button is-danger" type="button" onClick={() => void removeCategory(item)}>删除</button>
               </div>
             </article>
           );
@@ -456,6 +489,7 @@ export function BusinessInnovationManager() {
               <div className="table-actions leadership-admin-actions">
                 <button className="text-button" type="button" onClick={() => edit(item)}>编辑</button>
                 <button className={`text-button${item.status === 'enabled' ? ' is-danger' : ''}`.trim()} type="button" onClick={() => void toggleStatus(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                <button className="text-button is-danger" type="button" onClick={() => void removeAchievement(item)}>删除</button>
               </div>
             </article>
           );

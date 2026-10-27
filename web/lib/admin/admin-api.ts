@@ -435,6 +435,9 @@ export const AdminApi = {
   setDownloadCategoryEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/download-categories/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
     method: 'PATCH',
   }),
+  deleteDownloadCategory: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/download-categories/${encodeURIComponent(id)}`, params), {
+    method: 'DELETE',
+  }),
   downloads: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/downloads', params)),
   download: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/downloads/${encodeURIComponent(id)}`, params)),
   createDownload: (payload: unknown, params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/downloads', params), {
@@ -447,6 +450,9 @@ export const AdminApi = {
   }),
   setDownloadEnabled: (id: string, enabled: boolean, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/downloads/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`, params), {
     method: 'PATCH',
+  }),
+  deleteDownload: (id: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/downloads/${encodeURIComponent(id)}`, params), {
+    method: 'DELETE',
   }),
   pageModules: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/page-modules', params)),
   pageModulesGrouped: (params: AdminQuery = {}) => adminFetch(withQuery('/admin-api/page-modules/grouped', params)),

@@ -1974,6 +1974,17 @@ const handleLocalDownloadCategoryRoute = async (request: NextRequest, path: stri
     return NextResponse.json({ data: mapDownloadCategory(result.data || { id }) });
   }
 
+  if (!action && request.method === 'DELETE') {
+    const existing = await getDownloadRecord(id, downloadCategoryItemType, token);
+    const slug = downloadText(existing.subtitle);
+    const resources = await readDownloadRows(downloadResourceItemType, token);
+    if (resources.some((row) => downloadText(row.subtitle) === slug)) {
+      throw Object.assign(new Error('该分类下仍有资料，请先删除或调整资料分类。'), { status: 409 });
+    }
+    await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
+  }
+
   return null;
 };
 
@@ -2035,6 +2046,12 @@ const handleLocalDownloadRoute = async (request: NextRequest, path: string[]) =>
       status: action === 'enable' ? 'enabled' : 'disabled',
     });
     return NextResponse.json({ data: mapDownloadResource(result.data || { id }) });
+  }
+
+  if (!action && request.method === 'DELETE') {
+    await getDownloadRecord(id, downloadResourceItemType, token);
+    await directusJsonRequest(`/items/page_content_items/${encodeURIComponent(id)}`, token, 'DELETE');
+    return NextResponse.json({ data: { id, deleted: true } });
   }
 
   return null;

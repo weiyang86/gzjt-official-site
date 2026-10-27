@@ -252,6 +252,19 @@ export function TrainingResourceManager() {
     }
   };
 
+  const remove = async (item: PageContentItem) => {
+    if (!window.confirm(`确认删除“${item.title || '该培训资源'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    setMessage(null);
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (form.id === item.id) setForm(emptyResource());
+      setMessage({ text: '该培训资源已删除。', type: 'success' });
+      await loadItems();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '删除失败，请稍后重试。', type: 'error' });
+    }
+  };
+
   const move = async (item: PageContentItem, offset: number) => {
     const index = items.findIndex((current) => current.id === item.id);
     const targetIndex = index + offset;
@@ -353,6 +366,7 @@ export function TrainingResourceManager() {
                 <button className="text-button" type="button" disabled={movingId !== '' || index === items.length - 1} onClick={() => void move(item, 1)}>下移</button>
                 <button className="text-button" type="button" onClick={() => edit(item)}>编辑</button>
                 <button className={`text-button${item.status === 'enabled' ? ' is-danger' : ''}`} type="button" onClick={() => void toggleStatus(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
+                <button className="text-button is-danger" type="button" onClick={() => void remove(item)}>删除</button>
               </div>
             </article>
           );
