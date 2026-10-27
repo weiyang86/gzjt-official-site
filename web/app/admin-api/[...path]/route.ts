@@ -4,7 +4,7 @@ import path from 'node:path';
 import { NextResponse, type NextRequest } from 'next/server';
 import { allAdminMenuKeys, adminMenuItems, menuKeysWithDashboard, type AdminMenuKey } from '@/lib/admin/menu-permissions';
 import { AdminSsoError, normalizeAdminTargetUrl, parseAdminSsoCredential } from '@/lib/admin/sso';
-import { createArticlePreviewPath } from '@/lib/preview/article-preview';
+import { createArticleIdPreviewPath } from '@/lib/preview/article-preview';
 import { contactInfoModuleCode, normalizeMapEmbedUrl } from '@/lib/cms/homepage-layout';
 import { getPublicContactInfo } from '@/lib/cms/public-content';
 import { cmsPublicFetch } from '@/lib/cms/client';
@@ -1066,21 +1066,21 @@ const getChannelDetail = async (id: string, token: string) => {
   }
 };
 
-const getScopedArticleDetail = async (id: string, scope: 'news' | 'notice', token: string) => {
+const getScopedArticleDetail = async (id: string, scope: 'news' | 'notice' | undefined, token: string) => {
   const detail = await directusJsonRequest<{ data?: { main_channel?: ArticleChannelValue } & Record<string, unknown> }>(
     getArticleDetailPath(id),
     token,
   );
   let current = detail.data || null;
   if (!current) {
-    throw Object.assign(new Error(scopedArticleNotFoundMessage(scope)), { status: 404 });
+    throw Object.assign(new Error(scope ? scopedArticleNotFoundMessage(scope) : '未找到该文章或当前账号无权限查看。'), { status: 404 });
   }
 
   const noticeChannels = await getNoticeChannels(token);
   const noticeChannelIds = new Set(noticeChannels.map((item) => String(item.id || '')).filter(Boolean));
   const mainChannelIds = getArticleChannelIds(current.main_channel);
   const isNoticeArticle = mainChannelIds.some((channelId) => noticeChannelIds.has(channelId));
-  if ((scope === 'notice' && !isNoticeArticle) || (scope !== 'notice' && isNoticeArticle)) {
+  if (scope && (scope === 'notice') !== isNoticeArticle) {
     throw Object.assign(new Error(scopedArticleNotFoundMessage(scope)), { status: 404 });
   }
 
@@ -1659,8 +1659,8 @@ const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => 
   }
 
   if (action === 'preview-link' && request.method === 'GET') {
-    const { isNoticeArticle } = await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
-    const url = createArticlePreviewPath(id, isNoticeArticle ? 'notice' : 'news');
+    await getScopedArticleDetail(id, undefined, serviceToken);
+    const url = createArticleIdPreviewPath(id);
     return NextResponse.json({ data: { url } });
   }
 

@@ -45,6 +45,11 @@ export const buildArticlePreviewPath = (id: string, scope: PreviewScope, expires
   return `/preview/article?${params.toString()}`;
 };
 
+export const createArticleIdPreviewPath = (id: string) => {
+  const params = new URLSearchParams({ id });
+  return `/preview/article?${params.toString()}`;
+};
+
 export const createArticlePreviewPath = (id: string, scope: PreviewScope) => {
   const expiresAt = Date.now() + previewTtlMs;
   const signature = createSignature(buildPayload(id, scope, expiresAt));
