@@ -183,6 +183,16 @@ export default async function TrainingResourcesPage() {
               <ResourceSection title="外部学习链接" kicker="LEARNING LINKS">
                 <LinkCards items={links} />
               </ResourceSection>
+            ) : resources.length && !loadError ? (
+              <ResourceSection title="外部学习链接" kicker="LEARNING LINKS">
+                <div className="card" role="status">
+                  <div className="card-pad">
+                    <div className="pill">暂无内容</div>
+                    <div style={resourceTitleStyle}>暂无外部学习链接</div>
+                    <p style={{ ...resourceMetaStyle, lineHeight: 1.9 }}>网站编辑可在后台“页面内容管理 → 党建群团 → 培训资源”中新增“外部学习链接”并填写学习地址。</p>
+                  </div>
+                </div>
+              </ResourceSection>
             ) : null}
           </div>
         </section>

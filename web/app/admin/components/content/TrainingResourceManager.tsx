@@ -331,7 +331,7 @@ export function TrainingResourceManager() {
       </section>
 
       <section className="table-card leadership-list-card">
-        <div className="section-title-row"><div><p className="eyebrow">TRAINING RESOURCES</p><h2>培训资源列表</h2></div><span className="leadership-list-count">共 {items.length} 条</span></div>
+        <div className="section-title-row"><div><p className="eyebrow">TRAINING RESOURCES</p><h2>培训资源列表</h2></div><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><button className="secondary-button" type="button" onClick={() => { setForm({ ...emptyResource(), item_type: 'link' }); setMessage(null); }}>新增外部学习链接</button><span className="leadership-list-count">共 {items.length} 条</span></div></div>
         {isLoading ? <p className="muted-text">正在加载培训资源…</p> : items.length ? <div className="leadership-admin-list">{items.map((item, index) => {
           const itemKind = textOf(item.item_type);
           const itemExtra = extraOf(item.extra_json);
