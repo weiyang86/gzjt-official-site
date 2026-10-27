@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Article, BusinessSector, PageModuleItem } from '@/types/cms';
+import type { Article, BusinessSector, PageModuleItem, Topic } from '@/types/cms';
 import type { ContactInfoConfig, HomepageLayoutConfig, HomepageSectionId } from '@/lib/cms/homepage-layout';
 
 type Props = {
   children: ReactNode;
   articles: Article[];
-  cultureArticles: Article[];
+  cultureArticles: Topic[];
   cultureItems: PageModuleItem[];
   sectors: BusinessSector[];
   qrs: Array<{ id: string; title: string; image: string; sort: number }>;
@@ -125,7 +125,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
           {cultureArticles.length ? (
             <div className="home-culture-block">
               <p className="home-culture-block-title">专题专栏</p>
-              <div className="home-topic-grid">{cultureArticles.slice(0, layout.cultureItemCount).map((article) => <a href={articleHref(article)} key={article.id}><span>专题专栏</span><h3>{article.title}</h3><p>{article.subtitle || article.summary || ''}</p><b>查看内容　→</b></a>)}</div>
+              <div className="home-topic-grid">{cultureArticles.slice(0, layout.cultureItemCount).map((topic) => <a href={`/topics/${encodeURIComponent(topic.slug)}`} key={topic.id}><span>专题专栏</span><h3>{topic.title}</h3><p>{topic.subtitle || topic.summary || ''}</p><b>查看内容　→</b></a>)}</div>
             </div>
           ) : null}
           {!cultureItems.length && !cultureArticles.length ? <p className="home-empty">暂无已发布的企业文化与专题内容</p> : null}

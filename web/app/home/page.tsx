@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Drawer, Header } from '../news/components';
 import HomepageExperience from '../homepage/HomepageExperience';
-import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicHomeStats, getPublicPageModuleItems, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings } from '@/lib/cms';
+import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicHomeStats, getPublicPageModuleItems, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings, getPublicTopics } from '@/lib/cms';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 
 export const dynamic = 'force-dynamic';
@@ -14,10 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const topicQuery = new URLSearchParams({ scope: 'news', channelSlug: 'party-mass', limit: '12' });
-  const [articlePayload, topicPayload, cultureItems, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo] = await Promise.all([
+  const [articlePayload, topics, cultureItems, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo] = await Promise.all([
     getPublicArticles(new URLSearchParams({ page: '1', pageSize: '12' })).catch(() => ({ page: 1, pageSize: 12, total: 0, items: [] })),
-    getPublicArticles(topicQuery).catch(() => ({ page: 1, pageSize: 12, total: 0, items: [] })),
+    getPublicTopics().catch(() => []),
     getPublicPageModuleItems('corporate-culture', 'culture').catch(() => []),
     getPublicBusinessSectors().catch(() => []),
     getPublicPlatformQrs().catch(() => []),
@@ -44,7 +43,7 @@ export default async function HomePage() {
       <link rel="stylesheet" href="/legacy-static/homepage-experience.css" />
       <HomepageExperience
         articles={articlePayload.items}
-        cultureArticles={topicPayload.items}
+        cultureArticles={topics}
         cultureItems={cultureItems}
         sectors={sectors}
         qrs={qrs}
