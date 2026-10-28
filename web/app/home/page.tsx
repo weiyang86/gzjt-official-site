@@ -54,8 +54,8 @@ export default async function HomePage() {
         layout={layout}
         contactInfo={contactInfo}
       >
-        <Header active="home" homeHref="/home" />
-        <Drawer active="home" homeHref="/home" />
+        <Header key="home-header" active="home" homeHref="/home" />
+        <Drawer key="home-drawer" active="home" homeHref="/home" />
       </HomepageExperience>
     </>
   );

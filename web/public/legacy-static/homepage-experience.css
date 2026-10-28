@@ -1,8 +1,8 @@
 html:has(.home-experience), html:has(.home-experience) body{height:100%;overflow:hidden;padding:0!important}
-.home-experience{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior-y:contain;scroll-behavior:smooth;background:#071b32;color:#fff}
+.home-experience{position:fixed;inset:0;overflow:hidden;scrollbar-width:none;overscroll-behavior: none;background:#071b32;color:#fff}
 .home-experience::-webkit-scrollbar{display:none}
-.home-screen{position:relative;min-height:100svh;height:100svh;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;padding:90px 5vw 118px;background-size:cover;background-position:center}
-.home-screen::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(7,25,47,.92),rgba(13,52,84,.82));z-index:0}
+.home-screen{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .65s ease,visibility 0s linear .65s;min-height:100svh;height:100svh;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:90px 5vw 118px;background-size:cover;background-position:center}
+.home-screen::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(7,25,47,.28),rgba(13,52,84,.22));z-index:0}
 .home-screen-inner,.home-hero-copy{position:relative;z-index:1;width:min(1320px,100%);margin:0 auto}
 .home-screen--hero{background-image:linear-gradient(90deg,rgba(5,20,39,.76),rgba(7,28,50,.42)),url('/img/index_bg.png');background-position:center;background-size:cover;justify-content:flex-start;padding-left:max(7vw,40px)}
 .home-screen--hero::before{background:linear-gradient(90deg,rgba(3,18,37,.68),rgba(3,18,37,.1)),linear-gradient(0deg,rgba(3,18,37,.35),transparent 55%)}
@@ -45,13 +45,23 @@ html:has(.home-experience), html:has(.home-experience) body{height:100%;overflow
 .home-hero-copy .home-hero-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.26;max-height:2.52em;overflow-wrap:anywhere;text-overflow:ellipsis}
 .home-hero-copy .home-hero-subtitle{margin:-12px 0 26px;color:rgba(255,255,255,.82);font-size:clamp(16px,2vw,24px);line-height:1.6;letter-spacing:.08em;text-shadow:0 4px 20px #06192e}
 @media(max-width:540px){.home-hero-copy .home-hero-title{max-height:2.48em}.home-hero-copy .home-hero-subtitle{margin:-8px 0 20px;font-size:16px}}
-.home-screen--hero::before{z-index:1;background:linear-gradient(90deg,rgba(3,18,37,.56),rgba(3,18,37,.62)),linear-gradient(0deg,rgba(3,18,37,.36),transparent 55%)}
+.home-screen--hero::before{z-index:1;background:linear-gradient(90deg,rgba(3,18,37,.3),rgba(3,18,37,.24)),linear-gradient(0deg,rgba(3,18,37,.18),transparent 55%)}
 .home-experience .site-header{top:0;bottom:auto;border-top:0;border-bottom:1px solid rgba(255,255,255,.4);box-shadow:0 12px 30px rgba(5,22,42,.2)}
 .home-experience .site-header::before{top:auto;bottom:-2px}
 .home-experience .site-header .nav-dropdown{top:calc(100% + 8px);bottom:auto}
 .home-experience .site-header .nav{overflow:visible}
 @media(max-width:1100px){.home-experience .site-header .nav{display:none}.home-experience .site-header .header-actions{display:flex;margin-left:auto}.home-experience .site-header .menu-toggle{display:inline-flex}}
 .home-hero-backdrop{position:absolute;inset:-4px;z-index:0;background-size:cover;background-position:center;filter:blur(2px) brightness(.72);transform:scale(1.012)}
+.home-hero-backdrop{opacity:1;transition:opacity .75s ease}.home-hero-backdrop.is-fade-pending{opacity:0}.home-hero-backdrop.is-fading-out{opacity:0}.home-hero-backdrop.is-fading-in{opacity:1}
+.home-hero-dots--banner{position:absolute;left:max(7vw,40px);bottom:clamp(82px,12vh,140px);z-index:3;margin:0}
+.home-screen--business .home-section-heading h2{color:#fff;text-shadow:0 2px 4px rgba(5,20,39,.85),0 6px 20px rgba(5,20,39,.72)}
+@media(prefers-reduced-motion:reduce){.home-hero-backdrop{transition:none}}
+.home-experience .home-screen,.home-experience .home-hero-backdrop{background-size:cover;background-position:50% 50%}
+.home-screen--news .home-section-heading h2{color:#fff;text-shadow:0 2px 4px rgba(5,20,39,.85),0 6px 20px rgba(5,20,39,.72)}
+.home-screen--business .home-screen-inner{margin-block:auto}
+.home-experience .site-header{animation:home-nav-drop-in .8s cubic-bezier(.2,.72,.25,1) both}
+@keyframes home-nav-drop-in{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.home-experience .site-header{animation:none}}
 .home-hero-copy,.home-hero-down{z-index:2}
 .home-hero-banner-hit-area{position:absolute;inset:0 0 74px;z-index:1}
 .home-news-card{background-image:none!important;background-color:#123d61}
@@ -64,3 +74,7 @@ html:has(.home-experience), html:has(.home-experience) body{height:100%;overflow
 @media(max-width:760px){.homepage-admin-layout{grid-template-columns:1fr}.homepage-preview-panel{position:static;grid-row:1}.homepage-preview-window{aspect-ratio:16/7}.homepage-copy-settings--compact{grid-template-columns:1fr}.homepage-selected-banner .homepage-banner-fields{grid-template-columns:1fr}.homepage-selected-banner .homepage-banner-image>img,.homepage-selected-banner .homepage-banner-image>.homepage-background-empty{height:120px}.homepage-config-tabs{margin-top:10px}}
 .home-culture-block{margin-top:22px}.home-culture-block:first-of-type{margin-top:0}.home-culture-block-title{margin:0 0 12px;color:#ebc871;font-size:12px;letter-spacing:.16em}.home-culture-values{display:flex;gap:10px;overflow-x:auto;padding:0 2px 6px;scrollbar-width:thin}.home-culture-values a{flex:0 0 auto;min-width:150px;max-width:230px;padding:13px 16px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.08);transition:background .2s,transform .2s}.home-culture-values a:hover{background:rgba(255,255,255,.15);transform:translateY(-2px)}.home-culture-values span{display:block;color:#ebc871;font-size:12px;margin-bottom:7px}.home-culture-values strong{display:-webkit-box;color:#fff;font-size:14px;font-weight:600;line-height:1.55;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media(max-width:540px){.home-culture-block{margin-top:16px}.home-culture-values a{min-width:132px;padding:11px 13px}}
+
+/* 分屏叠放，通过透明度切换；隐藏屏不接收点击或键盘焦点。 */
+.home-screen.is-active{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+@media(prefers-reduced-motion:reduce){.home-screen{transition:none}}
