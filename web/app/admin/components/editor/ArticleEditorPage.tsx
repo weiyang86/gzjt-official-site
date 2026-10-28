@@ -203,6 +203,7 @@ const emptyArticle = (): ArticleEditorRow => ({
 export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const isNotice = scope === 'notice';
   const [articleId, setArticleId] = useState('');
+  const [channelSlug, setChannelSlug] = useState('');
   const [form, setForm] = useState<ArticleEditorRow>(() => emptyArticle());
   const [channels, setChannels] = useState<Channel[]>([]);
   const [navigationChannels, setNavigationChannels] = useState<Channel[]>([]);
@@ -229,7 +230,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     eyebrow: isNotice ? 'Notice Editor' : 'Article Editor',
     createTitle: isNotice ? '新增公示公告' : '新增新闻',
     editTitle: isNotice ? '编辑公示公告' : '编辑新闻',
-    listHref: isNotice ? '/admin/notice-articles' : '/admin/articles',
+    listHref: `${isNotice ? '/admin/notice-articles' : '/admin/articles'}${channelSlug ? `?channel=${encodeURIComponent(channelSlug)}` : ''}`,
     categoryHref: isNotice ? '/admin/notice-categories' : '/admin/categories',
     saveText: isNotice ? '公示公告已保存。' : '新闻已保存。',
     publishText: isNotice ? '公示公告已发布。' : '新闻已发布。',
@@ -237,7 +238,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     coverHelp: isNotice ? '上传成功后会写入公示公告 cover 字段，文件保存在 Directus File Library。' : '上传成功后会写入文章 cover 字段，文件保存在 Directus File Library。',
     coverAlt: isNotice ? '公示公告封面预览' : '新闻封面预览',
     attachmentHelp: isNotice ? '支持上传 PDF、Word、Excel 作为公告附件，前台详情页可下载查看。' : '支持上传 PDF、Word、Excel 作为新闻附件，前台详情页可下载查看。',
-  }), [isNotice]);
+  }), [isNotice, channelSlug]);
 
   const selectedChannelIds = useMemo(() => (form.main_channels || [])
     .map((channel) => typeof channel === 'object' ? channel.id : channel)
@@ -392,7 +393,9 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     let isMounted = true;
     const params = new URLSearchParams(window.location.search);
     const nextArticleId = params.get('id') || '';
+    const initialChannelSlug = params.get('channel') || '';
     setArticleId(nextArticleId);
+    setChannelSlug(initialChannelSlug);
 
     const loadInitialData = async () => {
       setIsLoading(true);
@@ -439,6 +442,10 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           setCoverPreview(coverId ? `/admin-api/assets/${encodeURIComponent(coverId)}` : '');
           updateAttachments(normalizeAttachmentEntries(article.attachments));
           if (editorRef.current) editorRef.current.setHtml(article.content || '<p></p>');
+        } else if (initialChannelSlug) {
+          // 从社会责任等固定栏目列表进入新增时，自动预选对应栏目。
+          const initialChannel = channelRows.find((item) => String(item.slug || '') === initialChannelSlug);
+          if (initialChannel?.id) setChannelIds([String(initialChannel.id)]);
         }
       } catch (err) {
         if (!isMounted) return;

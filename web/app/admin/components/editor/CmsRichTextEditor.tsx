@@ -201,6 +201,9 @@ export function CmsRichTextEditor({
     Promise.all([
       import('@ckeditor/ckeditor5-react'),
       import('@ckeditor/ckeditor5-build-decoupled-document'),
+      // 仅配置 language 不会自动加载翻译包；先注册中文词典，工具栏提示和下拉文案才会显示中文。
+      // @ts-expect-error CKEditor 5 翻译包未提供类型声明，导入仅用于注册 window.CKEDITOR_TRANSLATIONS。
+      import('@ckeditor/ckeditor5-build-decoupled-document/build/translations/zh-cn'),
     ])
       .then(([reactMod, buildMod]) => {
         if (cancelled) return;
@@ -226,6 +229,8 @@ export function CmsRichTextEditor({
       licenseKey: 'GPL',
       language: 'zh-cn',
       placeholder,
+      // 默认 offset 为 40px；改为 32px 约等于两个 16px 中文字符的宽度。
+      indentBlock: { offset: 32, unit: 'px' },
       toolbar: { items: toolbar, shouldNotGroupWhenFull: true },
       image: {
         styles: ['alignLeft', 'alignCenter', 'alignRight'],

@@ -119,6 +119,20 @@ export function LeadershipManager() {
     }
   };
 
+  const removeItem = async (item: PageContentItem) => {
+    if (!item.id) return;
+    if (!window.confirm(`确认删除“${item.title || '该领导致辞'}”？删除后不可恢复，只想在前台隐藏请改用停用。`)) return;
+    setMessage(null);
+    try {
+      await AdminApi.deletePageContentItem(item.id);
+      if (form.id === item.id) setForm(emptyLeader());
+      setMessage({ text: '领导致辞已删除。', type: 'success' });
+      await loadItems();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '删除失败，请稍后重试。', type: 'error' });
+    }
+  };
+
   return (
     <div className="leadership-admin">
       <section className="editor-card">
@@ -160,6 +174,7 @@ export function LeadershipManager() {
             <div className="table-actions leadership-admin-actions">
               <button className="text-button" type="button" onClick={() => edit(item)}>编辑</button>
               {item.status === 'enabled' ? <button className="text-button is-danger" type="button" onClick={() => void disable(item.id)}>停用</button> : null}
+              <button className="text-button is-danger" type="button" onClick={() => void removeItem(item)}>删除</button>
             </div>
           </article>
         ))}</div> : <div className="navigation-empty"><span>✦</span><strong>暂无领导致辞</strong><small>新增并启用后，内容会显示在官网领导致辞页面。</small></div>}

@@ -17,6 +17,7 @@ import { SocialResponsibilityManager } from './SocialResponsibilityManager';
 import { RecruitmentManager } from './RecruitmentManager';
 import { DownloadManager } from './DownloadManager';
 import { ArticleOwnershipManagerPage } from '../navigation/ArticleOwnershipManagerPage';
+import { ArticleListPage } from '../lists/ArticleListPage';
 
 const statusOptions = [
   { value: 'draft', label: '草稿' },
@@ -127,6 +128,88 @@ const corporateCultureModule: PageModule = {
   dev_status: 'enabled',
   status: 'enabled',
   sort: 106,
+};
+
+/**
+ * 社会责任四个子栏目在前台导航和 channels 表中已存在，内容保存在 articles 表。
+ * 后台此前只有乡村振兴、志愿服务两个占位模块，这里补齐为四个真实文章栏目，
+ * module_code 直接使用栏目 slug，保证与新闻管理查询、前台 /news?channel= 展示一致。
+ */
+const responsibilityArticleModules: PageModule[] = [
+  {
+    id: 'responsibility-emergency-rescue',
+    parent_title: '社会责任',
+    parent_code: 'responsibility',
+    module_title: '抢险救灾',
+    module_code: 'responsibility-emergency-rescue',
+    route_path: '/news',
+    content_type: 'article_list',
+    admin_enabled: true,
+    dev_status: 'enabled',
+    status: 'enabled',
+    sort: 702,
+  },
+  {
+    id: 'responsibility-rural-revitalization',
+    parent_title: '社会责任',
+    parent_code: 'responsibility',
+    module_title: '乡村振兴',
+    module_code: 'responsibility-rural-revitalization',
+    route_path: '/news',
+    content_type: 'article_list',
+    admin_enabled: true,
+    dev_status: 'enabled',
+    status: 'enabled',
+    sort: 703,
+  },
+  {
+    id: 'responsibility-volunteer-service',
+    parent_title: '社会责任',
+    parent_code: 'responsibility',
+    module_title: '志愿服务',
+    module_code: 'responsibility-volunteer-service',
+    route_path: '/news',
+    content_type: 'article_list',
+    admin_enabled: true,
+    dev_status: 'enabled',
+    status: 'enabled',
+    sort: 704,
+  },
+  {
+    id: 'responsibility-public-welfare',
+    parent_title: '社会责任',
+    parent_code: 'responsibility',
+    module_title: '社会公益',
+    module_code: 'responsibility-public-welfare',
+    route_path: '/news',
+    content_type: 'article_list',
+    admin_enabled: true,
+    dev_status: 'enabled',
+    status: 'enabled',
+    sort: 705,
+  },
+];
+const responsibilityArticleModuleCodes = new Set(responsibilityArticleModules.map((module) => String(module.module_code || '')));
+const isResponsibilityArticleModule = (module: PageModule) => responsibilityArticleModuleCodes.has(String(module.module_code || ''));
+
+const withResponsibilityArticleModules = (groups: PageModuleGroup[]) => {
+  // 旧种子中的乡村振兴、志愿服务使用历史编码且未开放后台，统一由上方四个真实栏目模块替代。
+  const replacedCodes = new Set(['rural-revitalization', 'volunteer-service']);
+  const buildChildren = (children: PageModule[] = []) => [
+    ...children.filter((module) => {
+      const code = String(module.module_code || '');
+      return !replacedCodes.has(code) && !responsibilityArticleModuleCodes.has(code);
+    }),
+    ...responsibilityArticleModules,
+  ];
+  const isResponsibilityGroup = (group: PageModuleGroup) => group.parent_code === 'responsibility' || group.parent_title === '社会责任';
+  const groupIndex = groups.findIndex(isResponsibilityGroup);
+  if (groupIndex < 0) {
+    return [...groups, { parent_title: '社会责任', parent_code: 'responsibility', children: buildChildren() }];
+  }
+  return groups.map((group, index) => index === groupIndex
+    ? { ...group, children: buildChildren(group.children || group.modules || []) }
+    : group);
 };
 
 const withHonorsModule = (groups: PageModuleGroup[]) => {
@@ -1373,6 +1456,10 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
         </>
       );
     }
+    if (isResponsibilityArticleModule(module)) {
+      // 社会责任子栏目与新闻管理共用 articles 表，直接在当前页面内嵌文章列表，避免再跳转。
+      return <ArticleListPage scope="news" fixedChannel={getArticleChannelSlug(module)} title={module.module_title} embedded />;
+    }
     return (
       <section className="notice-card">
         <p className="eyebrow">{module.content_type}</p>
@@ -1422,6 +1509,10 @@ export function ContentManagerPage() {
       setSelectedModule(moduleCode === honorsModuleCode ? honorsModule : corporateCultureModule);
       return;
     }
+    if (responsibilityArticleModuleCodes.has(moduleCode)) {
+      setSelectedModule(responsibilityArticleModules.find((module) => module.module_code === moduleCode) || null);
+      return;
+    }
     if ([publicPlatformQrModuleCode, homepageLayoutModuleCode, contactInfoModuleCode, trainingResourceModuleCode, businessInnovationModuleCode].includes(moduleCode)) {
       const module = moduleCode === homepageLayoutModuleCode
         ? homepageLayoutModule
@@ -1456,7 +1547,7 @@ export function ContentManagerPage() {
     AdminApi.contentModuleTree()
       .then((result) => {
         if (!isMounted) return;
-        const rows = withCorporateCultureModule(withHonorsModule((result.data || []) as PageModuleGroup[]));
+        const rows = withResponsibilityArticleModules(withCorporateCultureModule(withHonorsModule((result.data || []) as PageModuleGroup[])));
         const nextRows = rows.map((group) => ({ ...group, children: [...(group.children || group.modules || [])] }));
         [trainingResourceModule, businessInnovationModule].forEach((module) => {
           const groupIndex = nextRows.findIndex((group) => group.parent_code === module.parent_code);

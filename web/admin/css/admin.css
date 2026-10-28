@@ -1614,6 +1614,12 @@ code {
   gap: 20px;
 }
 
+/* 社会责任等栏目在页面内容管理中内嵌文章列表时，复用列表卡片但去掉后台主内容区的额外内边距。 */
+.article-list-embedded {
+  display: grid;
+  gap: 20px;
+}
+
 .content-form-card,
 .timeline-editor-card {
   box-shadow: none;

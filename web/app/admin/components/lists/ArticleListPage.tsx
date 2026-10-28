@@ -11,7 +11,17 @@ const channelNames = (channels?: Channel[], fallback?: Channel) => {
   return values.map((channel) => channel.name || channel.slug || channel.id).filter(Boolean).join('、') || '-';
 };
 
-export function ArticleListPage({ scope }: { scope: AdminScope }) {
+export function ArticleListPage({
+  scope,
+  fixedChannel = '',
+  title = '',
+  embedded = false,
+}: {
+  scope: AdminScope;
+  fixedChannel?: string;
+  title?: string;
+  embedded?: boolean;
+}) {
   const isNotice = scope === 'notice';
   const [keyword, setKeyword] = useState('');
   const [channel, setChannel] = useState('');
@@ -29,27 +39,34 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const limit = 10;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  const copy = useMemo(() => ({
-    title: isNotice ? '公示公告管理' : '新闻管理',
-    eyebrow: isNotice ? 'Notice Articles' : 'Articles',
-    heading: isNotice ? '公示公告列表' : '新闻列表',
-    empty: isNotice ? '暂无公示公告，请点击“新增公示公告”创建。' : '暂无新闻，请点击“新增新闻”创建。',
-    loading: isNotice ? '正在加载公示公告...' : '正在加载...',
-    error: isNotice ? '公示公告列表加载失败' : '新闻列表加载失败',
-    createLabel: isNotice ? '新增公示公告' : '新增新闻',
-    createHref: isNotice ? '/admin/notice-edit' : '/admin/article-edit',
-    categoriesHref: isNotice ? '/admin/notice-categories' : '/admin/categories',
-    editHref: (id: string) => isNotice ? `/admin/notice-edit?id=${encodeURIComponent(id)}` : `/admin/article-edit?id=${encodeURIComponent(id)}`,
-    confirmArchive: isNotice ? '确认归档这条公示公告？' : '确认归档这条新闻？',
-    confirmStatus: isNotice ? '确认修改公示公告状态？' : '确认修改新闻状态？',
-    confirmDelete: isNotice ? '确认删除这条公示公告？删除后不可恢复。' : '确认删除这条新闻？删除后不可恢复。',
-    deleteSuccess: isNotice ? '公示公告已删除。' : '新闻已删除。',
-    previewDialogTitle: isNotice ? '公示公告预览' : '新闻预览',
-    previewLoading: isNotice ? '正在加载公示公告预览...' : '正在加载新闻预览...',
-    previewEmpty: isNotice ? '暂无可预览内容。' : '暂无可预览内容。',
-    previewNotFound: isNotice ? '未找到该公告或当前账号无权限查看。' : '未找到该新闻或当前账号无权限查看。',
-    openPreviewLink: isNotice ? '打开游客预览页' : '打开游客预览页',
-  }), [isNotice]);
+  const copy = useMemo(() => {
+    const createBase = isNotice ? '/admin/notice-edit' : '/admin/article-edit';
+    const channelQuery = fixedChannel ? `channel=${encodeURIComponent(fixedChannel)}` : '';
+    const withChannel = (query: string) => [query, channelQuery].filter(Boolean).join('&');
+    return {
+      title: fixedChannel ? (title ? `${title}管理` : '栏目文章管理') : isNotice ? '公示公告管理' : '新闻管理',
+      eyebrow: fixedChannel ? 'Responsibility Articles' : isNotice ? 'Notice Articles' : 'Articles',
+      heading: fixedChannel ? `${title || '栏目'}文章列表` : isNotice ? '公示公告列表' : '新闻列表',
+      empty: fixedChannel
+        ? `暂无${title || '栏目'}文章，请点击“新增文章”创建。`
+        : isNotice ? '暂无公示公告，请点击“新增公示公告”创建。' : '暂无新闻，请点击“新增新闻”创建。',
+      loading: isNotice ? '正在加载公示公告...' : '正在加载...',
+      error: isNotice ? '公示公告列表加载失败' : '新闻列表加载失败',
+      createLabel: fixedChannel ? '新增文章' : isNotice ? '新增公示公告' : '新增新闻',
+      createHref: channelQuery ? `${createBase}?${channelQuery}` : createBase,
+      categoriesHref: isNotice ? '/admin/notice-categories' : '/admin/categories',
+      editHref: (id: string) => `${createBase}?${withChannel(`id=${encodeURIComponent(id)}`)}`,
+      confirmArchive: isNotice ? '确认归档这条公示公告？' : '确认归档这条新闻？',
+      confirmStatus: isNotice ? '确认修改公示公告状态？' : '确认修改新闻状态？',
+      confirmDelete: isNotice ? '确认删除这条公示公告？删除后不可恢复。' : '确认删除这条新闻？删除后不可恢复。',
+      deleteSuccess: isNotice ? '公示公告已删除。' : '新闻已删除。',
+      previewDialogTitle: isNotice ? '公示公告预览' : '新闻预览',
+      previewLoading: isNotice ? '正在加载公示公告预览...' : '正在加载新闻预览...',
+      previewEmpty: isNotice ? '暂无可预览内容。' : '暂无可预览内容。',
+      previewNotFound: isNotice ? '未找到该公告或当前账号无权限查看。' : '未找到该新闻或当前账号无权限查看。',
+      openPreviewLink: isNotice ? '打开游客预览页' : '打开游客预览页',
+    };
+  }, [isNotice, fixedChannel, title]);
 
   const loadChannels = async () => {
     const result = await AdminApi.channels({ scope });
@@ -85,13 +102,15 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   useEffect(() => {
     // 支持从页面模块管理跳转后直接选中新闻栏目。
     // 若以后恢复党建群团、业务动态独立页，仍可保留这项通用的 URL 筛选能力。
-    const initialChannel = new URLSearchParams(window.location.search).get('channel') || '';
+    // 固定栏目模式（社会责任子栏目）直接锁定栏目，不再读取 URL 中的 channel。
+    const initialChannel = fixedChannel || new URLSearchParams(window.location.search).get('channel') || '';
     setChannel(initialChannel);
-    loadChannels()
+    const boot = fixedChannel ? Promise.resolve() : loadChannels();
+    boot
       .then(() => loadArticles(1, initialChannel))
       .catch((err) => setMessage({ text: err instanceof Error ? err.message : '页面初始化失败', type: 'error' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope]);
+  }, [scope, fixedChannel]);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -152,9 +171,10 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
   const previewHref = previewShareUrl
     ? (typeof window === 'undefined' ? previewShareUrl : new URL(previewShareUrl, window.location.origin).toString())
     : '';
+  const RootTag = embedded ? 'div' : 'main';
 
   return (
-    <main className="dashboard-content">
+    <RootTag className={embedded ? 'article-list-embedded' : 'dashboard-content'}>
       <section className="notice-card">
         <div className="section-title-row">
           <div>
@@ -163,7 +183,7 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
           </div>
           <div className="toolbar-actions">
             <a className="secondary-button" href={copy.categoriesHref}>分类管理</a>
-            <a className="secondary-button" href="/admin/content">页面内容管理</a>
+            {embedded ? null : <a className="secondary-button" href="/admin/content">页面内容管理</a>}
             <a className="primary-link-button" href={copy.createHref}>{copy.createLabel}</a>
           </div>
         </div>
@@ -171,12 +191,14 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
           <label>标题搜索
             <input name="keyword" type="search" placeholder="输入标题关键词" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
           </label>
-          <label>栏目
-            <select name="channel" value={channel} onChange={(event) => setChannel(event.target.value)}>
-              <option value="">全部栏目</option>
-              {channels.map((item) => <option value={item.slug || ''} key={item.id || item.slug}>{item.name || item.slug}</option>)}
-            </select>
-          </label>
+          {fixedChannel ? null : (
+            <label>栏目
+              <select name="channel" value={channel} onChange={(event) => setChannel(event.target.value)}>
+                <option value="">全部栏目</option>
+                {channels.map((item) => <option value={item.slug || ''} key={item.id || item.slug}>{item.name || item.slug}</option>)}
+              </select>
+            </label>
+          )}
           <label>状态
             <select name="status" value={status} onChange={(event) => setStatus(event.target.value)}>
               <option value="">全部状态</option>
@@ -314,6 +336,6 @@ export function ArticleListPage({ scope }: { scope: AdminScope }) {
           </div>
         </dialog>
       ) : null}
-    </main>
+    </RootTag>
   );
 }
