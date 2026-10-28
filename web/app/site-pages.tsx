@@ -592,7 +592,9 @@ export async function BusinessInnovationPage({ selectedSlug, selectedCategory }:
       ? data.items.filter((item) => !item.categorySlug || !managedSlugs.has(item.categorySlug))
       : data.items.filter((item) => (activeCategory.slug && item.categorySlug === activeCategory.slug) || item.category === activeCategory.name)
     : data.items;
-  const activeOutline = '2px solid rgba(24, 92, 175, .45)';
+  const categoryPillStyle = (isActive: boolean) => (isActive
+    ? { background: 'var(--brand)', borderColor: 'var(--brand)', color: '#fff', boxShadow: '0 6px 16px rgba(198,0,24,.22)' }
+    : { background: 'rgba(11,18,32,.04)', borderColor: 'rgba(11,18,32,.12)', color: 'rgba(11,18,32,.72)' });
 
   return (
     <Shell active="businessDev" actionHref="/business" actionLabel="产业布局">
@@ -618,13 +620,13 @@ export async function BusinessInnovationPage({ selectedSlug, selectedCategory }:
             </div>
             {categories.length ? (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }} aria-label="成果分类">
-                <a className="pill" href={`${businessInnovationBasePath}#innovations`} style={{ outline: activeCategory ? undefined : activeOutline }}>全部</a>
+                <a className="pill" href={`${businessInnovationBasePath}#innovations`} style={categoryPillStyle(!activeCategory)}>全部</a>
                 {categories.map((category) => (
                   <a
                     className="pill"
                     href={`${businessInnovationBasePath}?${new URLSearchParams({ category: category.slug }).toString()}#innovations`}
                     key={category.id}
-                    style={{ outline: activeCategory?.slug === category.slug ? activeOutline : undefined }}
+                    style={categoryPillStyle(activeCategory?.slug === category.slug)}
                   >
                     {category.name}
                   </a>

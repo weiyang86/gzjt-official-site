@@ -8,14 +8,10 @@ export default function NavigationActiveState({ active }: { active?: NavKey }) {
     const update = () => {
       const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
       const currentChannel = new URLSearchParams(window.location.search).get('channel') || '';
-      const links = document.querySelectorAll<HTMLAnchorElement>('.site-header .nav a, .drawer .drawer-links a');
+      const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.site-header .nav a, .drawer .drawer-links a'));
       const activeParents = new Set<HTMLElement>();
 
-      links.forEach((link) => {
-        link.classList.remove('is-active');
-        link.removeAttribute('aria-current');
-        link.closest<HTMLElement>('.nav-item')?.classList.remove('is-active');
-
+      const linkStates = links.map((link) => {
         const url = new URL(link.href, window.location.origin);
         const channelSlug = link.dataset.channelSlug || url.searchParams.get('channel') || '';
         const linkChannel = url.searchParams.get('channel') || channelSlug;
@@ -29,6 +25,16 @@ export default function NavigationActiveState({ active }: { active?: NavKey }) {
           && !url.hash
           && pathname.startsWith(`${url.pathname.replace(/\/+$/, '')}/`)
           && !url.searchParams.get('channel');
+        return { link, channelSlug, matchesChannel, matchesPath, isPathAncestor };
+      });
+
+      /* 页面已有精确路径匹配时，不再用父路径激活，避免 /business/innovation 同时点亮 /business */
+      const hasExactPathMatch = linkStates.some((state) => state.matchesPath);
+
+      linkStates.forEach(({ link, channelSlug, matchesChannel, matchesPath, isPathAncestor }) => {
+        link.classList.remove('is-active');
+        link.removeAttribute('aria-current');
+        link.closest<HTMLElement>('.nav-item')?.classList.remove('is-active');
 
         if (matchesChannel) {
           link.classList.add('is-active');
@@ -40,7 +46,7 @@ export default function NavigationActiveState({ active }: { active?: NavKey }) {
           if (!currentChannel || channelSlug === currentChannel) link.setAttribute('aria-current', 'page');
           const parent = link.closest<HTMLElement>('.nav-item');
           if (parent) activeParents.add(parent);
-        } else if (isPathAncestor) {
+        } else if (isPathAncestor && !hasExactPathMatch) {
           link.classList.add('is-active');
           const parent = link.closest<HTMLElement>('.nav-item');
           if (parent) activeParents.add(parent);

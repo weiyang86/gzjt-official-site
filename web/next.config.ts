@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
       { source: '/group/organization', destination: '/organization', permanent: false },
       { source: '/group/organization/subsidiaries/:path*', destination: '/org', permanent: false },
       { source: '/group/honors', destination: '/about/honors', permanent: false },
-      { source: '/group/:path*', destination: '/about', permanent: false },
+      { source: '/group/:path((?!leadership$).*)', destination: '/about', permanent: false },
       { source: '/news-center', destination: '/news', permanent: false },
       { source: '/news-center/:path*', destination: '/news', permanent: false },
       { source: '/subsidiaries/:path*', destination: '/org', permanent: false },
