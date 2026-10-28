@@ -45,7 +45,7 @@ const extractLegacyHome = () => {
       src,
       content,
     };
-  });
+  }).filter((script) => script.src !== 'pages/assets/home-directus.js');
   const sanitizedBody = body.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
 
   return {
@@ -61,9 +61,6 @@ export default function HomePage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <Script id="legacy-home-cms-api-base" strategy="beforeInteractive">
-        {`window.CMS_API_BASE = window.CMS_API_BASE || window.location.origin;`}
-      </Script>
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: body }} />
       {scripts.map((script) => (
         script.src ? (
