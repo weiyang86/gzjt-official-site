@@ -82,11 +82,11 @@ export const fallbackSinglePages: PageContent[] = [
   },
   {
     id: 'projects',
-    title: '项目展示',
+    title: '重点项目',
     slug: 'projects',
     cover: '/img/map.png',
     status: 'published',
-    content: '<p>项目展示集中呈现集团重点交通、城乡基础设施、产业与文旅项目，展现服务区域发展和民生改善的建设成果。</p>',
+    content: '<p>重点项目集中呈现集团重点交通、城乡基础设施、产业与文旅项目，展现服务区域发展和民生改善的建设成果。</p>',
   },
 ];
 

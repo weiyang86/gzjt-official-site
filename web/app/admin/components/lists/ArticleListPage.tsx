@@ -33,6 +33,7 @@ export function ArticleListPage({
   const [message, setMessage] = useState<MessageState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState('');
+  const [rankingId, setRankingId] = useState('');
   const [previewLoadingId, setPreviewLoadingId] = useState('');
   const [previewItem, setPreviewItem] = useState<PreviewArticle | null>(null);
   const [previewShareUrl, setPreviewShareUrl] = useState('');
@@ -129,6 +130,19 @@ export function ArticleListPage({
     }
   };
 
+  const handleHomeRank = async (id: string, payload: { is_top?: boolean; sort?: number }) => {
+    setRankingId(id);
+    try {
+      await AdminApi.setArticleHomeRank(id, payload);
+      await loadArticles(page);
+      setMessage({ text: '首页置顶与排序已更新。', type: 'success' });
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '首页排名更新失败', type: 'error' });
+    } finally {
+      setRankingId('');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!window.confirm(copy.confirmDelete)) return;
     setDeletingId(id);
@@ -222,12 +236,13 @@ export function ArticleListPage({
                 <th>栏目</th>
                 <th>状态</th>
                 <th>发布时间</th>
+                {isNotice ? null : <th>首页排名</th>}
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6}>{copy.loading}</td></tr>
+                <tr><td colSpan={isNotice ? 6 : 7}>{copy.loading}</td></tr>
               ) : items.length ? items.map((item) => {
                 const coverId = getCoverId(item.cover);
                 return (
@@ -246,6 +261,33 @@ export function ArticleListPage({
                     <td>{channelNames(item.main_channels, item.main_channel)}</td>
                     <td><span className={`status-badge status-${item.status || 'draft'}`}>{statusText[item.status || ''] || item.status || '-'}</span></td>
                     <td>{formatPreviewDate(item.publish_at)}</td>
+                    {isNotice ? null : (
+                      <td>
+                        <div className="table-actions article-home-rank">
+                          <button
+                            className="text-button"
+                            type="button"
+                            disabled={rankingId === item.id}
+                            onClick={() => void handleHomeRank(item.id, { is_top: !item.is_top })}
+                          >
+                            {item.is_top ? '取消置顶' : '置顶'}
+                          </button>
+                          <input
+                            aria-label="首页排序，数字越小越靠前，0 表示按发布时间"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={String(item.sort ?? 0)}
+                            disabled={rankingId === item.id}
+                            onChange={(event) => {
+                              const sort = Number(event.target.value) || 0;
+                              setItems((current) => current.map((row) => row.id === item.id ? { ...row, sort } : row));
+                            }}
+                            onBlur={() => void handleHomeRank(item.id, { sort: Number(item.sort) || 0 })}
+                          />
+                        </div>
+                      </td>
+                    )}
                     <td>
                       <div className="table-actions">
                         <button className="text-button" type="button" onClick={() => handleOpenPreview(item.id)} disabled={previewLoadingId === item.id}>
@@ -263,7 +305,7 @@ export function ArticleListPage({
                   </tr>
                 );
               }) : (
-                <tr><td colSpan={6}>{copy.empty}</td></tr>
+                <tr><td colSpan={isNotice ? 6 : 7}>{copy.empty}</td></tr>
               )}
             </tbody>
           </table>

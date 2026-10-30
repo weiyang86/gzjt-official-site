@@ -42,6 +42,11 @@ export const getMergedNewsAdminHref = (module: PageModule) => {
  */
 const articleChannelSlugByModuleCode: Record<string, string> = {
   'technology-innovation': 'business-technology-innovation',
+  // 后台模块编码与前台栏目 slug 不一致时在此映射，保证内嵌文章列表锁定正确栏目。
+  'party-news': 'party-grassroots-building',
+  'union-work': 'party-union-work',
+  'youth-work': 'party-youth-work',
+  'united-front-work': 'party-united-front-work',
 };
 
 export const getArticleChannelSlug = (module: PageModule) => {

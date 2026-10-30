@@ -111,7 +111,10 @@ const allowedDocumentTypes = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
 const allowedDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx']);
+const allowedVideoTypes = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+const allowedVideoExtensions = new Set(['mp4', 'mov', 'webm']);
 const maxUploadBytes = 50 * 1024 * 1024;
+const maxVideoUploadBytes = 200 * 1024 * 1024;
 const pageModuleFields = 'id,module_title,module_code,parent_title,parent_code,route_path,content_type,admin_enabled,dev_status,placeholder_text,remark,sort,status';
 const directusUserFields = 'id,email,first_name,last_name,status,role';
 const directusUserListFields = 'id,email,first_name,last_name,status,role.id,role.name,role.description';
@@ -1013,7 +1016,7 @@ const assertDownloadCategoryExists = async (slug: string, token: string) => {
 };
 
 const getArticleDetailPath = (id: string) => buildDirectusPath(`/items/articles/${encodeURIComponent(id)}`, {
-  fields: 'id,title,subtitle,summary,cover,main_channel,status,publish_at,source,author,content,attachments,attachments.*,attachments.file,attachments.file.id,attachments.file.filename_download,attachments.directus_files_id,attachments.directus_files_id.id,attachments.directus_files_id.filename_download,attachments.file_id',
+  fields: 'id,title,subtitle,summary,cover,main_channel,status,publish_at,source,author,content,is_top,is_home_recommend,sort,attachments,attachments.*,attachments.file,attachments.file.id,attachments.file.filename_download,attachments.directus_files_id,attachments.directus_files_id.id,attachments.directus_files_id.filename_download,attachments.file_id',
 });
 
 const scopedArticleNotFoundMessage = (scope: 'news' | 'notice') => (
@@ -1131,6 +1134,9 @@ const normalizeArticleInput = async (request: NextRequest) => {
     publish_at: publishAt,
     content,
     cover: typeof body.cover === 'string' && body.cover.trim() ? body.cover.trim() : null,
+    is_top: body.is_top === true,
+    is_home_recommend: body.is_home_recommend === true,
+    sort: Number.isFinite(Number(body.sort)) ? Number(body.sort) : 0,
     attachments: normalizeAttachmentsInput(body.attachments),
   };
 };
@@ -1606,7 +1612,7 @@ const handleLocalArticleList = async (request: NextRequest) => {
   const noticeChannels = await getNoticeChannels(serviceToken);
   const noticeChannelIds = noticeChannels.map((item) => String(item.id || '')).filter(Boolean);
   const params: Record<string, string | number | boolean> = {
-    fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author',
+    fields: 'id,title,subtitle,summary,cover,main_channel.id,main_channel.name,main_channel.slug,status,publish_at,source,author,is_top,is_home_recommend,sort',
     sort: '-publish_at,-id',
     page,
     limit,
@@ -1677,6 +1683,20 @@ const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => 
     return NextResponse.json({ data: { id, deleted: true } });
   }
 
+  // 首页排名快捷操作：列表页直接置顶或设置排序值，不触发完整文章的必填校验。
+  if (action === 'home-rank' && request.method === 'PATCH') {
+    const body = await request.json() as { is_top?: unknown; sort?: unknown };
+    const payload: Record<string, unknown> = {};
+    if (typeof body.is_top === 'boolean') payload.is_top = body.is_top;
+    if (Number.isFinite(Number(body.sort)) && Number(body.sort) >= 0) payload.sort = Math.floor(Number(body.sort));
+    if (!Object.keys(payload).length) {
+      return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'is_top or sort is required' } }, { status: 400 });
+    }
+    await getScopedArticleDetail(id, getAdminScope(request), serviceToken);
+    const result = await directusJsonRequest<{ data?: unknown }>(`/items/articles/${encodeURIComponent(id)}`, serviceToken, 'PATCH', payload);
+    return NextResponse.json({ data: result.data || null });
+  }
+
   if (action && request.method === 'PATCH') {
     const statusMap: Record<string, string> = { archive: 'archived', publish: 'published', draft: 'draft' };
     const nextStatus = statusMap[action];
@@ -1705,9 +1725,10 @@ const handleLocalFileUpload = async (request: NextRequest) => {
   const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || '' : '';
   const isImage = allowedImageTypes.has(file.type);
   const isDocument = allowedDocumentTypes.has(file.type) || (!!extension && allowedDocumentExtensions.has(extension));
-  if (!isImage && !isDocument) {
+  const isVideo = allowedVideoTypes.has(file.type) || (!!extension && allowedVideoExtensions.has(extension));
+  if (!isImage && !isDocument && !isVideo) {
     return NextResponse.json(
-      { error: { code: 'BAD_REQUEST', message: 'Only JPG, PNG, WEBP, PDF, Word, and Excel files are allowed' } },
+      { error: { code: 'BAD_REQUEST', message: 'Only JPG, PNG, WEBP, PDF, Word, Excel, and MP4/MOV/WEBM video files are allowed' } },
       { status: 400 },
     );
   }
@@ -1717,9 +1738,9 @@ const handleLocalFileUpload = async (request: NextRequest) => {
       { status: 400 },
     );
   }
-  if (file.size > maxUploadBytes) {
+  if (file.size > (isVideo ? maxVideoUploadBytes : maxUploadBytes)) {
     return NextResponse.json(
-      { error: { code: 'UPLOAD_TOO_LARGE', message: 'File upload is too large. Maximum size is 50MB.' } },
+      { error: { code: 'UPLOAD_TOO_LARGE', message: 'File upload is too large. Maximum size is 50MB for images and documents, 200MB for videos.' } },
       { status: 413 },
     );
   }

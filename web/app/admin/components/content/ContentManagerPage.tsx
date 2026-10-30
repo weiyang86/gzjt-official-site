@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContent, PageContentItem, PageModule, PageModuleGroup, UploadPayload } from './types';
-import { getArticleChannelSlug, getMergedNewsAdminHref } from './merged-news-channel';
+import { getArticleChannelSlug } from './merged-news-channel';
 import { contactInfoModuleCode, defaultContactInfo, defaultHomepageLayout, homepageLayoutModuleCode, normalizeHomepageLayout, normalizeMapEmbedUrl, type ContactInfoConfig, type HomepageBannerSlide, type HomepageLayoutConfig, type HomepageScreenId, type HomepageSectionId } from '@/lib/cms/homepage-layout';
 import { defaultGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
 import { LeadershipManager } from './LeadershipManager';
@@ -101,7 +101,7 @@ const publicPlatformQrModule: PageModule = {
   sort: 1,
 };
 
-const honorsModuleCode = 'group-honors';
+const honorsModuleCode = 'honors';
 const honorsModule: PageModule = {
   id: honorsModuleCode,
   parent_title: '集团概况',
@@ -212,16 +212,48 @@ const withResponsibilityArticleModules = (groups: PageModuleGroup[]) => {
     : group);
 };
 
+// 后台模块名称与前台导航、功能命名保持一致。
+const moduleTitleOverrides: Record<string, string> = {
+  'project-list': '重点项目',
+  'group-news': '集团要闻',
+  'industry-news': '行业聚焦',
+  'party-news': '基层党建',
+};
+
+const withModuleTitleOverrides = (groups: PageModuleGroup[]) => groups.map((group) => ({
+  ...group,
+  children: (group.children || group.modules || []).map((module) => {
+    const code = module.module_code || '';
+    return moduleTitleOverrides[code] ? { ...module, module_title: moduleTitleOverrides[code] } : module;
+  }),
+}));
+
+// 联系方式统一在“全站配置 → 联系我们配置”维护，页面内容管理中的旧地址、邮箱、电话模块不再展示。
+const legacyContactModuleCodes = new Set(['address', 'email', 'phone']);
+const hideLegacyContactModules = (groups: PageModuleGroup[]) => groups
+  .map((group) => ({
+    ...group,
+    children: (group.children || group.modules || []).filter((module) => !legacyContactModuleCodes.has(module.module_code || '')),
+  }))
+  .filter((group) => (group.children || []).length > 0);
+
 const withHonorsModule = (groups: PageModuleGroup[]) => {
-  if (groups.some((group) => (group.children || group.modules || []).some((module) => module.module_code === honorsModuleCode))) {
-    return groups;
+  // CMS 中的荣誉模块沿用旧编码 honors，后台统一显示为“企业荣誉”并交由荣誉列表组件维护。
+  const normalized = groups.map((group) => ({
+    ...group,
+    children: (group.children || group.modules || []).map((module) => module.module_code === honorsModuleCode
+      ? { ...module, module_title: '企业荣誉', content_type: 'honor_list', route_path: module.route_path || '/about/honors' }
+      : module),
+  }));
+  if (normalized.some((group) => (group.children || []).some((module) => module.module_code === honorsModuleCode))) {
+    return normalized;
   }
-  const groupIndex = groups.findIndex((group) => group.parent_code === 'group-overview');
+  const groupIndex = normalized.findIndex((group) => group.parent_code === 'group-overview');
   if (groupIndex < 0) {
-    return [...groups, { parent_title: '集团概况', parent_code: 'group-overview', children: [honorsModule] }];
+    return [...normalized, { parent_title: '集团概况', parent_code: 'group-overview', children: [honorsModule] }];
   }
-  return groups.map((group, index) => index === groupIndex
-    ? { ...group, children: [...(group.children || group.modules || []), honorsModule] }
+  return normalized.map((group, index) => index === groupIndex
+    ? { ...group, children: [...(group.children || []), honorsModule] }
     : group);
 };
 
@@ -444,6 +476,30 @@ function PageContentForm({ module, options = {} }: {
     }
   };
 
+  const uploadPrincipleImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    const error = validateImage(file);
+    if (error) {
+      setMessage({ text: error, type: 'error' });
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file as File);
+      const result = await AdminApi.uploadFile(formData);
+      const uploaded = (result.data || {}) as UploadPayload;
+      if (!uploaded.id) throw new Error('上传成功但未返回文件 ID。');
+      updateGroupIntro({ principleImage: uploaded.id });
+      setMessage({ text: '企业宗旨卡片背景图已上传，保存后生效。', type: 'success' });
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : '背景图上传失败，请确认文件服务可用。', type: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setIsSaving(true);
@@ -537,6 +593,18 @@ function PageContentForm({ module, options = {} }: {
                 <label>企业宗旨标签<input value={groupIntro.principleLabel} onChange={(event) => updateGroupIntro({ principleLabel: event.target.value })} /></label>
                 <label>企业宗旨文案（换行分行）<textarea rows={3} value={groupIntro.principleTitle} onChange={(event) => updateGroupIntro({ principleTitle: event.target.value })} /></label>
                 <label className="span-2">企业宗旨英文文案（每行一项）<textarea rows={2} value={groupIntro.principleEnglish.join('\n')} onChange={(event) => updateGroupIntro({ principleEnglish: event.target.value.split('\n') })} /></label>
+                <div className="span-2">
+                  <label htmlFor="group-intro-principle-image">企业宗旨卡片背景图</label>
+                  <p className="field-tip">用于 /about 页面右侧“企业宗旨”卡片背景，未设置时使用默认图片；支持 JPG、PNG、WEBP，50MB 以内。</p>
+                  <div className="cover-upload-row">
+                    <input id="group-intro-principle-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPrincipleImage} disabled={isUploading} />
+                    {groupIntro.principleImage ? <button className="secondary-button" type="button" onClick={() => {
+                      updateGroupIntro({ principleImage: '' });
+                      setMessage({ text: '卡片背景图已移除，保存后生效。', type: 'success' });
+                    }}>移除背景图</button> : null}
+                  </div>
+                  {groupIntro.principleImage ? <img className="cover-preview" src={`/admin-api/assets/${encodeURIComponent(groupIntro.principleImage)}`} alt="企业宗旨卡片背景图预览" /> : null}
+                </div>
                 <label>成果板块标题<input value={groupIntro.performanceTitle} onChange={(event) => updateGroupIntro({ performanceTitle: event.target.value })} /></label>
                 <label>成果板块引言<textarea rows={3} value={groupIntro.performanceLead} onChange={(event) => updateGroupIntro({ performanceLead: event.target.value })} /></label>
                 <div className="span-2 group-intro-repeaters">
@@ -626,13 +694,25 @@ function TimelineManager({ module }: { module: PageModule }) {
     }
   };
 
-  const disableItem = async (id: string) => {
+  const timelinePayload = (item: PageContentItem, status: string) => ({
+    module_code: moduleCode,
+    item_type: 'timeline',
+    date_label: String(item.date_label || '').trim(),
+    title: String(item.title || '').trim(),
+    content: String(item.content || ''),
+    sort: Number(item.sort || 0),
+    status,
+    extra_json: item.extra_json || {},
+  });
+
+  const toggleItemStatus = async (item: PageContentItem) => {
+    const enabled = item.status !== 'enabled';
     try {
-      await AdminApi.disablePageContentItem(id);
-      setMessage({ text: '条目已停用。', type: 'success' });
+      await AdminApi.updatePageContentItem(item.id, timelinePayload(item, enabled ? 'enabled' : 'disabled'));
+      setMessage({ text: enabled ? '条目已启用。' : '条目已停用。', type: 'success' });
       await loadItems();
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : '停用条目失败，请稍后重试。', type: 'error' });
+      setMessage({ text: err instanceof Error ? err.message : `${enabled ? '启用' : '停用'}条目失败，请稍后重试。`, type: 'error' });
     }
   };
 
@@ -675,11 +755,11 @@ function TimelineManager({ module }: { module: PageModule }) {
               <strong>{item.date_label || '未填写时间'}</strong>
               <h3>{item.title}</h3>
               <p>{item.content}</p>
-              <small>排序：{String(item.sort ?? 0)} / 状态：{item.status}</small>
+              <small>排序：{String(item.sort ?? 0)} / 状态：{item.status === 'enabled' ? '启用' : '停用'}</small>
             </div>
             <div className="table-actions">
               <button className="text-button" type="button" onClick={() => setForm({ ...emptyTimelineItem(moduleCode), ...item, sort: Number(item.sort || 0), status: item.status || 'enabled' })}>编辑</button>
-              <button className="text-button" type="button" onClick={() => disableItem(item.id)}>停用</button>
+              <button className="text-button" type="button" onClick={() => void toggleItemStatus(item)}>{item.status === 'enabled' ? '停用' : '启用'}</button>
               <button className="text-button is-danger" type="button" onClick={() => void removeItem(item)}>删除</button>
             </div>
           </article>
@@ -863,6 +943,7 @@ const importLatestHomepageArticles = async (): Promise<HomepageBannerSlide[]> =>
     .map((article, index) => ({
       id: `article-${String(article.id)}`,
       image: article.cover?.trim() || '/img/index_bg.png',
+      video: '',
       title: article.title?.trim() || `首页推荐 ${index + 1}`,
       subtitle: article.subtitle?.trim() || article.summary?.trim() || article.publishDate?.trim() || article.publish_at?.slice(0, 10) || '',
       linkUrl: `/news/${encodeURIComponent(String(article.id))}`,
@@ -1059,6 +1140,36 @@ function HomepageLayoutManager() {
     }
   };
 
+  const uploadVideo = async (event: React.ChangeEvent<HTMLInputElement>, target: string, onUploaded: (id: string) => void) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || '' : '';
+    if (!['mp4', 'mov', 'webm'].includes(extension)) {
+      setMessage({ text: '视频仅支持 MP4、MOV、WEBM 格式。', type: 'error' });
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      setMessage({ text: '视频大小不能超过 200MB。', type: 'error' });
+      return;
+    }
+    setUploadingTarget(target);
+    setMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await AdminApi.uploadFile(formData);
+      const uploaded = (result.data || {}) as UploadPayload;
+      if (!uploaded.id) throw new Error('上传成功但未返回文件 ID。');
+      onUploaded(uploaded.id);
+      setMessage({ text: '视频已上传；保存首页配置后才会在前台生效。', type: 'success' });
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : '视频上传失败，请确认文件服务可用。', type: 'error' });
+    } finally {
+      setUploadingTarget('');
+    }
+  };
+
   const updateSlide = (id: string, patch: Partial<HomepageBannerSlide>) => {
     setConfig((current) => ({ ...current, bannerSlides: current.bannerSlides.map((slide) => slide.id === id ? { ...slide, ...patch } : slide) }));
   };
@@ -1103,7 +1214,7 @@ function HomepageLayoutManager() {
             {activeConfigTab === 'banner' ? <>
               <section className="homepage-section-settings homepage-compact-section">
                 <div className="section-title-row"><div><h3>首页顶部 Banner 与跳转</h3><p className="field-tip">保存后按此列表轮播，不会随新文章自动替换。</p></div>
-                  <button className="secondary-button" type="button" onClick={() => { setConfig((current) => ({ ...current, bannerSlides: [...current.bannerSlides, { id: `banner-${Date.now()}-${current.bannerSlides.length}`, image: '', title: '', subtitle: '', linkUrl: '' }] })); setActiveBannerIndex(config.bannerSlides.length); }}>添加</button>
+                  <button className="secondary-button" type="button" onClick={() => { setConfig((current) => ({ ...current, bannerSlides: [...current.bannerSlides, { id: `banner-${Date.now()}-${current.bannerSlides.length}`, image: '', video: '', title: '', subtitle: '', linkUrl: '' }] })); setActiveBannerIndex(config.bannerSlides.length); }}>添加</button>
                 </div>
                 {config.bannerSlides.length ? <>
                   <div className="homepage-banner-picker" role="tablist" aria-label="选择 Banner">{config.bannerSlides.map((slide, index) => <button type="button" role="tab" aria-selected={selectedBannerIndex === index} className={selectedBannerIndex === index ? 'is-active' : ''} key={slide.id} onClick={() => setActiveBannerIndex(index)}><span>{index + 1}</span>{slide.title || '未命名 Banner'}</button>)}</div>
@@ -1112,6 +1223,11 @@ function HomepageLayoutManager() {
                     <div className="homepage-banner-fields">
                       <div className="homepage-banner-image">{selectedBanner.image ? <img src={homepageImagePreviewUrl(selectedBanner.image)} alt="Banner 预览" /> : <div className="homepage-background-empty">请上传图片</div>}
                         <label className="secondary-button">{uploadingTarget === `banner:${selectedBanner.id}` ? '正在上传…' : selectedBanner.image ? '更换图片' : '上传图片'}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={Boolean(uploadingTarget)} onChange={(event) => uploadImage(event, `banner:${selectedBanner.id}`, (id) => updateSlide(selectedBanner.id, { image: id }))} /></label>
+                        <div className="homepage-banner-video">
+                          <label className="secondary-button">{uploadingTarget === `banner-video:${selectedBanner.id}` ? '正在上传…' : selectedBanner.video ? '更换视频' : '上传视频'}<input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" hidden disabled={Boolean(uploadingTarget)} onChange={(event) => uploadVideo(event, `banner-video:${selectedBanner.id}`, (id) => updateSlide(selectedBanner.id, { video: id }))} /></label>
+                          {selectedBanner.video ? <button className="text-button" type="button" onClick={() => updateSlide(selectedBanner.id, { video: '' })}>移除视频</button> : null}
+                          <small className="field-tip">视频作为首屏背景轮播，MP4/WEBM，200MB 以内；未上传视频时使用图片。</small>
+                        </div>
                       </div>
                       <div className="editor-grid"><label>标题<input value={selectedBanner.title} onChange={(event) => updateSlide(selectedBanner.id, { title: event.target.value })} /></label><label>副标题<input value={selectedBanner.subtitle} onChange={(event) => updateSlide(selectedBanner.id, { subtitle: event.target.value })} /></label><label className="span-2">跳转地址<input type="text" placeholder="/news/文章ID 或 https://example.com" value={selectedBanner.linkUrl} onChange={(event) => updateSlide(selectedBanner.id, { linkUrl: event.target.value })} /><small>支持站内路径或 http/https 链接。</small></label></div>
                     </div>
@@ -1460,14 +1576,13 @@ function ContentModuleEditor({ module }: { module: PageModule | null }) {
       // 社会责任子栏目与新闻管理共用 articles 表，直接在当前页面内嵌文章列表，避免再跳转。
       return <ArticleListPage scope="news" fixedChannel={getArticleChannelSlug(module)} title={module.module_title} embedded />;
     }
-    return (
-      <section className="notice-card">
-        <p className="eyebrow">{module.content_type}</p>
-        <h2>内容来源于新闻管理</h2>
-        <p>该模块使用新闻管理中的文章列表，对应栏目 slug：{getArticleChannelSlug(module) || '未配置'}。</p>
-        <a className="primary-link-button" href={`/admin/articles?channel=${encodeURIComponent(getArticleChannelSlug(module))}`}>前往新闻管理</a>
-      </section>
-    );
+    // 新闻类栏目统一在当前页面内嵌文章列表，与新闻管理共用数据，不再只提供跳转占位。
+    return <ArticleListPage
+      scope={module.module_code === 'announcements' ? 'notice' : 'news'}
+      fixedChannel={getArticleChannelSlug(module)}
+      title={module.module_title}
+      embedded
+    />;
   }
 
   if (module.content_type === 'company_list') {
@@ -1529,13 +1644,7 @@ export function ContentManagerPage() {
     try {
       const result = await AdminApi.contentModule(moduleCode);
       const module = (result.data || null) as PageModule | null;
-      if (module) {
-        const mergedNewsHref = getMergedNewsAdminHref(module);
-        if (mergedNewsHref) {
-          window.location.href = mergedNewsHref;
-          return;
-        }
-      }
+      // 新闻类栏目统一在当前页面内嵌文章列表，不再跳转到新闻管理。
       setSelectedModule(module);
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : '页面模块加载失败。', type: 'error' });
@@ -1547,7 +1656,7 @@ export function ContentManagerPage() {
     AdminApi.contentModuleTree()
       .then((result) => {
         if (!isMounted) return;
-        const rows = withResponsibilityArticleModules(withCorporateCultureModule(withHonorsModule((result.data || []) as PageModuleGroup[])));
+        const rows = withModuleTitleOverrides(withResponsibilityArticleModules(withCorporateCultureModule(withHonorsModule(hideLegacyContactModules((result.data || []) as PageModuleGroup[])))));
         const nextRows = rows.map((group) => ({ ...group, children: [...(group.children || group.modules || [])] }));
         [trainingResourceModule, businessInnovationModule].forEach((module) => {
           const groupIndex = nextRows.findIndex((group) => group.parent_code === module.parent_code);

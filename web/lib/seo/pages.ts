@@ -59,8 +59,8 @@ export const seoManagedPages: SeoPageDefinition[] = [
   },
   {
     path: '/projects',
-    label: '项目展示',
-    defaultTitle: '项目展示',
+    label: '重点项目',
+    defaultTitle: '重点项目',
     defaultDescription: '集中展示甘孜州建设投资集团有限公司的重点交通、城乡基础设施与产业项目。',
   },
   {

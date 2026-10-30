@@ -45,6 +45,7 @@ export type HomepageScreenId = 'hero' | HomepageSectionId;
 export type HomepageBannerSlide = {
   id: string;
   image: string;
+  video: string;
   title: string;
   subtitle: string;
   linkUrl: string;
@@ -122,6 +123,7 @@ export const normalizeHomepageLayout = (value: unknown): HomepageLayoutConfig =>
     return [{
       id: typeof slide.id === 'string' && slide.id ? slide.id : `banner-${index + 1}`,
       image: typeof slide.image === 'string' ? slide.image : '',
+      video: typeof slide.video === 'string' ? slide.video : '',
       title: typeof slide.title === 'string' ? slide.title : '',
       subtitle: typeof slide.subtitle === 'string' ? slide.subtitle : '',
       linkUrl: typeof slide.linkUrl === 'string' ? slide.linkUrl : '',

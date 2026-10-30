@@ -17,6 +17,9 @@ export type ArticleRow = {
   main_channels?: Channel[];
   status?: 'draft' | 'published' | 'archived' | string;
   publish_at?: string;
+  is_top?: boolean;
+  is_home_recommend?: boolean;
+  sort?: number;
 };
 
 export type CategoryRow = {

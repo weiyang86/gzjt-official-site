@@ -53,6 +53,7 @@ html:has(.home-experience), html:has(.home-experience) body{height:100%;overflow
 @media(max-width:1100px){.home-experience .site-header .nav{display:none}.home-experience .site-header .header-actions{display:flex;margin-left:auto}.home-experience .site-header .menu-toggle{display:inline-flex}}
 .home-hero-backdrop{position:absolute;inset:-4px;z-index:0;background-size:cover;background-position:center;filter:blur(2px) brightness(.72);transform:scale(1.012)}
 .home-hero-backdrop{opacity:1;transition:opacity .75s ease}.home-hero-backdrop.is-fade-pending{opacity:0}.home-hero-backdrop.is-fading-out{opacity:0}.home-hero-backdrop.is-fading-in{opacity:1}
+.home-hero-video{position:absolute;inset:-4px;z-index:0;width:calc(100% + 8px);height:calc(100% + 8px);object-fit:cover;filter:blur(2px) brightness(.72);transform:scale(1.012);pointer-events:none}
 .home-hero-dots--banner{position:absolute;left:max(7vw,40px);bottom:clamp(82px,12vh,140px);z-index:3;margin:0}
 .home-screen--business .home-section-heading h2{color:#fff;text-shadow:0 2px 4px rgba(5,20,39,.85),0 6px 20px rgba(5,20,39,.72)}
 @media(prefers-reduced-motion:reduce){.home-hero-backdrop{transition:none}}

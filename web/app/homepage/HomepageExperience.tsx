@@ -85,9 +85,10 @@ export default function HomepageExperience({ children, articles, cultureArticles
     [layout.hiddenSections, layout.sectionOrder],
   );
   const screenIds = useMemo(() => ['hero', ...orderedSections], [orderedSections]);
-  const manualSlides = useMemo(() => layout.bannerSlides.filter((slide) => slide.image), [layout.bannerSlides]);
+  const manualSlides = useMemo(() => layout.bannerSlides.filter((slide) => slide.image || slide.video), [layout.bannerSlides]);
   const activeManualSlide = manualSlides.length ? manualSlides[bannerIndex % manualSlides.length] : null;
   const heroBackground = activeManualSlide?.image || layout.backgrounds.hero || '/img/index_bg.png';
+  const heroVideo = activeManualSlide?.video || '';
   const previousHeroBackgroundRef = useRef(heroBackground);
 
   const backgroundStyle = (screen: HomepageSectionId) => layout.backgrounds[screen]
@@ -246,10 +247,12 @@ export default function HomepageExperience({ children, articles, cultureArticles
     }}>
       {children}
       <section key="hero" {...screenState('hero')} id="hero">
-        {bannerFade ? <>
-          <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-out' : ''}`} style={{ backgroundImage: `url("${bannerFade.from}")` }} aria-hidden="true" />
-          <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}`} style={{ backgroundImage: `url("${bannerFade.to}")` }} aria-hidden="true" />
-        </> : heroBackground ? <div className="home-hero-backdrop" style={{ backgroundImage: `url("${heroBackground}")` }} aria-hidden="true" /> : null}
+        {heroVideo
+          ? <video key={heroVideo} className="home-hero-video" src={heroVideo} poster={heroBackground} autoPlay muted loop playsInline aria-hidden="true" />
+          : bannerFade ? <>
+            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-out' : ''}`} style={{ backgroundImage: `url("${bannerFade.from}")` }} aria-hidden="true" />
+            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}`} style={{ backgroundImage: `url("${bannerFade.to}")` }} aria-hidden="true" />
+          </> : heroBackground ? <div className="home-hero-backdrop" style={{ backgroundImage: `url("${heroBackground}")` }} aria-hidden="true" /> : null}
         {activeManualSlide?.linkUrl ? <a className="home-hero-banner-hit-area" href={safeHomepageLink(activeManualSlide.linkUrl)} target={isExternalHomepageLink(activeManualSlide.linkUrl) ? '_blank' : undefined} rel={isExternalHomepageLink(activeManualSlide.linkUrl) ? 'noopener noreferrer' : undefined} aria-label={`打开 Banner：${activeManualSlide.title || '首页推荐'}`} /> : null}
         {manualSlides.length > 1 ? <div className="home-hero-dots home-hero-dots--banner">{manualSlides.map((slide, index) => <button type="button" aria-label={`切换到第${index + 1}张Banner`} aria-current={index === bannerIndex} onClick={() => setBannerIndex(index)} key={slide.id} />)}</div> : null}
         <a className="home-hero-down" href="#news" onClick={(event) => { event.preventDefault(); goTo(1); }}>向下浏览　↓</a>

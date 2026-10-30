@@ -149,7 +149,15 @@ export function LeadershipManager() {
             <label htmlFor="leadership-photo">领导照片</label>
             <p className="field-tip">支持 JPG、PNG、WEBP，单个文件不超过 50MB。上传使用现有文件接口。</p>
             <input id="leadership-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPhoto} disabled={isUploading} />
-            {form.image ? <LeadershipPortrait className="leadership-admin-photo" src={`/admin-api/assets/${encodeURIComponent(String(form.image))}`} name={String(form.title || '领导')} /> : null}
+            {form.image ? (
+              <div className="leadership-photo-preview" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                <LeadershipPortrait className="leadership-admin-photo" src={`/admin-api/assets/${encodeURIComponent(String(form.image))}`} name={String(form.title || '领导')} />
+                <button className="text-button" type="button" onClick={() => {
+                  setField('image', null);
+                  setMessage({ text: '照片已移除，保存致辞后生效。', type: 'success' });
+                }}>移除照片</button>
+              </div>
+            ) : null}
           </div>
           <label>排序<input type="number" step="1" value={String(form.sort ?? 0)} onChange={(event) => setField('sort', Number(event.target.value || 0))} /></label>
           <label>状态<select value={form.status || 'enabled'} onChange={(event) => setField('status', event.target.value)}><option value="enabled">启用</option><option value="disabled">停用</option></select></label>

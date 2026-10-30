@@ -218,7 +218,7 @@ export async function getPublicLeaders() {
   })).filter((item) => item.name);
 }
 
-export const honorsModuleCode = 'group-honors';
+export const honorsModuleCode = 'honors';
 export const honorsItemType = 'honor';
 
 const getStringExtra = (value: unknown, key: string) => {
@@ -233,7 +233,6 @@ export async function getPublicHonors() {
     sort: 'sort,-date_label,id',
     limit: -1,
     'filter[module_code][_eq]': honorsModuleCode,
-    'filter[item_type][_eq]': honorsItemType,
     'filter[status][_eq]': 'enabled',
   }), { cache: 'no-store', next: { revalidate: false } });
 
@@ -336,7 +335,7 @@ export async function getPublicHomepageLayout() {
     return {
       ...normalized,
       backgrounds: Object.fromEntries(Object.entries(normalized.backgrounds).map(([key, image]) => [key, resolveImage(image)])) as typeof normalized.backgrounds,
-      bannerSlides: normalized.bannerSlides.map((slide) => ({ ...slide, image: resolveImage(slide.image) })),
+      bannerSlides: normalized.bannerSlides.map((slide) => ({ ...slide, image: resolveImage(slide.image), video: resolveImage(slide.video) })),
     };
   } catch {
     return defaultHomepageLayout;

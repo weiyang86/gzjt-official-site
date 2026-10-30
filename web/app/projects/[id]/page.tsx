@@ -37,7 +37,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
           <div className="crumb-inner">
             <a href="/" data-no-transition>首页</a>
             <span className="crumb-sep">›</span>
-            <a href="/projects" data-no-transition>项目展示</a>
+            <a href="/projects" data-no-transition>重点项目</a>
             <span className="crumb-sep">›</span>
             <span>项目详情</span>
           </div>

@@ -55,8 +55,9 @@ const emptyResource = (): DownloadResourceAdmin => ({
 });
 
 const slugPattern = /^[a-z0-9][a-z0-9-]*$/;
-const allowedDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx']);
+const allowedDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'mp4', 'mov', 'webm']);
 const maxUploadBytes = 50 * 1024 * 1024;
+const maxVideoUploadBytes = 200 * 1024 * 1024;
 
 const plainText = (value?: string) => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -115,12 +116,13 @@ export function DownloadManager() {
     if (!file) return;
     const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || '' : '';
     if (!allowedDocumentExtensions.has(extension)) {
-      setMessage({ text: '资料附件仅支持 PDF、Word、Excel 格式。', type: 'error' });
+      setMessage({ text: '资料附件支持 PDF、Word、Excel 文档，以及 MP4、MOV、WEBM 视频。', type: 'error' });
       input.value = '';
       return;
     }
-    if (file.size > maxUploadBytes) {
-      setMessage({ text: '资料附件大小不能超过 50MB。', type: 'error' });
+    const isVideo = ['mp4', 'mov', 'webm'].includes(extension);
+    if (file.size > (isVideo ? maxVideoUploadBytes : maxUploadBytes)) {
+      setMessage({ text: isVideo ? '视频大小不能超过 200MB。' : '资料附件大小不能超过 50MB。', type: 'error' });
       input.value = '';
       return;
     }
@@ -345,8 +347,8 @@ export function DownloadManager() {
           <label>资料分类<select required value={resourceForm.categorySlug || ''} onChange={(event) => setResourceField('categorySlug', event.target.value)}><option value="">请选择分类</option>{categories.map((item) => <option value={item.slug || ''} key={item.id}>{item.name}{item.status === 'enabled' ? '' : '（已停用）'}</option>)}</select></label>
           <div className="span-2 leadership-photo-field">
             <label htmlFor="download-resource-file">资料附件</label>
-            <p className="field-tip">支持 PDF、Word、Excel，单个文件不超过 50MB。重新上传会替换当前附件，保存后生效。</p>
-            <input id="download-resource-file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={uploadAttachment} disabled={isUploading} />
+            <p className="field-tip">支持 PDF、Word、Excel 文档（不超过 50MB）与 MP4、MOV、WEBM 视频（不超过 200MB）。重新上传会替换当前附件，保存后生效。</p>
+            <input id="download-resource-file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.mp4,.mov,.webm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,video/mp4,video/quicktime,video/webm" onChange={uploadAttachment} disabled={isUploading} />
             {resourceForm.fileId ? (
               <div style={{ display: 'grid', gap: 6, justifyItems: 'start' }}>
                 <span className="pill">{resourceForm.filename || '附件'}</span>

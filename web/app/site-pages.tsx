@@ -21,6 +21,7 @@ import {
   getPublicReportConfig,
 } from '@/lib/cms';
 import { getGroupIntroConfig, type GroupIntroAchievement, type GroupIntroConfig, type GroupIntroStat } from '@/lib/cms/group-intro';
+import { buildDirectusAssetUrl } from '@/lib/cms/client';
 import {
   fallbackBusinessSectors,
   fallbackCompanies,
@@ -44,7 +45,7 @@ const pageMeta: Record<string, { title: string; kicker: string; active: ActiveKe
     cta: '查看下属公司',
   },
   projects: {
-    title: '项目展示',
+    title: '重点项目',
     kicker: 'PROJECTS',
     active: 'businessDev',
     subtitle: '集中呈现集团重点交通、城乡基础设施、产业与文旅项目。',
@@ -698,7 +699,8 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
         {contactInfo ? <ContactInfoSection contactInfo={contactInfo} /> : null}
         {reportConfig?.enabled ? <ReportEntrySection config={reportConfig} /> : null}
         {reportConfig?.enabled ? <DisciplineNewsSection articles={reportArticles} channelSlug={reportConfig.articleChannelSlug} /> : null}
-        {slug === 'contact' && !displayPage.content ? null : <ContentSection page={displayPage} />}
+        {/* 联系我们页已在“联系信息”区块展示地址、电话、地图，不再重复渲染页面正文中的“联系我们”小模块。 */}
+        {slug === 'contact' ? null : <ContentSection page={displayPage} />}
         {businessInnovation ? <BusinessInnovationSection data={businessInnovation} /> : null}
         {slug === 'projects' ? <ProjectMap /> : null}
         {slug === 'contact' ? <MessageSection /> : null}
@@ -925,6 +927,7 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
   const missionParagraphs = Array.isArray(config.missionParagraphs) ? config.missionParagraphs.filter(Boolean) : [];
   const hasManagedCulture = Boolean(culture && (culture.content || culture.subtitle || culture.summary || cultureItems.length));
   const hasProfile = Boolean(page?.content?.trim());
+  const principleImageUrl = config.principleImage ? buildDirectusAssetUrl(config.principleImage) : '';
   return (
     <Shell active="about">
       <style>{corporateCultureStyles}</style>
@@ -958,7 +961,7 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
                 </div> : null}
               </article>
 
-              {config.principleTitle ? <aside className="about-principle reveal is-visible" aria-label={config.principleLabel || '企业宗旨'} data-about-tilt>
+              {config.principleTitle ? <aside className="about-principle reveal is-visible" aria-label={config.principleLabel || '企业宗旨'} data-about-tilt style={principleImageUrl ? { backgroundImage: `linear-gradient(140deg,rgba(10,28,54,.96),rgba(132,21,49,.88)),url("${principleImageUrl}")` } : undefined}>
                 <div className="about-roadline" aria-hidden="true"><span /><span /><span /></div>
                 <div className="about-principle-label">{config.principleLabel}</div>
                 <div className="about-principle-title">{config.principleTitle.split('\n').map((line, index) => <span key={index}>{index ? <br /> : null}{line}</span>)}</div>
@@ -1041,7 +1044,7 @@ export async function BusinessPage({ selectedSlug, basePath = '/business' }: { s
   const sectors = await loadBusinessSectors();
   const selectedSector = selectedSlug ? sectors.find((sector) => sector.slug === selectedSlug) : undefined;
   return (
-    <Shell active="businessDev" actionHref="/projects" actionLabel="查看项目">
+    <Shell active="businessDev" actionHref="/projects" actionLabel="查看重点项目">
       <Breadcrumb title="产业布局" />
       <main className="page" aria-label="主要内容">
         <Hero title="产业布局" kicker="BUSINESS PORTFOLIO" subtitle="展示集团产业体系宏观介绍，围绕基础设施建设与区域发展，形成投融建运协同的产业布局。" cover="/img/318康定市过境段公路工程项目434互通工程.jpg" ctaHref="#sectors" ctaLabel="查看产业布局" />

@@ -381,6 +381,10 @@ export const AdminApi = {
   setArticleStatus: (id: string, action: string, params: AdminQuery = {}) => adminFetch(withQuery(`/admin-api/articles/${encodeURIComponent(id)}/${action}`, params), {
     method: 'PATCH',
   }),
+  setArticleHomeRank: (id: string, payload: { is_top?: boolean; sort?: number }) => adminFetch(`/admin-api/articles/${encodeURIComponent(id)}/home-rank`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
   uploadFile: (formData: FormData) => adminFetch('/admin-api/files', {
     method: 'POST',
     body: formData,

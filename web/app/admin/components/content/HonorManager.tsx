@@ -4,7 +4,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { AdminApi } from '@/lib/admin/admin-api';
 import type { MessageState, PageContentItem, UploadPayload } from './types';
 
-const moduleCode = 'group-honors';
+const moduleCode = 'honors';
 const itemType = 'honor';
 const maxUploadBytes = 10 * 1024 * 1024;
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -47,7 +47,7 @@ export function HonorManager() {
   const loadItems = async () => {
     setIsLoading(true);
     try {
-      const result = await AdminApi.pageContentItems({ module_code: moduleCode, item_type: itemType });
+      const result = await AdminApi.pageContentItems({ module_code: moduleCode });
       setItems((result.data || []) as PageContentItem[]);
     } catch (error) {
       setMessage({ text: error instanceof Error ? error.message : '企业荣誉列表加载失败。', type: 'error' });

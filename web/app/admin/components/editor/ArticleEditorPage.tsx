@@ -24,6 +24,9 @@ type ArticleEditorRow = {
   author?: string;
   publish_at?: string;
   content?: string;
+  is_top?: boolean;
+  is_home_recommend?: boolean;
+  sort?: number;
   cover?: string | { id?: string } | null;
   attachments?: Array<{
     title?: string;
@@ -197,6 +200,9 @@ const emptyArticle = (): ArticleEditorRow => ({
   author: '',
   publish_at: '',
   content: '',
+  is_top: false,
+  is_home_recommend: false,
+  sort: 0,
   cover: '',
 });
 
@@ -305,7 +311,7 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     return tree;
   }, [channels, navigationChannels]);
 
-  const setField = (field: keyof ArticleEditorRow, value: string) => {
+  const setField = (field: keyof ArticleEditorRow, value: string | boolean | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -612,6 +618,9 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
     publish_at: fromLocalDateTime(String(form.publish_at || '')),
     content: sanitizeRichTextHtml(getEditorContent()).html,
     cover: getCoverId(form.cover),
+    is_top: Boolean(form.is_top),
+    is_home_recommend: Boolean(form.is_home_recommend),
+    sort: Number(form.sort) || 0,
     attachments: attachments.map((item) => ({ title: item.title.trim() || item.filename || '附件', file: item.file })),
   });
 
@@ -739,6 +748,15 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           </label>
           <label>发布时间
             <input type="datetime-local" value={form.publish_at || ''} onChange={(event) => setField('publish_at', event.target.value)} />
+          </label>
+          <label className="article-top-field">首页置顶
+            <span className="article-top-switch">
+              <input type="checkbox" checked={Boolean(form.is_top)} onChange={(event) => setField('is_top', event.target.checked)} />
+              <span>{form.is_top ? '已置顶，首页优先展示' : '未置顶'}</span>
+            </span>
+          </label>
+          <label>首页排序（数字越小越靠前，0 表示按发布时间）
+            <input type="number" step="1" min={0} value={String(form.sort ?? 0)} onChange={(event) => setField('sort', Number(event.target.value || 0))} />
           </label>
 
           <div className="cover-field span-2">

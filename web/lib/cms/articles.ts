@@ -203,6 +203,8 @@ export async function getPublicArticles(searchParams: URLSearchParams, companyId
     params['filter[main_channel][_in]'] = newsChannelIds.join(',');
   }
   if (keyword) params.search = keyword;
+  // 首页需要单独拉取置顶文章，避免置顶内容因发布时间较早而落在最新列表之外。
+  if (searchParams.get('isTop') === 'true') params['filter[is_top][_eq]'] = true;
 
   const articles = await cmsPublicFetch<DirectusListResponse<Record<string, unknown>>>(buildDirectusPath('/items/articles', params), realtimeCmsInit);
   const items = Array.isArray(articles?.data) ? articles.data.map((item) => mapPublicArticleSummary(item, channelMap)) : [];

@@ -19,6 +19,17 @@ const formatFileSize = (bytes?: number) => {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const fileExtension = (resource: DownloadResource) => {
+  const filename = resource.filename || '';
+  return filename.includes('.') ? filename.split('.').pop()?.toLowerCase() || '' : '';
+};
+
+const isVideoResource = (resource: DownloadResource) => {
+  const extension = fileExtension(resource);
+  if (extension) return ['mp4', 'mov', 'webm'].includes(extension);
+  return /^video\//i.test(resource.fileType || '');
+};
+
 const fileTypeLabel = (resource: DownloadResource) => {
   const filename = resource.filename || '';
   const extension = filename.includes('.') ? filename.split('.').pop()?.toUpperCase() : '';
@@ -29,6 +40,7 @@ const fileTypeLabel = (resource: DownloadResource) => {
 
 function DownloadCard({ resource }: { resource: DownloadResource }) {
   const size = formatFileSize(resource.filesize);
+  const video = isVideoResource(resource);
   return (
     <article className={styles.downloadCard}>
       <div>
@@ -45,7 +57,9 @@ function DownloadCard({ resource }: { resource: DownloadResource }) {
       </div>
       <div className={styles.downloadAction}>
         {resource.fileUrl
-          ? <a className="btn btn--primary" href={resource.fileUrl} download={resource.filename || undefined}>下载附件</a>
+          ? video
+            ? <a className="btn btn--primary" href={resource.fileUrl} target="_blank" rel="noreferrer">播放视频</a>
+            : <a className="btn btn--primary" href={resource.fileUrl} download={resource.filename || undefined}>下载附件</a>
           : <span className={styles.unavailable}>{Number(resource.filesize) > 0 ? '附件暂不可用' : '附件为空，请重新上传'}</span>}
       </div>
     </article>

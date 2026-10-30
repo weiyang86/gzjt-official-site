@@ -36,7 +36,7 @@ const pageLabels: Record<string, string> = {
   '/business-dev': '业务发展',
   '/business': '业务发展',
   '/business-dynamics': '业务动态',
-  '/projects': '项目展示',
+  '/projects': '重点项目',
   '/org': '下属公司',
   '/clean-gov': '廉洁建投',
   '/social-responsibility': '社会责任',

@@ -14,6 +14,7 @@ export type GroupIntroConfig = {
   principleLabel: string;
   principleTitle: string;
   principleEnglish: string[];
+  principleImage: string;
   performanceTitle: string;
   performanceLead: string;
   achievements: GroupIntroAchievement[];
@@ -35,6 +36,7 @@ export const defaultGroupIntroConfig: GroupIntroConfig = {
   principleLabel: '企业宗旨',
   principleTitle: '匠心筑路 畅通甘孜\n建者无疆 善作善成',
   principleEnglish: ['INGENUITY BUILDS ROADS, SMOOTH GANZI', 'BUILDERS ARE BOUNDLESS, GOOD DEEDS'],
+  principleImage: '',
   performanceTitle: '建设与经营成果',
   performanceLead: '集团自组建以来，在州委、州政府的坚强领导下，在州国资委、州交通运输局、州住房和城乡建设局的精心指导下，紧绕“交通先行”“城乡提升”“乡村振兴”战略，全力抓好重点交通和城建项目建设及企业经营发展等工作。',
   achievements: [

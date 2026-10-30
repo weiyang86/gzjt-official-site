@@ -14,11 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const defaultPage: PageContent = {
   id: 'projects',
-  title: '项目展示',
+  title: '重点项目',
   slug: 'projects',
   cover: '/img/map.png',
   status: 'published',
-  content: '<p>项目展示集中呈现集团重点交通、城乡基础设施、产业与文旅项目，展现服务区域发展和民生改善的建设成果。</p>',
+  content: '<p>重点项目集中呈现集团重点交通、城乡基础设施、产业与文旅项目，展现服务区域发展和民生改善的建设成果。</p>',
 };
 
 async function loadPage(): Promise<PageContent> {
@@ -48,7 +48,7 @@ function ProjectsHero({ page }: { page: PageContent }) {
       <div className="content hero-inner">
         <div>
           <div className="kicker reveal is-visible"><i aria-hidden="true" /><span>PROJECTS</span></div>
-          <h1 className="hero-title reveal is-visible">{page.title || '项目展示'}</h1>
+          <h1 className="hero-title reveal is-visible">{page.title || '重点项目'}</h1>
           <p className="hero-sub reveal is-visible">集中呈现集团重点交通、城乡基础设施、产业与文旅项目。</p>
           <div className="hero-cta reveal is-visible">
             <a className="btn btn--primary" href="#map" data-no-transition>查看项目地图</a>
@@ -81,7 +81,7 @@ export default async function ProjectsPage() {
           <div className="crumb-inner">
             <a href="/home" data-no-transition>首页</a>
             <span className="crumb-sep">›</span>
-            <span>项目展示</span>
+            <span>{page.title || '重点项目'}</span>
           </div>
         </div>
       </div>
