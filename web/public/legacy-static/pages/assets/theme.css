@@ -78,6 +78,16 @@ img{max-width:100%;height:auto;display:block}
   border-bottom:1px solid rgba(255,255,255,.10);
   transition:background .35s var(--ease), border-color .35s var(--ease), box-shadow .35s var(--ease);
 }
+.site-header>.header-logo{
+  position: absolute;
+  height: 100%;
+  left: 0;
+  transform: translateX(-15%);
+}
+.site-header>.header-logo>img{
+  width: auto;
+  height: 100%;
+}
 body.has-site-header{
   padding-top:var(--site-header-offset, 88px);
 }

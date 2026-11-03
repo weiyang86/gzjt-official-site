@@ -118,15 +118,11 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
     <>
       <div className="page-transition" />
       <header className="site-header" aria-label="顶部导航">
+        <a className="header-logo" href={homeHref} data-no-transition aria-label="甘孜州建设投资集团首页">
+          <img src="/img/logo.png" alt="甘孜州建设投资集团有限公司" width={2480} height={504} />
+        </a>
         <div className="container">
           <div className="header-inner">
-            <a className="brand" href={homeHref} data-no-transition>
-              <span className="brand-mark" aria-hidden="true" />
-              <span className="brand-text">
-                <b>甘孜州建设投资集团</b>
-                <span>GANZI CONSTRUCTION INVESTMENT GROUP</span>
-              </span>
-            </a>
             <nav className="nav" aria-label="一级导航" data-nav-tree-source="api">
               <a href={homeHref} className={active === 'home' ? 'is-active' : undefined} aria-current={active === 'home' ? 'page' : undefined} data-nav-key="home" data-no-transition>首页</a>
               {navigation.roots.map((item) => {
