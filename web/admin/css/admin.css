@@ -708,6 +708,25 @@ code {
 .rich-editor-body .ck.ck-content td,
 .rich-editor-body .ck.ck-content th{border:1px solid #d0d7e2;padding:8px 10px;vertical-align:middle}
 .rich-editor-shell .ck-content img{max-width:100%;height:auto}
+/* 编辑器内 figure 与发布页规则一致：默认居中；没有 inline width 默认 max-width 80%，有 inline width 优先 */
+.rich-editor-shell .ck-content figure.image,
+.rich-editor-shell .ck-content figure.image_resized,
+.rich-editor-shell .ck-content figure.image-style-align-center,
+.rich-editor-shell .ck-content figure.image-style-align-left,
+.rich-editor-shell .ck-content figure.image-style-align-right{display:block;margin:0 auto}
+.rich-editor-shell .ck-content figure.image:not([style*="width"]),
+.rich-editor-shell .ck-content figure.image-style-align-center:not([style*="width"]){max-width:80%}
+.rich-editor-shell .ck-content figure.image-style-align-left{max-width:50%;float:left;margin:0 1em 0 0}
+.rich-editor-shell .ck-content figure.image-style-align-right{max-width:50%;float:right;margin:0 0 0 1em}
+.rich-editor-shell .ck-content figure.image img,
+.rich-editor-shell .ck-content figure.image_resized img,
+.rich-editor-shell .ck-content figure.image-style-align-center img,
+.rich-editor-shell .ck-content figure.image-style-align-left img,
+.rich-editor-shell .ck-content figure.image-style-align-right img{
+  width:100%;
+  height:auto;
+  display:block;
+}
 .rich-editor-shell .ck-content figure.image-style-align-center img,
 .rich-editor-shell .ck-content p[style*="text-align:center"] img,
 .rich-editor-shell .ck-content p[style*="text-align: center"] img,
@@ -1505,8 +1524,24 @@ code {
 }
 .article-preview-body p { margin: 0 0 14px; }
 
-.article-preview-body figure {
-  max-width: 100%;
+/* figure 默认居中；没有 inline width 的图片默认最多占容器 80%，有 inline width 优先按 inline 值 */
+.article-preview-body figure.image,
+.article-preview-body figure.image_resized,
+.article-preview-body figure.image-style-align-center,
+.article-preview-body figure.image-style-align-left,
+.article-preview-body figure.image-style-align-right{display:block;margin:0 auto}
+.article-preview-body figure.image:not([style*="width"]),
+.article-preview-body figure.image-style-align-center:not([style*="width"]){max-width:80%}
+.article-preview-body figure.image-style-align-left{max-width:50%;float:left;margin:0 1em 0 0}
+.article-preview-body figure.image-style-align-right{max-width:50%;float:right;margin:0 0 0 1em}
+.article-preview-body figure.image img,
+.article-preview-body figure.image_resized img,
+.article-preview-body figure.image-style-align-center img,
+.article-preview-body figure.image-style-align-left img,
+.article-preview-body figure.image-style-align-right img{
+  width:100%;
+  height:auto;
+  display:block;
 }
 
 .article-preview-body img,
@@ -1515,12 +1550,16 @@ code {
   max-width: 100%;
   height: auto;
 }
+.article-preview-body img:not(figure img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
 .article-preview-body p[style*="text-align: center"] img,
 .article-preview-body p[style*="text-align:center"] img,
 .article-preview-body .text-center img,
 .article-preview-body .ql-align-center img,
-.article-preview-body .image-style-align-center img,
-.article-preview-body figure.image-style-align-center img,
 .article-preview-body img[data-align="center"] {
   display: block;
   margin-left: auto;

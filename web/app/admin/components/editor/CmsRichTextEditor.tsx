@@ -227,7 +227,54 @@ const createFirstLineIndentPlugin = (EditorBuild: any) => {
   };
 };
 
-/** 中文常用字体，避免默认字体列表全部为英文字体名。 */
+/** 图片默认居中属性值：与 CKEditor Image 插件的 alignCenter style 值一致。 */
+const IMAGE_STYLE_CENTER = 'alignCenter';
+
+/**
+ * 图片默认居中：新上传图片和历史图片都会被自动标记 alignCenter，
+ * 与 pages.css 里的 .image-style-align-center 居中规则配合，让预览和发布页所见即所得。
+ */
+const createImageDefaultCenterPlugin = (EditorBuild: any) => {
+  const paragraphPlugin = EditorBuild?.builtinPlugins?.find((plugin: any) => plugin?.pluginName === 'Paragraph');
+  const PluginBase = paragraphPlugin ? Object.getPrototypeOf(paragraphPlugin) : null;
+  if (typeof PluginBase !== 'function') return null;
+
+  return class ImageDefaultCenterPlugin extends PluginBase {
+    static get pluginName() {
+      return 'ImageDefaultCenter';
+    }
+
+    init() {
+      const editor = this.editor;
+
+      const applyCenter = (writer: any) => {
+        const root = editor.model.document.getRoot();
+        if (!root) return false;
+        let changed = false;
+        const walk = (node: any) => {
+          if (node.is('element', 'imageBlock') && !node.getAttribute('imageStyle')) {
+            writer.setAttribute('imageStyle', IMAGE_STYLE_CENTER, node);
+            changed = true;
+          }
+          if (node.getChildren) {
+            for (const child of node.getChildren()) walk(child);
+          }
+        };
+        for (const child of root.getChildren()) walk(child);
+        return changed;
+      };
+
+      editor.model.document.registerPostFixer(applyCenter);
+      editor.once('ready', () => {
+        editor.model.change((writer: any) => {
+          applyCenter(writer);
+        });
+      });
+    }
+  };
+};
+
+
 const fontFamilyOptions = [
   'default',
   { title: '宋体', model: 'SimSun' },
@@ -296,13 +343,17 @@ export function CmsRichTextEditor({
   const config = useMemo(() => {
     const toolbar = useFallbackToolbar ? buildFallbackToolbarItems() : buildToolbarItems();
     const FirstLineIndentPlugin = loaded ? createFirstLineIndentPlugin(loaded.EditorBuild) : null;
+    const ImageDefaultCenterPlugin = loaded ? createImageDefaultCenterPlugin(loaded.EditorBuild) : null;
+    const plugins: any[] = [];
+    if (FirstLineIndentPlugin) plugins.push(FirstLineIndentPlugin);
+    if (ImageDefaultCenterPlugin) plugins.push(ImageDefaultCenterPlugin);
     return {
       licenseKey: 'GPL',
       language: 'zh-cn',
       placeholder,
       // 默认 offset 为 40px；改为 32px 约等于两个 16px 中文字符的宽度。
       indentBlock: { offset: 32, unit: 'px' },
-      extraPlugins: FirstLineIndentPlugin ? [FirstLineIndentPlugin] : [],
+      extraPlugins: plugins,
       toolbar: { items: toolbar, shouldNotGroupWhenFull: true },
       fontFamily: {
         options: fontFamilyOptions,

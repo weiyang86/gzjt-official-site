@@ -1037,13 +1037,30 @@
 .detail .body{margin-top:18px;color:rgba(11,18,32,.70);line-height:2.0;font-size:15px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .detail .body p{margin:0 0 14px}
 .detail .body img{max-width:100%;height:auto}
-.detail .body figure{max-width:100%}
-.detail .body figure img{max-width:100%;height:auto}
+/* figure 默认居中；没有 inline width 的图片默认最多占正文 80%，有 inline width（预设 25/50/75/100% 或自定义）时优先按 inline 值 */
+.detail .body figure.image,
+.detail .body figure.image_resized,
+.detail .body figure.image-style-align-center,
+.detail .body figure.image-style-align-left,
+.detail .body figure.image-style-align-right{display:block;margin:0 auto}
+.detail .body figure.image:not([style*="width"]),
+.detail .body figure.image-style-align-center:not([style*="width"]){max-width:80%}
+.detail .body figure.image-style-align-left{max-width:50%;float:left;margin:0 1em 0 0}
+.detail .body figure.image-style-align-right{max-width:50%;float:right;margin:0 0 0 1em}
+.detail .body figure.image img,
+.detail .body figure.image_resized img,
+.detail .body figure.image-style-align-center img,
+.detail .body figure.image-style-align-left img,
+.detail .body figure.image-style-align-right img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+/* 没有 figure 包裹的孤立图片兜底 */
+.detail .body img:not(figure img){max-width:100%;height:auto;display:block;margin:0 auto}
 .detail .body p[style*="text-align: center"] img,
 .detail .body p[style*="text-align:center"] img,
 .detail .body .ql-align-center img,
-.detail .body .image-style-align-center img,
-.detail .body figure.image-style-align-center img,
 .detail .body img[data-align="center"]{display:block;margin-left:auto;margin-right:auto}
 .detail .body img[data-align="right"]{display:block;margin-left:auto;margin-right:0}
 .detail .body img[data-align="left"]{display:block;margin-left:0;margin-right:auto}
@@ -1053,14 +1070,30 @@
 .article-content{color:rgba(11,18,32,.70);line-height:2.0;font-size:15px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .article-content p{margin:0 0 14px}
 .article-content img{max-width:100%;height:auto}
-.article-content figure{max-width:100%}
-.article-content figure img{max-width:100%;height:auto}
+/* figure 默认居中；没有 inline width 的图片默认最多占正文 80% */
+.article-content figure.image,
+.article-content figure.image_resized,
+.article-content figure.image-style-align-center,
+.article-content figure.image-style-align-left,
+.article-content figure.image-style-align-right{display:block;margin:0 auto}
+.article-content figure.image:not([style*="width"]),
+.article-content figure.image-style-align-center:not([style*="width"]){max-width:80%}
+.article-content figure.image-style-align-left{max-width:50%;float:left;margin:0 1em 0 0}
+.article-content figure.image-style-align-right{max-width:50%;float:right;margin:0 0 0 1em}
+.article-content figure.image img,
+.article-content figure.image_resized img,
+.article-content figure.image-style-align-center img,
+.article-content figure.image-style-align-left img,
+.article-content figure.image-style-align-right img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+.article-content img:not(figure img){max-width:100%;height:auto;display:block;margin:0 auto}
 .article-content p[style*="text-align: center"] img,
 .article-content p[style*="text-align:center"] img,
 .article-content .text-center img,
 .article-content .ql-align-center img,
-.article-content .image-style-align-center img,
-.article-content figure.image-style-align-center img,
 .article-content img[data-align="center"]{display:block;margin-left:auto;margin-right:auto}
 .article-content img[data-align="right"]{display:block;margin-left:auto;margin-right:0}
 .article-content img[data-align="left"]{display:block;margin-left:0;margin-right:auto}
