@@ -28,6 +28,18 @@ export type DashboardStats = {
   news_categories?: number;
   notice_articles?: number;
   notice_categories?: number;
+  news_views?: number;
+  news_clicks?: number;
+  notice_views?: number;
+  notice_clicks?: number;
+};
+
+/** 审核与发布人员信息只在后台使用，前台不展示。 */
+export type ArticleReviewMeta = {
+  firstReviewer: string;
+  secondReviewer: string;
+  thirdReviewer: string;
+  publisher: string;
 };
 
 export type AnalyticsDailyPoint = { date: string; pv: number; uv: number };
@@ -385,6 +397,12 @@ export const AdminApi = {
     method: 'PATCH',
     body: JSON.stringify(payload),
   }),
+  articleMeta: (id: string) => adminFetch<{ data?: ArticleReviewMeta }>(`/admin-api/article-meta/${encodeURIComponent(id)}`),
+  saveArticleMeta: (id: string, payload: ArticleReviewMeta) => adminFetch<{ data?: ArticleReviewMeta }>(`/admin-api/article-meta/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }),
+  articleExportUrl: (params: AdminQuery = {}) => withQuery('/admin-api/articles/export', params),
   uploadFile: (formData: FormData) => adminFetch('/admin-api/files', {
     method: 'POST',
     body: formData,

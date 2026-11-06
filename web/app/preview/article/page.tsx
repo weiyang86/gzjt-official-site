@@ -83,6 +83,7 @@ export default async function PublicArticlePreviewPage({ searchParams }: Preview
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.62))' }} />
               </div>
               <h1 style={{ marginTop: 18 }}>{article.title}</h1>
+              {article.subtitle ? <p className="subtitle">{article.subtitle}</p> : null}
               <div className="meta">
                 发布时间：{formatDate(publishValue)} · {labelFor(article)}
                 {article.source ? ` · ${article.source}` : ''}

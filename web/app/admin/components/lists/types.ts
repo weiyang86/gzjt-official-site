@@ -20,6 +20,8 @@ export type ArticleRow = {
   is_top?: boolean;
   is_home_recommend?: boolean;
   sort?: number;
+  views?: number;
+  clicks?: number;
 };
 
 export type CategoryRow = {

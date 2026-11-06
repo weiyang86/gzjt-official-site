@@ -5,8 +5,12 @@ import { AdminApi, type DashboardStats as DashboardStatsPayload } from '@/lib/ad
 
 const statItems = [
   { key: 'news_articles', label: '新闻数量', hint: '后台文章总数' },
+  { key: 'news_views', label: '新闻阅读量', hint: '详情页阅读累计（含展示基数）' },
+  { key: 'news_clicks', label: '新闻点击量', hint: '文章点击累计（含展示基数）' },
   { key: 'news_categories', label: '新闻分类数量', hint: '新闻栏目总数' },
   { key: 'notice_articles', label: '公示公告数量', hint: '公告文章总数' },
+  { key: 'notice_views', label: '公告阅读量', hint: '详情页阅读累计（含展示基数）' },
+  { key: 'notice_clicks', label: '公告点击量', hint: '文章点击累计（含展示基数）' },
   { key: 'notice_categories', label: '公示公告分类数量', hint: '公告栏目总数' },
 ] as const;
 

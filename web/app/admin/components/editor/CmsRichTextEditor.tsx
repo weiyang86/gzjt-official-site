@@ -129,8 +129,6 @@ const buildToolbarItems = () => ([
   'italic',
   'underline',
   'strikethrough',
-  'subscript',
-  'superscript',
   '|',
   'fontColor',
   'fontBackgroundColor',
@@ -145,10 +143,9 @@ const buildToolbarItems = () => ([
   '|',
   'link',
   'insertTable',
-  'horizontalLine',
   '|',
   'imageUpload',
-  'removeFormat',
+  'blockQuote',
 ]);
 
 const buildFallbackToolbarItems = () => ([
@@ -168,9 +165,79 @@ const buildFallbackToolbarItems = () => ([
   'insertTable',
   'imageUpload',
   'blockQuote',
-  '|',
-  'removeFormat',
 ]);
+
+/** 首行缩进使用的模型属性，最终输出为段落内联样式 text-indent:2em。 */
+const FIRST_LINE_INDENT_ATTRIBUTE = 'textIndent';
+const FIRST_LINE_INDENT_VALUE = '2em';
+
+/**
+ * 基于构建内置插件派生一个自定义插件，在编辑器初始化阶段注册首行缩进属性，
+ * 保证历史内容中的 text-indent 能被正确读取和回写。
+ */
+const createFirstLineIndentPlugin = (EditorBuild: any) => {
+  // Paragraph 插件直接继承自 Plugin，取它的父类即可拿到未包业务逻辑的 Plugin 基类。
+  const paragraphPlugin = EditorBuild?.builtinPlugins?.find((plugin: any) => plugin?.pluginName === 'Paragraph');
+  const PluginBase = paragraphPlugin ? Object.getPrototypeOf(paragraphPlugin) : null;
+  if (typeof PluginBase !== 'function') return null;
+
+  return class FirstLineIndentPlugin extends PluginBase {
+    static get pluginName() {
+      return 'FirstLineIndent';
+    }
+
+    init() {
+      const editor = this.editor;
+      const schema = editor.model.schema;
+      if (!schema.checkAttribute('paragraph', FIRST_LINE_INDENT_ATTRIBUTE)) {
+        schema.extend('paragraph', { allowAttributes: [FIRST_LINE_INDENT_ATTRIBUTE] });
+      }
+      editor.conversion.attributeToAttribute({
+        model: { key: FIRST_LINE_INDENT_ATTRIBUTE, values: [FIRST_LINE_INDENT_VALUE] },
+        view: {
+          [FIRST_LINE_INDENT_VALUE]: {
+            key: 'style',
+            value: { 'text-indent': FIRST_LINE_INDENT_VALUE },
+          },
+        },
+      });
+
+      // 正文段落默认首行缩进 2 字符：新增或已有段落都会被自动补齐，无需手动设置。
+      const applyDefaultIndent = (writer: any) => {
+        const root = editor.model.document.getRoot();
+        if (!root) return false;
+        let changed = false;
+        for (const block of root.getChildren()) {
+          if (!block.is('element', 'paragraph')) continue;
+          if (block.getAttribute(FIRST_LINE_INDENT_ATTRIBUTE) === FIRST_LINE_INDENT_VALUE) continue;
+          writer.setAttribute(FIRST_LINE_INDENT_ATTRIBUTE, FIRST_LINE_INDENT_VALUE, block);
+          changed = true;
+        }
+        return changed;
+      };
+
+      editor.model.document.registerPostFixer(applyDefaultIndent);
+      // 首次载入的历史文章同样补齐缩进。
+      editor.once('ready', () => {
+        editor.model.change((writer: any) => {
+          applyDefaultIndent(writer);
+        });
+      });
+    }
+  };
+};
+
+/** 中文常用字体，避免默认字体列表全部为英文字体名。 */
+const fontFamilyOptions = [
+  'default',
+  { title: '宋体', model: 'SimSun' },
+  { title: '仿宋', model: 'FangSong' },
+  { title: '黑体', model: 'SimHei' },
+  { title: '楷体', model: 'KaiTi' },
+  { title: '微软雅黑', model: 'Microsoft YaHei' },
+  { title: 'Arial', model: 'Arial' },
+  { title: 'Times New Roman', model: 'Times New Roman' },
+];
 
 export function CmsRichTextEditor({
   value,
@@ -188,6 +255,9 @@ export function CmsRichTextEditor({
   const editorInstanceRef = useRef<any>(null);
   const latestValueRef = useRef(value);
   const initialDataRef = useRef(value || '<p></p>');
+  const [toolHint, setToolHint] = useState('');
+  const [imageWidth, setImageWidth] = useState('');
+  const [imageHeight, setImageHeight] = useState('');
 
   useEffect(() => {
     latestValueRef.current = value;
@@ -225,19 +295,36 @@ export function CmsRichTextEditor({
 
   const config = useMemo(() => {
     const toolbar = useFallbackToolbar ? buildFallbackToolbarItems() : buildToolbarItems();
+    const FirstLineIndentPlugin = loaded ? createFirstLineIndentPlugin(loaded.EditorBuild) : null;
     return {
       licenseKey: 'GPL',
       language: 'zh-cn',
       placeholder,
       // 默认 offset 为 40px；改为 32px 约等于两个 16px 中文字符的宽度。
       indentBlock: { offset: 32, unit: 'px' },
+      extraPlugins: FirstLineIndentPlugin ? [FirstLineIndentPlugin] : [],
       toolbar: { items: toolbar, shouldNotGroupWhenFull: true },
+      fontFamily: {
+        options: fontFamilyOptions,
+        supportAllValues: true,
+      },
       image: {
         styles: ['alignLeft', 'alignCenter', 'alignRight'],
+        resizeUnit: '%',
+        resizeOptions: [
+          { name: 'resizeImage:original', value: null, label: '原始尺寸' },
+          { name: 'resizeImage:25', value: '25', label: '25%' },
+          { name: 'resizeImage:50', value: '50', label: '50%' },
+          { name: 'resizeImage:75', value: '75', label: '75%' },
+          { name: 'resizeImage:100', value: '100', label: '100%' },
+          { name: 'resizeImage:custom', value: 'custom', label: '自定义尺寸' },
+        ],
         toolbar: [
           'imageStyle:alignLeft',
           'imageStyle:alignCenter',
           'imageStyle:alignRight',
+          '|',
+          'resizeImage',
           '|',
           'toggleImageCaption',
           'imageTextAlternative',
@@ -248,10 +335,6 @@ export function CmsRichTextEditor({
           'tableColumn',
           'tableRow',
           'mergeTableCells',
-          'splitTableCell',
-          'toggleTableCaption',
-          'tableProperties',
-          'tableCellProperties',
         ],
       },
       typing: {
@@ -260,7 +343,7 @@ export function CmsRichTextEditor({
         },
       },
     };
-  }, [placeholder, useFallbackToolbar]);
+  }, [placeholder, useFallbackToolbar, loaded]);
 
   const attachUploadAdapter = (editor: any) => {
     try {
@@ -308,6 +391,52 @@ export function CmsRichTextEditor({
     } catch {}
   };
 
+  const getSelectedImage = () => {
+    const editor = editorInstanceRef.current;
+    if (!editor?.plugins?.get || !editor?.model?.document) return null;
+    try {
+      return editor.plugins.get('ImageUtils')?.getClosestSelectedImageElement?.(editor.model.document.selection) || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const applyImageWidth = (width: string | null) => {
+    const editor = editorInstanceRef.current;
+    const image = getSelectedImage();
+    if (!editor || !image) {
+      setToolHint('请先选中正文中的图片');
+      return;
+    }
+    // 复用编辑器内置 resizeImage 命令，保证与拖拽缩放走同一套模型与输出转换。
+    editor.execute('resizeImage', { width });
+    setToolHint(width ? `图片宽度已设为 ${width}` : '已恢复原始尺寸');
+    editor.editing?.view?.focus?.();
+  };
+
+  const applyImageSize = () => {
+    const width = imageWidth.trim();
+    const height = imageHeight.trim();
+    if (!width && !height) {
+      setToolHint('请输入图片宽度或高度（单位 px）');
+      return;
+    }
+    const editor = editorInstanceRef.current;
+    const image = getSelectedImage();
+    if (!editor || !image) {
+      setToolHint('请先选中正文中的图片');
+      return;
+    }
+    editor.execute('resizeImage', { width: width ? `${width}px` : null });
+    if (height) {
+      editor.model.change((writer: any) => {
+        writer.setAttribute('resizedHeight', `${height}px`, image);
+      });
+    }
+    setToolHint('图片尺寸已应用');
+    editor.editing?.view?.focus?.();
+  };
+
   const buildHandle = (): CmsRichTextEditorHandle => ({
     getHtml: () => safeString(editorInstanceRef.current?.getData?.()) || latestValueRef.current || '',
     setHtml: (html: string) => {
@@ -345,8 +474,44 @@ export function CmsRichTextEditor({
   return (
     <div className="rich-editor-shell" style={{ ['--rich-editor-min-height' as any]: `${minHeight}px` }}>
       <div className="rich-editor-toolbar" ref={toolbarHostRef} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: '6px 10px', borderBottom: '1px solid rgba(13,47,90,.12)' }}>
-        <span style={{ fontSize: 12, color: '#546070' }}>选中正文中的图片后可删除</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 8,
+          padding: '6px 10px',
+          borderBottom: '1px solid rgba(13,47,90,.12)',
+          fontSize: 12,
+          color: '#546070',
+        }}
+      >
+        <span>图片宽度</span>
+        {['25%', '50%', '75%', '100%'].map((value) => (
+          <button key={value} className="text-button" type="button" onClick={() => applyImageWidth(value)}>
+            {value}
+          </button>
+        ))}
+        <button className="text-button" type="button" onClick={() => applyImageWidth(null)}>原始</button>
+        <span style={{ width: 1, height: 16, background: 'rgba(13,47,90,.15)' }} />
+        <span>宽</span>
+        <input
+          value={imageWidth}
+          onChange={(event) => setImageWidth(event.target.value.replace(/[^\d]/g, ''))}
+          placeholder="px"
+          inputMode="numeric"
+          style={{ width: 64, height: 26, padding: '0 6px', border: '1px solid rgba(13,47,90,.18)', borderRadius: 4 }}
+        />
+        <span>高</span>
+        <input
+          value={imageHeight}
+          onChange={(event) => setImageHeight(event.target.value.replace(/[^\d]/g, ''))}
+          placeholder="px"
+          inputMode="numeric"
+          style={{ width: 64, height: 26, padding: '0 6px', border: '1px solid rgba(13,47,90,.18)', borderRadius: 4 }}
+        />
+        <button className="text-button" type="button" onClick={applyImageSize}>应用尺寸</button>
+        <span style={{ flex: 1, minWidth: 120 }}>{toolHint}</span>
         <button className="text-button is-danger" type="button" onClick={deleteSelectedImage}>删除选中图片</button>
       </div>
       <div className="rich-editor-body">

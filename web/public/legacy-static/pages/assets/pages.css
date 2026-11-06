@@ -1032,10 +1032,13 @@
   padding:26px 26px 24px;
 }
 .detail h1{margin:0;font-family:"Source Han Serif SC","Noto Serif SC","Songti SC","STSong",serif;font-weight:950;letter-spacing:.6px;font-size:34px}
+.detail .subtitle{margin:10px 0 0;color:rgba(11,18,32,.55);font-size:16px;line-height:1.8}
 .detail .meta{margin-top:14px}
 .detail .body{margin-top:18px;color:rgba(11,18,32,.70);line-height:2.0;font-size:15px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .detail .body p{margin:0 0 14px}
 .detail .body img{max-width:100%;height:auto}
+.detail .body figure{max-width:100%}
+.detail .body figure img{max-width:100%;height:auto}
 .detail .body p[style*="text-align: center"] img,
 .detail .body p[style*="text-align:center"] img,
 .detail .body .ql-align-center img,
@@ -1050,6 +1053,8 @@
 .article-content{color:rgba(11,18,32,.70);line-height:2.0;font-size:15px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .article-content p{margin:0 0 14px}
 .article-content img{max-width:100%;height:auto}
+.article-content figure{max-width:100%}
+.article-content figure img{max-width:100%;height:auto}
 .article-content p[style*="text-align: center"] img,
 .article-content p[style*="text-align:center"] img,
 .article-content .text-center img,

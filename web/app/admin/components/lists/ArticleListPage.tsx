@@ -185,6 +185,11 @@ export function ArticleListPage({
   const previewHref = previewShareUrl
     ? (typeof window === 'undefined' ? previewShareUrl : new URL(previewShareUrl, window.location.origin).toString())
     : '';
+  const exportQuery = new URLSearchParams({ scope });
+  if (keyword.trim()) exportQuery.set('keyword', keyword.trim());
+  if (channel) exportQuery.set('channel', channel);
+  if (status) exportQuery.set('status', status);
+  const exportHref = `/admin-api/articles/export?${exportQuery.toString()}`;
   const RootTag = embedded ? 'div' : 'main';
 
   return (
@@ -198,6 +203,7 @@ export function ArticleListPage({
           <div className="toolbar-actions">
             <a className="secondary-button" href={copy.categoriesHref}>分类管理</a>
             {embedded ? null : <a className="secondary-button" href="/admin/content">页面内容管理</a>}
+            <a className="secondary-button" href={exportHref} download>导出数据</a>
             <a className="primary-link-button" href={copy.createHref}>{copy.createLabel}</a>
           </div>
         </div>
@@ -236,13 +242,15 @@ export function ArticleListPage({
                 <th>栏目</th>
                 <th>状态</th>
                 <th>发布时间</th>
+                <th>阅读量</th>
+                <th>点击量</th>
                 {isNotice ? null : <th>首页排名</th>}
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={isNotice ? 6 : 7}>{copy.loading}</td></tr>
+                <tr><td colSpan={isNotice ? 8 : 9}>{copy.loading}</td></tr>
               ) : items.length ? items.map((item) => {
                 const coverId = getCoverId(item.cover);
                 return (
@@ -261,6 +269,8 @@ export function ArticleListPage({
                     <td>{channelNames(item.main_channels, item.main_channel)}</td>
                     <td><span className={`status-badge status-${item.status || 'draft'}`}>{statusText[item.status || ''] || item.status || '-'}</span></td>
                     <td>{formatPreviewDate(item.publish_at)}</td>
+                    <td>{Number(item.views || 0)}</td>
+                    <td>{Number(item.clicks || 0)}</td>
                     {isNotice ? null : (
                       <td>
                         <div className="table-actions article-home-rank">
@@ -305,7 +315,7 @@ export function ArticleListPage({
                   </tr>
                 );
               }) : (
-                <tr><td colSpan={isNotice ? 6 : 7}>{copy.empty}</td></tr>
+                <tr><td colSpan={isNotice ? 8 : 9}>{copy.empty}</td></tr>
               )}
             </tbody>
           </table>
@@ -324,6 +334,7 @@ export function ArticleListPage({
               <div>
                 <p className="eyebrow">{copy.previewDialogTitle}</p>
                 <h2>{previewItem.title || copy.previewEmpty}</h2>
+                {previewItem.subtitle ? <p className="article-preview-subtitle">{previewItem.subtitle}</p> : null}
               </div>
               <div className="toolbar-actions">
                 {previewHref ? <a className="secondary-button" href={previewHref} target="_blank" rel="noreferrer">{copy.openPreviewLink}</a> : null}

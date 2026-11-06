@@ -5,6 +5,7 @@ import { getPublicArticleById, getPublicArticles } from '@/lib/cms';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 import { isNoticeChannel } from '@/lib/cms/channels';
 import { Drawer, Footer, Header, NewsAssets } from '../components';
+import { recordArticleStat } from '@/lib/article-stats/store';
 import type { Article } from '@/types/cms';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,8 @@ async function loadDetail(id: string) {
   try {
     const article = await getPublicArticleById(id);
     if (!article) return null;
+    // 详情页每次被访问记一次阅读量，统计数据只落本地文件，不写入 CMS。
+    await recordArticleStat(id, 'views');
     const scope = getArticleScope(article);
     const query = new URLSearchParams({ scope, page: '1', pageSize: '100' });
     const channelSlug = article.mainChannel?.slug || article.main_channel?.slug || '';
@@ -111,6 +114,7 @@ export default async function NewsDetailPage({ params }: DetailPageProps) {
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.62))' }} />
               </div>
               <h1 style={{ marginTop: 18 }}>{article.title}</h1>
+              {article.subtitle ? <p className="subtitle">{article.subtitle}</p> : null}
               <div className="meta">发布时间：{formatDate(publishValue)} · {labelFor(article)}{article.source ? ` · ${article.source}` : ''}</div>
               <div className="body" dangerouslySetInnerHTML={{ __html: article.content || `<p>${article.summary || '暂无正文内容。'}</p>` }} />
               {article.attachments?.length ? (

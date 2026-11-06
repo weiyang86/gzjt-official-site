@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AdminApi } from '@/lib/admin/admin-api';
+import { AdminApi, type ArticleReviewMeta } from '@/lib/admin/admin-api';
 import { sanitizeRichTextHtml } from '@/lib/richtext/sanitize';
 import { CmsRichTextEditor, type CmsRichTextEditorHandle } from './CmsRichTextEditor';
 import type { AdminScope, Channel } from '../lists/types';
@@ -206,11 +206,19 @@ const emptyArticle = (): ArticleEditorRow => ({
   cover: '',
 });
 
+const emptyReviewMeta = (): ArticleReviewMeta => ({
+  firstReviewer: '',
+  secondReviewer: '',
+  thirdReviewer: '',
+  publisher: '',
+});
+
 export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
   const isNotice = scope === 'notice';
   const [articleId, setArticleId] = useState('');
   const [channelSlug, setChannelSlug] = useState('');
   const [form, setForm] = useState<ArticleEditorRow>(() => emptyArticle());
+  const [reviewMeta, setReviewMeta] = useState<ArticleReviewMeta>(() => emptyReviewMeta());
   const [channels, setChannels] = useState<Channel[]>([]);
   const [navigationChannels, setNavigationChannels] = useState<Channel[]>([]);
   const [coverPreview, setCoverPreview] = useState('');
@@ -313,6 +321,10 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
 
   const setField = (field: keyof ArticleEditorRow, value: string | boolean | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setReviewField = (field: keyof ArticleReviewMeta, value: string) => {
+    setReviewMeta((prev) => ({ ...prev, [field]: value }));
   };
 
   const setChannelIds = (channelIds: string[]) => {
@@ -448,6 +460,11 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           setCoverPreview(coverId ? `/admin-api/assets/${encodeURIComponent(coverId)}` : '');
           updateAttachments(normalizeAttachmentEntries(article.attachments));
           if (editorRef.current) editorRef.current.setHtml(article.content || '<p></p>');
+          AdminApi.articleMeta(nextArticleId)
+            .then((result) => {
+              if (isMounted && result.data) setReviewMeta({ ...emptyReviewMeta(), ...result.data });
+            })
+            .catch(() => undefined);
         } else if (initialChannelSlug) {
           // 从社会责任等固定栏目列表进入新增时，自动预选对应栏目。
           const initialChannel = channelRows.find((item) => String(item.slug || '') === initialChannelSlug);
@@ -649,6 +666,10 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
         : await AdminApi.createArticle(payload, { scope });
       const saved = (result.data || {}) as { id?: string };
       const savedId = saved.id || articleId;
+      if (savedId) {
+        // 审核/发布人员只存后台本地文件，保存失败不影响正文。
+        await AdminApi.saveArticleMeta(savedId, reviewMeta).catch(() => undefined);
+      }
       if (!articleId && savedId) {
         setArticleId(savedId);
         window.history.replaceState(null, '', `${isNotice ? '/admin/notice-edit' : '/admin/article-edit'}?id=${encodeURIComponent(savedId)}`);
@@ -746,6 +767,19 @@ export function ArticleEditorPage({ scope }: { scope: AdminScope }) {
           <label>作者
             <input type="text" maxLength={128} value={form.author || ''} onChange={(event) => setField('author', event.target.value)} />
           </label>
+          <label>一审一校
+            <input type="text" maxLength={64} value={reviewMeta.firstReviewer} onChange={(event) => setReviewField('firstReviewer', event.target.value)} />
+          </label>
+          <label>二审二校
+            <input type="text" maxLength={64} value={reviewMeta.secondReviewer} onChange={(event) => setReviewField('secondReviewer', event.target.value)} />
+          </label>
+          <label>三审三校
+            <input type="text" maxLength={64} value={reviewMeta.thirdReviewer} onChange={(event) => setReviewField('thirdReviewer', event.target.value)} />
+          </label>
+          <label>发布人员
+            <input type="text" maxLength={64} value={reviewMeta.publisher} onChange={(event) => setReviewField('publisher', event.target.value)} />
+          </label>
+          <span className="field-help span-2">审核与发布人员仅在后台保存并用于数据导出，不在前台展示。</span>
           <label>发布时间
             <input type="datetime-local" value={form.publish_at || ''} onChange={(event) => setField('publish_at', event.target.value)} />
           </label>

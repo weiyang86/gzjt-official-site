@@ -38,6 +38,7 @@ export default function RootLayout({
       <body>
         {children}
         <Script src="/js/analytics.js" strategy="afterInteractive" />
+        <Script src="/js/article-stats.js" strategy="afterInteractive" />
       </body>
     </html>
   );

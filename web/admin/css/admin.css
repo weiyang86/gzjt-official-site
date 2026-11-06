@@ -685,11 +685,28 @@ code {
   padding: 14px 16px;
   line-height: 1.6;
 }
+/* 编辑器正文完全对齐前台发布页 .detail .body 的排版，做到所见即所得 */
 .rich-editor-body .ck-editor__editable{
   min-height: var(--rich-editor-min-height, 520px);
-  padding: 16px 18px;
-  line-height: 1.85;
+  padding: 26px;
+  font-size: 15px;
+  line-height: 2;
 }
+.rich-editor-body .ck.ck-editor__editable.ck-content{
+  box-sizing: border-box;
+  width: 100%;
+  /* 与前台正文一致：1280 内容宽 - 左右 40 边距 - 卡片左右 26 内边距 */
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 2;
+  color: rgba(11, 18, 32, 0.70);
+}
+.rich-editor-body .ck.ck-content p{margin:0 0 14px}
+.rich-editor-body .ck.ck-content table{width:auto;max-width:100%;border-collapse:collapse}
+.rich-editor-body .ck.ck-content td,
+.rich-editor-body .ck.ck-content th{border:1px solid #d0d7e2;padding:8px 10px;vertical-align:middle}
 .rich-editor-shell .ck-content img{max-width:100%;height:auto}
 .rich-editor-shell .ck-content figure.image-style-align-center img,
 .rich-editor-shell .ck-content p[style*="text-align:center"] img,
@@ -1472,10 +1489,24 @@ code {
   line-height: 1.8;
 }
 
+.article-preview-subtitle {
+  margin: 6px 0 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
 .article-preview-body {
-  line-height: 1.85;
-  color: var(--admin-text);
+  font-family: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 2;
+  color: rgba(11, 18, 32, 0.70);
   overflow-x: auto;
+}
+.article-preview-body p { margin: 0 0 14px; }
+
+.article-preview-body figure {
+  max-width: 100%;
 }
 
 .article-preview-body img,
@@ -1506,8 +1537,9 @@ code {
 
 .article-preview-body td,
 .article-preview-body th {
-  border: 1px solid var(--admin-border);
-  padding: 10px 12px;
+  border: 1px solid #d0d7e2;
+  padding: 8px 10px;
+  vertical-align: middle;
 }
 
 .article-preview-attachments {

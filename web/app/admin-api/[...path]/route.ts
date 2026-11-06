@@ -13,6 +13,8 @@ import { request as apiStoreRequest, upload as apiStoreUpload, asset as apiStore
 import { normalizeReportConfig, reportConfigModuleCode } from '@/lib/report/config';
 import { buildAnalyticsReport } from '@/lib/analytics/report';
 import { purgeOldEvents, readRetentionDays, writeRetentionDays } from '@/lib/analytics/store';
+import { getAllArticleStats, sumArticleStats, withArticleStatBase } from '@/lib/article-stats/store';
+import { getAllArticleMeta, getArticleMeta, saveArticleMeta } from '@/lib/article-meta/store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -429,6 +431,9 @@ const getRouteMenuCandidates = (route: string, request: NextRequest): AdminMenuK
       : ['categories', 'articles', 'articleEdit'];
   }
   if (root === 'articles') {
+    return scope === 'notice' ? ['noticeArticles', 'noticeEdit'] : ['articles', 'articleEdit'];
+  }
+  if (root === 'article-meta') {
     return scope === 'notice' ? ['noticeArticles', 'noticeEdit'] : ['articles', 'articleEdit'];
   }
   if (root === 'categories') return scope === 'notice' ? ['noticeCategories'] : ['categories'];
@@ -1648,7 +1653,119 @@ const handleLocalArticleList = async (request: NextRequest) => {
   }
 
   const result = await directusJsonRequest<{ data?: Array<Record<string, unknown>>; meta?: unknown }>(buildDirectusPath('/items/articles', params), serviceToken);
-  return NextResponse.json({ data: (result.data || []).map(normalizeArticleChannelOutput), meta: result.meta || null });
+  const stats = await getAllArticleStats();
+  const data = (result.data || []).map((row) => {
+    const normalized = normalizeArticleChannelOutput(row) as Record<string, unknown>;
+    return { ...normalized, ...withArticleStatBase(stats[String(normalized.id || '')]) };
+  });
+  return NextResponse.json({ data, meta: result.meta || null });
+};
+
+const csvCell = (value: unknown) => `"${String(value ?? '').replace(/\r?\n/g, ' ').replace(/"/g, '""').trim()}"`;
+
+const formatExportDate = (value: unknown) => {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return text;
+  const pad = (input: number) => String(input).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+/** 导出新闻/公告数据：标题、发布时间、浏览量、点击量及后台填写的审核、发布人员。 */
+const handleLocalArticleExport = async (request: NextRequest) => {
+  if (request.method !== 'GET') return null;
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  const serviceToken = await getServiceDirectusToken(session.accessToken);
+  const scope = getAdminScope(request);
+  const keyword = (request.nextUrl.searchParams.get('keyword') || '').trim();
+  const channel = (request.nextUrl.searchParams.get('channel') || '').trim();
+  const status = (request.nextUrl.searchParams.get('status') || '').trim();
+  const noticeChannels = await getNoticeChannels(serviceToken);
+  const noticeChannelIds = noticeChannels.map((item) => String(item.id || '')).filter(Boolean);
+  const params: Record<string, string | number | boolean> = {
+    fields: 'id,title,publish_at,main_channel',
+    sort: '-publish_at,-id',
+    limit: -1,
+  };
+
+  if (keyword) {
+    params['filter[_or][0][title][_contains]'] = keyword;
+    params['filter[_or][1][summary][_contains]'] = keyword;
+    params['filter[_or][2][subtitle][_contains]'] = keyword;
+  }
+  if (status && articleStatuses.has(status)) params['filter[status][_eq]'] = status;
+
+  let skip = false;
+  if (scope === 'notice') {
+    if (!noticeChannelIds.length) skip = true;
+    else if (channel) {
+      const found = noticeChannels.find((item) => String(item.slug || '') === channel);
+      if (!found?.id) skip = true;
+      else params['filter[main_channel][_eq]'] = String(found.id);
+    } else {
+      params['filter[main_channel][_in]'] = noticeChannelIds.join(',');
+    }
+  } else {
+    if (noticeChannelIds.length) params['filter[main_channel][_nin]'] = noticeChannelIds.join(',');
+    if (channel) {
+      const newsChannels = await getNewsChannels(serviceToken);
+      const found = newsChannels.find((item) => String(item.slug || '') === channel);
+      if (!found?.id) skip = true;
+      else params['filter[main_channel][_eq]'] = String(found.id);
+    }
+  }
+
+  const result = skip
+    ? { data: [] as Array<Record<string, unknown>> }
+    : await directusJsonRequest<{ data?: Array<Record<string, unknown>> }>(buildDirectusPath('/items/articles', params), serviceToken);
+  const stats = await getAllArticleStats();
+  const meta = await getAllArticleMeta();
+  const header = [scope === 'notice' ? '公告标题' : '新闻标题', '发布时间', '浏览量', '点击量', '一审一校', '二审二校', '三审三校', '发布人员'];
+  const lines = [header.map(csvCell).join(',')];
+  (result.data || []).forEach((row) => {
+    const id = String(row.id || '');
+    const stat = withArticleStatBase(stats[id]);
+    const review = meta[id] || { firstReviewer: '', secondReviewer: '', thirdReviewer: '', publisher: '' };
+    lines.push([
+      row.title,
+      formatExportDate(row.publish_at),
+      stat.views,
+      stat.clicks,
+      review.firstReviewer,
+      review.secondReviewer,
+      review.thirdReviewer,
+      review.publisher,
+    ].map(csvCell).join(','));
+  });
+
+  const label = scope === 'notice' ? '公示公告' : '新闻';
+  const filename = `${label}数据-${new Date().toISOString().slice(0, 10)}.csv`;
+  return new NextResponse(`\ufeff${lines.join('\r\n')}`, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="article-data.csv"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      'Cache-Control': 'no-store',
+    },
+  });
+};
+
+/** 审核与发布人员信息只存后台本地文件，不写入 CMS，也不在前台展示。 */
+const handleLocalArticleMetaRoute = async (request: NextRequest, path: string[]) => {
+  const id = path[1] ? decodeURIComponent(path[1]) : '';
+  if (!id) return null;
+  const { session, response } = requireSession(request);
+  if (!session) return response;
+  if (request.method === 'GET') {
+    return NextResponse.json({ data: await getArticleMeta(id) });
+  }
+  if (request.method === 'PUT' || request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    return NextResponse.json({ data: await saveArticleMeta(id, body) });
+  }
+  return null;
 };
 
 const handleLocalArticleRoute = async (request: NextRequest, path: string[]) => {
@@ -2115,12 +2232,29 @@ const handleLocalDashboardStats = async (request: NextRequest) => {
   const noticeChannelIds = noticeChannels.map((item) => String(item.id || '')).filter(Boolean);
   const noticeArticlesPath = buildArticleCountPath('notice', noticeChannelIds);
 
-  const [newsArticles, newsCategories, noticeArticles, noticeCategories] = await Promise.all([
+  const [newsArticles, newsCategories, noticeArticles, noticeCategories, allArticleRows] = await Promise.all([
     directusJsonRequest<CountResponse>(buildArticleCountPath('news', noticeChannelIds), serviceToken),
     directusJsonRequest<CountResponse>(buildCategoryCountPath('news'), serviceToken),
     noticeArticlesPath ? directusJsonRequest<CountResponse>(noticeArticlesPath, serviceToken) : Promise.resolve({ meta: { filter_count: 0 } }),
     directusJsonRequest<CountResponse>(buildCategoryCountPath('notice'), serviceToken),
+    directusJsonRequest<{ data?: Array<{ id?: string; main_channel?: unknown }> }>(
+      buildDirectusPath('/items/articles', { fields: 'id,main_channel', limit: -1 }),
+      serviceToken,
+    ),
   ]);
+
+  // 阅读量/点击量按文章 ID 汇总，公告与新闻按栏目归属拆分。
+  const noticeChannelSet = new Set(noticeChannelIds);
+  const newsIds: string[] = [];
+  const noticeIds: string[] = [];
+  (allArticleRows.data || []).forEach((row) => {
+    const id = String(row.id || '');
+    if (!id) return;
+    const channelIds = getArticleChannelIds(row.main_channel as ArticleChannelValue);
+    if (channelIds.some((channelId) => noticeChannelSet.has(channelId))) noticeIds.push(id);
+    else newsIds.push(id);
+  });
+  const [newsStats, noticeStats] = await Promise.all([sumArticleStats(newsIds), sumArticleStats(noticeIds)]);
 
   return NextResponse.json({
     data: {
@@ -2128,6 +2262,10 @@ const handleLocalDashboardStats = async (request: NextRequest) => {
       news_categories: Number(newsCategories.meta?.filter_count || 0),
       notice_articles: Number(noticeArticles.meta?.filter_count || 0),
       notice_categories: Number(noticeCategories.meta?.filter_count || 0),
+      news_views: newsStats.views,
+      news_clicks: newsStats.clicks,
+      notice_views: noticeStats.views,
+      notice_clicks: noticeStats.clicks,
     },
   });
 };
@@ -3294,6 +3432,8 @@ const getLocalAdminHandler = async (request: NextRequest, context: RouteContext)
     if (path[0] === 'report-settings') return await handleLocalReportSettings(request);
     if (path[0] === 'seo-settings') return await handleLocalSeoSettings(request);
     if (path[0] === 'article-ownership') return await handleLocalArticleOwnership(request, path);
+    if (path[0] === 'article-meta') return await handleLocalArticleMetaRoute(request, path);
+    if (route === 'articles/export') return await handleLocalArticleExport(request);
     if (route === 'articles' && (request.method === 'GET' || request.method === 'POST')) return await handleLocalArticleList(request);
     if (path[0] === 'articles') return await handleLocalArticleRoute(request, path);
     if (path[0] === 'topics') {
