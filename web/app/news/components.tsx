@@ -257,6 +257,7 @@ export function NewsAssets() {
       <link rel="stylesheet" href="/legacy-static/pages/assets/theme.css" />
       <link rel="stylesheet" href="/legacy-static/pages/assets/pages.css" />
       <link rel="stylesheet" href="/legacy-static/pages/assets/global-ui.css" />
+      <link rel="stylesheet" href="/legacy-static/pages/assets/mobile.css" />
       <Script src="/legacy-static/pages/assets/app.js" strategy="afterInteractive" />
       <Script src="/legacy-static/pages/assets/global-ui.js" strategy="afterInteractive" />
     </>

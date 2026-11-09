@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Drawer, Header } from '../news/components';
+import MobileNavToggle from '../components/MobileNavToggle';
 import HomepageExperience from '../homepage/HomepageExperience';
 import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicHomeStats, getPublicPageModuleItems, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings, getPublicTopics } from '@/lib/cms';
 import { buildSeoMetadata } from '@/lib/cms/seo';
@@ -66,6 +67,8 @@ export default async function HomePage() {
       <link rel="stylesheet" href="/legacy-static/pages/assets/pages.css" />
       <link rel="stylesheet" href="/legacy-static/pages/assets/global-ui.css" />
       <link rel="stylesheet" href="/legacy-static/homepage-experience.css" />
+      <link rel="stylesheet" href="/legacy-static/pages/assets/mobile.css" />
+      <MobileNavToggle />
       <HomepageExperience
         articles={homeArticles}
         cultureArticles={topics}

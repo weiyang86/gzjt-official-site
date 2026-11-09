@@ -1,0 +1,248 @@
+/* 移动端适配层
+   通过 <html data-viewport="mobile"> 生效（由 layout 内联脚本按触屏/窄视口打标记），
+   不依赖屏幕宽度媒体查询；PC 端标记为 desktop，样式完全不受影响。 */
+
+/* 1. 通用栅格：卡片改为单列，避免窄列把中文挤成逐字竖排 */
+html[data-viewport="mobile"] .grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 14px;
+}
+html[data-viewport="mobile"] .grid > * {
+  grid-column: auto !important;
+  min-width: 0;
+}
+html[data-viewport="mobile"] .card-pad,
+html[data-viewport="mobile"] .card-pad p {
+  overflow-wrap: anywhere;
+}
+
+/* 2. 内页 Banner：高度随内容自适应，不再占满整屏 */
+html[data-viewport="mobile"] .hero {
+  min-height: 0 !important;
+}
+html[data-viewport="mobile"] .hero-inner {
+  grid-template-columns: minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  padding-top: 92px;
+  padding-bottom: 40px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+html[data-viewport="mobile"] .hero-title {
+  font-size: clamp(28px, 8.5vw, 44px) !important;
+  line-height: 1.18;
+}
+html[data-viewport="mobile"] .hero-sub {
+  font-size: 14px !important;
+  line-height: 1.75;
+}
+
+/* 3. 导航抽屉：内容超出屏幕时可上下滑动 */
+html[data-viewport="mobile"] .drawer {
+  overflow: hidden;
+}
+html[data-viewport="mobile"] .drawer-panel {
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+html[data-viewport="mobile"] .drawer-links a {
+  padding: 10px 12px;
+}
+
+/* 4. 分页：页码与「上一页 / 下一页」同一基线对齐 */
+html[data-viewport="mobile"] .pagination {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+html[data-viewport="mobile"] .pagination > span {
+  display: inline-flex;
+  align-items: center;
+}
+html[data-viewport="mobile"] .page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 5. 地图：宽度撑满，高度受控 */
+html[data-viewport="mobile"] .map-box iframe {
+  height: min(58vh, 320px);
+}
+
+/* 6. 正文表格不横向撑破页面 */
+html[data-viewport="mobile"] .detail .body table,
+html[data-viewport="mobile"] .article-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* 7. 长标题不撑破容器 */
+html[data-viewport="mobile"] .detail h1,
+html[data-viewport="mobile"] .h2 {
+  overflow-wrap: anywhere;
+}
+
+/* 首页分屏：每个分屏内部可纵向滚动，避免内容被视口裁切 */
+html[data-viewport="mobile"] .home-screen {
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 78px 18px 48px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+html[data-viewport="mobile"] .home-screen-inner,
+html[data-viewport="mobile"] .home-hero-copy {
+  width: 100%;
+}
+html[data-viewport="mobile"] .home-screen--hero {
+  align-items: center;
+  padding-left: 18px;
+  padding-right: 18px;
+  overflow-y: hidden;
+}
+html[data-viewport="mobile"] .home-screen--business .home-screen-inner {
+  margin-block: 0;
+}
+html[data-viewport="mobile"] .home-section-heading {
+  margin-bottom: 12px;
+}
+html[data-viewport="mobile"] .home-section-heading span {
+  font-size: 11px;
+}
+html[data-viewport="mobile"] .home-section-heading h2 {
+  font-size: clamp(22px, 6.4vw, 26px);
+  margin: 2px 0 4px;
+}
+html[data-viewport="mobile"] .home-section-heading p {
+  font-size: 12px;
+  margin: 0;
+}
+
+/* 新闻中心：5 条新闻压缩成紧凑列表，保证一屏内完整显示 */
+html[data-viewport="mobile"] .home-news-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: none !important;
+  grid-auto-rows: auto;
+  max-height: none !important;
+  gap: 8px;
+}
+html[data-viewport="mobile"] .home-news-card {
+  min-height: 0;
+  padding: 10px 14px;
+  justify-content: flex-start;
+  gap: 2px;
+}
+html[data-viewport="mobile"] .home-news-card > span {
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+html[data-viewport="mobile"] .home-news-card h3,
+html[data-viewport="mobile"] .home-news-card--featured h3 {
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 2px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+html[data-viewport="mobile"] .home-news-card p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 2px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+html[data-viewport="mobile"] .home-news-card--featured {
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+html[data-viewport="mobile"] .home-more-link {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+/* 业务板块：卡片高度随内容，减少版块下方大片留白 */
+html[data-viewport="mobile"] .home-sector-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px;
+}
+html[data-viewport="mobile"] .home-sector-grid > a {
+  height: auto !important;
+  min-height: 108px;
+  padding: 14px;
+}
+html[data-viewport="mobile"] .home-sector-grid h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+html[data-viewport="mobile"] .home-sector-grid p {
+  display: none;
+}
+
+/* 企业文化：横向卡片可左右滑动，且不与分屏上下切换冲突 */
+html[data-viewport="mobile"] .home-culture-values {
+  overflow-x: auto;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+}
+html[data-viewport="mobile"] .home-culture-values a {
+  min-width: 140px;
+  max-width: 200px;
+  padding: 11px 13px;
+}
+html[data-viewport="mobile"] .home-culture-block {
+  margin-top: 16px;
+}
+
+/* 其他列表：单列显示 */
+html[data-viewport="mobile"] .home-topic-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 10px;
+}
+html[data-viewport="mobile"] .home-topic-grid > a {
+  min-height: 0;
+}
+
+/* 联系与关注：压缩间距，让友链与版权信息一屏内完整显示 */
+html[data-viewport="mobile"] .home-contact-content {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 10px !important;
+}
+html[data-viewport="mobile"] .home-contact-card {
+  padding: 14px !important;
+}
+html[data-viewport="mobile"] .home-qr-list {
+  gap: 8px;
+}
+html[data-viewport="mobile"] .home-friend-links {
+  margin-top: 10px !important;
+  padding-bottom: 0 !important;
+}
+html[data-viewport="mobile"] .home-legal {
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+}
+
+/* 分屏导航圆点不遮挡右侧文字 */
+html[data-viewport="mobile"] .home-screen-index {
+  right: 4px;
+}
+
+/* 底部信息（友链、版权）不再被裁切 */
+html[data-viewport="mobile"] .home-footer,
+html[data-viewport="mobile"] .home-friend-links {
+  padding-bottom: 32px;
+}

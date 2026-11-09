@@ -76,6 +76,8 @@ export default function HomepageExperience({ children, articles, cultureArticles
   const lockedRef = useRef(false);
   const switchTimerRef = useRef<number | null>(null);
   const touchStartRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchScrollRef = useRef<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [bannerFade, setBannerFade] = useState<{ from: string; to: string; started: boolean } | null>(null);
@@ -128,6 +130,21 @@ export default function HomepageExperience({ children, articles, cultureArticles
     if (!scroller) return;
     const onWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) < 18) return;
+      const target = event.target as HTMLElement | null;
+      // 抽屉打开时，滚轮交给抽屉自己滚动
+      if (target?.closest?.('[data-drawer]') || document.querySelector('.drawer.is-open')) return;
+      // 分屏或横向列表还有可滚空间时，先滚动内容，滚到边界再切分屏
+      const scrollable = target?.closest?.('.home-screen, .home-culture-values') as HTMLElement | null;
+      if (scrollable) {
+        const overflowY = window.getComputedStyle(scrollable).overflowY;
+        const canScroll = overflowY === 'auto' || overflowY === 'scroll';
+        const maxScroll = scrollable.scrollHeight - scrollable.clientHeight;
+        if (canScroll && maxScroll > 4) {
+          const atTop = scrollable.scrollTop <= 0;
+          const atBottom = scrollable.scrollTop >= maxScroll - 2;
+          if (event.deltaY > 0 ? !atBottom : !atTop) return;
+        }
+      }
       event.preventDefault();
       moveOne(event.deltaY > 0 ? 1 : -1);
     };
@@ -239,11 +256,45 @@ export default function HomepageExperience({ children, articles, cultureArticles
   };
 
   return (
-    <div className="home-experience" ref={scrollerRef} onTouchStart={(event) => { touchStartRef.current = event.touches[0]?.clientY ?? null; }} onTouchEnd={(event) => {
+    <div className="home-experience" ref={scrollerRef} onTouchStart={(event) => {
+      const target = event.target as HTMLElement | null;
+      // 抽屉、页头内的手势交给它们自己处理，避免拖动菜单时误触发分屏切换
+      if (target?.closest?.('[data-drawer], .site-header')) {
+        touchStartRef.current = null;
+        touchStartXRef.current = null;
+        touchScrollRef.current = null;
+        return;
+      }
+      const touch = event.touches[0];
+      touchStartRef.current = touch?.clientY ?? null;
+      touchStartXRef.current = touch?.clientX ?? null;
+      touchScrollRef.current = (target?.closest?.('.home-culture-values, .home-screen') as HTMLElement | null) ?? null;
+    }} onTouchEnd={(event) => {
       const start = touchStartRef.current;
+      const startX = touchStartXRef.current;
       const end = event.changedTouches[0]?.clientY;
-      if (start !== null && end !== undefined && Math.abs(start - end) > 40) moveOne(start > end ? 1 : -1);
+      const endX = event.changedTouches[0]?.clientX;
+      const scroller = touchScrollRef.current;
       touchStartRef.current = null;
+      touchStartXRef.current = null;
+      touchScrollRef.current = null;
+      if (start === null || end === undefined) return;
+      const deltaY = start - end;
+      const deltaX = startX === null || endX === undefined ? 0 : startX - endX;
+      // 横向手势交给可横向滚动的容器（如企业文化卡片），不切换分屏
+      if (Math.abs(deltaX) > Math.abs(deltaY)) return;
+      if (Math.abs(deltaY) <= 40) return;
+      const goingNext = deltaY > 0;
+      // 分屏内容可以纵向滚动时，先滚到底/顶部再切换，避免手势被抢走
+      if (scroller) {
+        const maxScrollTop = scroller.scrollHeight - scroller.clientHeight;
+        if (maxScrollTop > 4) {
+          const atTop = scroller.scrollTop <= 0;
+          const atBottom = scroller.scrollTop >= maxScrollTop - 2;
+          if (goingNext ? !atBottom : !atTop) return;
+        }
+      }
+      moveOne(goingNext ? 1 : -1);
     }}>
       {children}
       <section key="hero" {...screenState('hero')} id="hero">

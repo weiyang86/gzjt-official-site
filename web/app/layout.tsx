@@ -36,6 +36,11 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var root=document.documentElement;function apply(){var mobile=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=900;root.setAttribute('data-viewport',mobile?'mobile':'desktop');}apply();window.addEventListener('resize',apply,{passive:true});window.addEventListener('orientationchange',apply,{passive:true});})();`,
+          }}
+        />
         {children}
         <Script src="/js/analytics.js" strategy="afterInteractive" />
         <Script src="/js/article-stats.js" strategy="afterInteractive" />
