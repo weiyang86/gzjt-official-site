@@ -3,8 +3,9 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { buildDirectusPath, cmsPublicFetch } from '@/lib/cms';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -29,11 +30,18 @@ const withStaticAssetVersions = (styles: string) => {
   return styles.replaceAll('/img/index_bg.png', `/img/index_bg.png?v=${heroImageVersion}`);
 };
 
-const extractLegacyHome = () => {
+const escapeHtml = (value: string) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;');
+
+const extractLegacyHome = (icp: string) => {
   const html = fs.readFileSync(legacyHomePath, 'utf8');
   const styles = withStaticAssetVersions(Array.from(html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi))
     .map((match) => match[1])
-    .join('\n'));
+    .join('\n')) + `\n.landing-icp{position:absolute;z-index:6;right:16px;bottom:0;left:16px;text-align:center;font-size:12px;line-height:18px;color:rgba(255,255,255,.72)}.landing-icp a{color:inherit;text-decoration:none}.landing-icp a:hover{text-decoration:underline}`;
   const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || '';
   const scriptMatches = Array.from(body.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi));
   const scripts = scriptMatches.map((match, index) => {
@@ -46,7 +54,15 @@ const extractLegacyHome = () => {
       content,
     };
   }).filter((script) => script.src !== 'pages/assets/home-directus.js');
-  const sanitizedBody = body.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  const safeIcp = escapeHtml(icp.trim());
+  const sanitizedBody = body
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/(<div class="home-banner-dots"[^>]*>)/i, safeIcp
+      ? `<div class="landing-icp"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">${safeIcp}</a></div>\n    $1`
+      : '$1')
+    .replace(/<a href="https:\/\/beian\.miit\.gov\.cn\/"[^>]*>[\s\S]*?<\/a>\s*&nbsp;\|&nbsp;/i, safeIcp
+      ? `<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">${safeIcp}</a> &nbsp;|&nbsp; `
+      : '');
 
   return {
     styles,
@@ -55,8 +71,13 @@ const extractLegacyHome = () => {
   };
 };
 
-export default function HomePage() {
-  const { styles, body, scripts } = extractLegacyHome();
+export default async function HomePage() {
+  const siteSettings = await cmsPublicFetch<{ data?: Array<{ icp?: unknown }> }>(buildDirectusPath('/items/site_settings', {
+    fields: 'icp',
+    limit: 1,
+  })).catch(() => null);
+  const icp = typeof siteSettings?.data?.[0]?.icp === 'string' ? siteSettings.data[0].icp : '';
+  const { styles, body, scripts } = extractLegacyHome(icp);
 
   return (
     <>
