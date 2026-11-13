@@ -19,6 +19,8 @@
 
 悬停批次共 32 项，其中 30 项捕获到展开状态且面板在视口内；`/about` 1440px 的“业务领域/党建群团”两项未稳定捕获鼠标展开，追加自动化复核未解决，已记录并交现有只读 Worker C 独立复核，不能记为全部悬停通过。其键盘展开与面板边界补验通过。未为消除测试异常隐藏菜单或改变链接。
 
+2026-11-14 独立复核结果：原 Worker C 在 `a71aeee` 对上述两项使用 Orca 原生 hover，均得到 `:hover=true`、`opacity=1`、`visibility=visible`，移动进入二级面板后仍保持展开，关闭此前的悬停不确定项。证据为 `outputs/site-ui-optimization-20261113/worker-c/hover-anchor-probes.json`，原失败观测保留。该验收另发现 aria-expanded 与可见状态不一致、Escape 不关闭的问题，后续修复见 [全站验收修复记录](UI-OPTIMIZATION-20261114-REPAIRS.md)。
+
 `git diff --check` 通过，`/home`、`/about` 均返回 200。此轮没有重试此前已记录为阻塞的完整类型检查/生产构建，也不将其报告为通过。
 
 本地证据（Git 忽略的输出目录）：

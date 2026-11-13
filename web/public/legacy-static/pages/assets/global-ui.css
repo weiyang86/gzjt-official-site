@@ -549,6 +549,12 @@
   pointer-events:auto;
   transform:translateY(-50%) translateX(-2px);
 }
+.global-float button.gfloat-item{padding:0;font:inherit;color:inherit}
+.global-float .gfloat-trigger{display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;border-radius:inherit;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.global-float :is(button,a):focus-visible{outline:3px solid var(--ui-focus-color,#b41d2c);outline-offset:3px}
+.global-float .gfloat-pop{visibility:hidden}
+.global-float .gfloat-item:is(:hover,:focus-within,.is-open) .gfloat-pop{visibility:visible;opacity:1;pointer-events:auto}
+.global-float .gfloat-item.is-dismissed .gfloat-pop{visibility:hidden;opacity:0;pointer-events:none}
 .gfloat-pop b{display:block;font-size:13px;letter-spacing:.4px;color:#243449}
 .gfloat-pop span{display:block;margin-top:8px;color:rgba(61,72,86,.86);font-size:13px}
 .gfloat-qr-pop{max-width:min(80vw,760px)}

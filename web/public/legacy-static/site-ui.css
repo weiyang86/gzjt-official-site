@@ -48,6 +48,8 @@ body:has(main.page) .breadcrumb { border-block: 1px solid #e8edf3; box-shadow: n
 body:has(main.page) .crumb-inner { height: auto; min-height: 52px; padding-block: 8px; gap: 4px; font-size: 14px; white-space: normal; flex-wrap: wrap; }
 body:has(main.page) .crumb-inner > :last-child { min-width: 0; overflow-wrap: anywhere; }
 main.page { min-width: 0; }
+main.page [id] { scroll-margin-top: calc(var(--site-header-offset, var(--ui-header-height)) + var(--ui-breadcrumb-height, 52px) + 20px); }
+main.page .anchor-alias { display: block; height: 0; }
 main.page .hero { min-height: 0 !important; background: #12344f; }
 main.page .hero-inner {
   min-height: clamp(340px, 32vw, 460px) !important;
@@ -111,7 +113,6 @@ body:has(main.page) .footer-friend-links a { white-space: normal; line-height: 1
 body:has(main.page) .footbar { margin-top: 28px; padding-top: 20px; line-height: 1.8; }
 body:has(main.page) .global-float { right: 16px; z-index: 2450; }
 body:has(main.page) .gfloat-item { width: 46px; height: 46px; border-radius: 12px; }
-body:has(main.page) .gfloat-item:focus-within .gfloat-pop { opacity: 1; pointer-events: auto; }
 
 @media (max-width: 1320px) {
   body:has(main.page) .site-header .nav { display: none; }

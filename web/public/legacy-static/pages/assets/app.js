@@ -108,9 +108,9 @@
   })
 
   // 装饰性封面加载失败时复用本站既有工程图；不改变正文图片、二维码或 CMS 配置。
-  const coverSelector = 'main.page .hero-bg img, main.page .thumb img, main.page .grid > a.card > div:first-child:not(.card-pad) > img'
+  const coverSelector = 'main.page .hero-bg img, main.page .thumb img, main.page .grid > a.card > div:first-child:not(.card-pad) > img, main.page img[data-ui-cover]'
   const recoverCover = (image) => {
-    if (!(image instanceof HTMLImageElement) || !image.matches(coverSelector) || image.dataset.uiFallback === 'true') return
+    if (!(image instanceof HTMLImageElement) || image.closest('.body') || !image.matches(coverSelector) || image.dataset.uiFallback === 'true') return
     image.dataset.uiFallback = 'true'
     image.src = '/img/雅砻江大桥.jpg'
   }
@@ -119,6 +119,7 @@
   })
   document.addEventListener('error', event => recoverCover(event.target), true)
 
+  let legacyDropdownId = 0
   const enhanceTopNavDropdown = ({ matcher, items, hrefBuilder }) => {
     if (document.querySelector('.nav')?.dataset.navTreeSource === 'api') return
     if (!items.length) return
@@ -172,25 +173,48 @@
         const syncOpen = (open) => {
           wrapper.classList.toggle('is-open', open)
           targetLink.setAttribute('aria-expanded', open ? 'true' : 'false')
+          dropdown.inert = !open
         }
         let closeTimer = 0
         const openNow = () => {
           window.clearTimeout(closeTimer)
+          if (wrapper.classList.contains('is-dismissed')) return
           syncOpen(true)
         }
         const closeSoon = () => {
           window.clearTimeout(closeTimer)
-          closeTimer = window.setTimeout(() => syncOpen(false), 140)
+          closeTimer = window.setTimeout(() => syncOpen(!wrapper.classList.contains('is-dismissed') && (wrapper.matches(':hover') || wrapper.contains(document.activeElement))), 140)
         }
         targetLink.setAttribute('aria-haspopup', 'true')
         targetLink.setAttribute('aria-expanded', 'false')
-        wrapper.addEventListener('mouseenter', openNow)
+        dropdown.inert = true
+        wrapper.addEventListener('mouseenter', () => {
+          wrapper.classList.remove('is-dismissed')
+          openNow()
+        })
         wrapper.addEventListener('mouseleave', closeSoon)
         wrapper.addEventListener('focusin', openNow)
         wrapper.addEventListener('focusout', (event) => {
           const next = event.relatedTarget
           if (next instanceof Node && wrapper.contains(next)) return
+          wrapper.classList.remove('is-dismissed')
           closeSoon()
+        })
+        dropdown.id ||= `legacy-nav-submenu-${++legacyDropdownId}`
+        targetLink.setAttribute('aria-controls', dropdown.id)
+        wrapper.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            window.clearTimeout(closeTimer)
+            wrapper.classList.add('is-dismissed')
+            syncOpen(false)
+            targetLink.focus()
+          } else if (event.key === 'ArrowDown' && event.target === targetLink) {
+            event.preventDefault()
+            wrapper.classList.remove('is-dismissed')
+            openNow()
+            dropdown.querySelector('a[href]')?.focus()
+          }
         })
       }
 

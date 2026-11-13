@@ -261,6 +261,7 @@ function ContentSection({ page }: { page: PageContent }) {
 function ContactInfoSection({ contactInfo }: { contactInfo: Awaited<ReturnType<typeof getPublicContactInfo>> }) {
   return (
     <section className="section" id="contact-info" aria-label="联系信息">
+      <span id="content" className="anchor-alias" aria-hidden="true" />
       <div className="content">
         <div className="section-head reveal is-visible">
           <div>

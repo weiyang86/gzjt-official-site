@@ -6,7 +6,7 @@ import {
   messageCategoryOptions,
   messageLimits,
   messageStatusTone,
-  validateMessageForm,
+  getMessageFormError,
 } from '@/lib/messages/shared';
 import type { MessageCategory, SiteMessageStatusView } from '@/types/cms';
 
@@ -35,25 +35,32 @@ export function MessageSection() {
   const [form, setForm] = useState<MessageForm>(emptyForm);
   const [website, setWebsite] = useState('');
   const [formError, setFormError] = useState('');
+  const [formErrorField, setFormErrorField] = useState<keyof MessageForm | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [receiptCode, setReceiptCode] = useState('');
   const [queryCode, setQueryCode] = useState('');
   const [queryTail, setQueryTail] = useState('');
   const [queryError, setQueryError] = useState('');
+  const [queryErrorField, setQueryErrorField] = useState<'code' | 'tail' | ''>('');
   const [isQuerying, setIsQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<SiteMessageStatusView | null>(null);
   const startedAt = useRef(Date.now());
+  const focusError = (id: string) => window.requestAnimationFrame(() => document.getElementById(id)?.focus());
 
   const setField = <K extends keyof MessageForm>(key: K, value: MessageForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+    if (formError) { setFormError(''); setFormErrorField(''); }
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError('');
-    const error = validateMessageForm(form);
+    setFormErrorField('');
+    const error = getMessageFormError(form);
     if (error) {
-      setFormError(error);
+      setFormError(error.message);
+      setFormErrorField(error.field);
+      focusError(`message-${error.field}`);
       return;
     }
     setIsSubmitting(true);
@@ -79,6 +86,7 @@ export function MessageSection() {
       startedAt.current = Date.now();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : '留言提交失败，请稍后再试。');
+      focusError('message-form-error');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,13 +95,18 @@ export function MessageSection() {
   const handleQuery = async (event: FormEvent) => {
     event.preventDefault();
     setQueryError('');
+    setQueryErrorField('');
     setQueryResult(null);
     if (!/^[A-Za-z2-9]{6,12}$/.test(queryCode.trim())) {
       setQueryError('请填写 8 位查询码。');
+      setQueryErrorField('code');
+      focusError('message-query-code');
       return;
     }
     if (!/^\d{4}$/.test(queryTail.trim())) {
       setQueryError('请填写手机号后四位。');
+      setQueryErrorField('tail');
+      focusError('message-query-tail');
       return;
     }
     setIsQuerying(true);
@@ -107,6 +120,7 @@ export function MessageSection() {
       setQueryResult(payload.data);
     } catch (err) {
       setQueryError(err instanceof Error ? err.message : '查询失败，请稍后再试。');
+      focusError('message-query-error');
     } finally {
       setIsQuerying(false);
     }
@@ -114,6 +128,7 @@ export function MessageSection() {
 
   return (
     <section className="section" id="message" aria-label="在线留言">
+      <span id="form" className="anchor-alias" aria-hidden="true" />
       <div className="content">
         <div className="section-head reveal is-visible">
           <div>
@@ -132,6 +147,8 @@ export function MessageSection() {
                     <label htmlFor="message-name" style={labelStyle}>姓名 <span style={requiredStyle}>*</span></label>
                     <input
                       id="message-name"
+                      aria-invalid={formErrorField === 'name' || undefined}
+                      aria-describedby={formErrorField === 'name' ? 'message-form-error' : undefined}
                       className="input"
                       value={form.name}
                       maxLength={messageLimits.name}
@@ -143,6 +160,8 @@ export function MessageSection() {
                     <label htmlFor="message-phone" style={labelStyle}>手机号 <span style={requiredStyle}>*</span></label>
                     <input
                       id="message-phone"
+                      aria-invalid={formErrorField === 'phone' || undefined}
+                      aria-describedby={formErrorField === 'phone' ? 'message-form-error' : undefined}
                       className="input"
                       inputMode="tel"
                       value={form.phone}
@@ -155,6 +174,8 @@ export function MessageSection() {
                     <label htmlFor="message-email" style={labelStyle}>邮箱（选填）</label>
                     <input
                       id="message-email"
+                      aria-invalid={formErrorField === 'email' || undefined}
+                      aria-describedby={formErrorField === 'email' ? 'message-form-error' : undefined}
                       className="input"
                       type="email"
                       value={form.email}
@@ -166,6 +187,8 @@ export function MessageSection() {
                     <label htmlFor="message-category" style={labelStyle}>留言类型 <span style={requiredStyle}>*</span></label>
                     <select
                       id="message-category"
+                      aria-invalid={formErrorField === 'category' || undefined}
+                      aria-describedby={formErrorField === 'category' ? 'message-form-error' : undefined}
                       className="input"
                       value={form.category}
                       onChange={(event) => setField('category', event.target.value as MessageCategory)}
@@ -179,6 +202,8 @@ export function MessageSection() {
                     <label htmlFor="message-content" style={labelStyle}>留言内容 <span style={requiredStyle}>*</span></label>
                     <textarea
                       id="message-content"
+                      aria-invalid={formErrorField === 'content' || undefined}
+                      aria-describedby={formErrorField === 'content' ? 'message-form-error' : undefined}
                       className="textarea"
                       rows={6}
                       value={form.content}
@@ -205,7 +230,7 @@ export function MessageSection() {
                   <button className="btn btn--primary" type="submit" disabled={isSubmitting}>
                     {isSubmitting ? '正在提交...' : '提交留言'}
                   </button>
-                  {formError ? <span style={errorStyle}>{formError}</span> : null}
+                  {formError ? <span id="message-form-error" role="alert" aria-atomic="true" tabIndex={-1} style={errorStyle}>{formError}</span> : null}
                 </div>
                 <p style={tipStyle}>请勿在留言中填写身份证号、银行卡号等敏感信息。提交记录仅在后台受理，不会公开展示。</p>
 
@@ -238,20 +263,24 @@ export function MessageSection() {
                     <label htmlFor="message-query-code" style={labelStyle}>查询码</label>
                     <input
                       id="message-query-code"
+                      aria-invalid={queryErrorField === 'code' || undefined}
+                      aria-describedby={queryErrorField === 'code' ? 'message-query-error' : undefined}
                       className="input"
                       value={queryCode}
                       maxLength={12}
                       placeholder="例如 A7K2M9QX"
-                      onChange={(event) => setQueryCode(event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ''))}
+                      onChange={(event) => { setQueryCode(event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, '')); setQueryError(''); setQueryErrorField(''); }}
                     />
                     <label htmlFor="message-query-tail" style={labelStyle}>手机号后四位</label>
                     <input
                       id="message-query-tail"
+                      aria-invalid={queryErrorField === 'tail' || undefined}
+                      aria-describedby={queryErrorField === 'tail' ? 'message-query-error' : undefined}
                       className="input"
                       inputMode="numeric"
                       value={queryTail}
                       maxLength={4}
-                      onChange={(event) => setQueryTail(event.target.value.replace(/[^\d]/g, ''))}
+                      onChange={(event) => { setQueryTail(event.target.value.replace(/[^\d]/g, '')); setQueryError(''); setQueryErrorField(''); }}
                     />
                   </div>
                   <div style={{ marginTop: 14 }}>
@@ -259,7 +288,7 @@ export function MessageSection() {
                       {isQuerying ? '正在查询...' : '查询办理进度'}
                     </button>
                   </div>
-                  {queryError ? <p style={{ ...errorStyle, marginTop: 10 }}>{queryError}</p> : null}
+                  {queryError ? <p id="message-query-error" role="alert" aria-atomic="true" tabIndex={-1} style={{ ...errorStyle, marginTop: 10 }}>{queryError}</p> : null}
                 </form>
 
                 {queryResult ? (
