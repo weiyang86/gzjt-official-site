@@ -23,6 +23,18 @@ const articleHref = (article: Article) => `/news/${encodeURIComponent(article.id
 const safeHomepageLink = (value: string) => /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value.trim()) ? value.trim() : '#';
 const isExternalHomepageLink = (value: string) => /^https?:\/\//i.test(value.trim());
 
+function QrImage({ src, title }: { src: string; title: string }) {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const image = imageRef.current;
+    if (image?.complete && !image.naturalWidth) setFailed(true);
+  }, [src]);
+  return failed
+    ? <span className="home-qr-unavailable" role="img" aria-label={`${title}：二维码暂时无法加载`}>二维码暂不可用</span>
+    : <img ref={imageRef} src={src} alt={title} loading="lazy" onError={() => setFailed(true)} />;
+}
+
 function AnimatedStatValue({ value, delay, active }: { value: string; delay: number; active: boolean }) {
   const elementRef = useRef<HTMLSpanElement>(null);
   const [progress, setProgress] = useState(1);
@@ -154,6 +166,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector('.drawer.is-open')) return;
       if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, button, a, summary, [contenteditable="true"]')) return;
       if (['ArrowDown', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); moveOne(1); }
       if (['ArrowUp', 'PageUp'].includes(event.key)) { event.preventDefault(); moveOne(-1); }
@@ -196,6 +209,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
           <div className="home-news-grid">
             {articles.slice(0, layout.newsItemCount).map((article, index) => (
               <a className={`home-news-card${index === 0 ? ' home-news-card--featured' : ''}`} href={articleHref(article)} key={article.id}>
+                {index === 0 && article.cover ? <div className="home-news-cover" style={{ backgroundImage: `url("${article.cover}")` }} aria-hidden="true" /> : null}
                 <span>{article.mainChannel?.name || '集团新闻'}</span><h3>{article.title}</h3><p>{article.subtitle || article.summary || article.publishDate}</p>
               </a>
             ))}
@@ -246,7 +260,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
         <div className="home-screen-inner home-contact-inner">
           <header className="home-section-heading"><span>{sectionContent.contact.eyebrow}</span><h2>{sectionContent.contact.title}</h2><p>{sectionContent.contact.subtitle}</p></header>
           <div className="home-contact-content"><div className="home-contact-card"><h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3>{contactInfo.address ? <p>地址：{contactInfo.address}</p> : null}{contactInfo.phone ? <p>电话：{contactInfo.phone}</p> : null}{contactInfo.email ? <p>邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></p> : null}{layout.showQuickLinks ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}</div>
-            {layout.showQrs ? <div className="home-qr-list">{qrs.map((qr) => <figure key={qr.id}><img src={qr.image} alt={qr.title || '集团公众平台二维码'} /><figcaption>{qr.title || '公众平台'}</figcaption></figure>)}</div> : null}
+            {layout.showQrs ? <div className="home-qr-list">{qrs.map((qr) => <figure key={qr.id}><QrImage key={qr.image} src={qr.image} title={qr.title || '集团公众平台二维码'} /><figcaption>{qr.title || '公众平台'}</figcaption></figure>)}</div> : null}
             {friendLinks.length ? <div className="home-friend-links"><strong>友情链接</strong>{friendLinks.map((link) => <a href={link.url} target="_blank" rel="noreferrer" key={link.id}>{link.title}</a>)}</div> : null}
           </div>
           <footer className="home-legal"><span>{siteSettings.copyright || siteSettings.footerText || siteSettings.siteName || '网站'}</span>{(siteSettings.icp || layout.icpRecordNumber) ? <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{siteSettings.icp || layout.icpRecordNumber}</a> : null}</footer>
@@ -305,6 +319,10 @@ export default function HomepageExperience({ children, articles, cultureArticles
             <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}`} style={{ backgroundImage: `url("${bannerFade.to}")` }} aria-hidden="true" />
           </> : heroBackground ? <div className="home-hero-backdrop" style={{ backgroundImage: `url("${heroBackground}")` }} aria-hidden="true" /> : null}
         {activeManualSlide?.linkUrl ? <a className="home-hero-banner-hit-area" href={safeHomepageLink(activeManualSlide.linkUrl)} target={isExternalHomepageLink(activeManualSlide.linkUrl) ? '_blank' : undefined} rel={isExternalHomepageLink(activeManualSlide.linkUrl) ? 'noopener noreferrer' : undefined} aria-label={`打开 Banner：${activeManualSlide.title || '首页推荐'}`} /> : null}
+        {(layout.heroTitle || layout.heroSubtitle) ? <div className="home-hero-copy">
+          {layout.heroTitle ? <h1 className="home-hero-title">{layout.heroTitle}</h1> : null}
+          {layout.heroSubtitle ? <p className="home-hero-subtitle">{layout.heroSubtitle}</p> : null}
+        </div> : null}
         {manualSlides.length > 1 ? <div className="home-hero-dots home-hero-dots--banner">{manualSlides.map((slide, index) => <button type="button" aria-label={`切换到第${index + 1}张Banner`} aria-current={index === bannerIndex} onClick={() => setBannerIndex(index)} key={slide.id} />)}</div> : null}
         <a className="home-hero-down" href="#news" onClick={(event) => { event.preventDefault(); goTo(1); }}>向下浏览　↓</a>
       </section>

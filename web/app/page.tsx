@@ -61,7 +61,9 @@ export default function HomePage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: body }} />
+      <link rel="stylesheet" href="/legacy-static/ui-foundation.css" />
+      <link rel="stylesheet" href="/legacy-static/entrance-ui.css" />
+      <div className="ui-entrance" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: body }} />
       {scripts.map((script) => (
         script.src ? (
           <Script

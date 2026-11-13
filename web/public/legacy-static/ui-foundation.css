@@ -1,0 +1,91 @@
+/* 入口与首页的共同基线。仅对这两个页面生效，保留内页及归档样式。 */
+:root {
+  --ui-page-gutter: clamp(18px, 3vw, 48px);
+  --ui-content-width: 1320px;
+  --ui-header-height: 80px;
+  --ui-focus-color: #235d8c;
+  --ui-touch-target: 44px;
+}
+
+.home-experience .site-header {
+  animation: none;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: var(--ui-header-height);
+  padding-inline: var(--ui-page-gutter);
+}
+.home-experience .site-header > .header-logo {
+  position: static;
+  transform: none;
+  display: flex;
+  align-items: center;
+  flex: 0 0 clamp(220px, 18vw, 280px);
+  height: auto;
+  min-width: 0;
+}
+.home-experience .site-header > .header-logo > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.home-experience .site-header > .container {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+}
+.home-experience .site-header .header-inner {
+  min-height: var(--ui-header-height);
+  gap: 0;
+  padding: 0;
+}
+.home-experience .site-header .nav {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: clamp(2px, .55vw, 12px);
+  padding: 0;
+}
+.home-experience .site-header .nav > a,
+.home-experience .site-header .nav-item > a {
+  padding: 14px 5px;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.home-experience .site-header .nav-item:last-child .nav-dropdown {
+  left: auto;
+  right: 0;
+}
+.home-experience .drawer-panel {
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.home-experience .drawer-links a {
+  min-height: var(--ui-touch-target);
+}
+.home-experience :is(a, button, summary):focus-visible,
+.ui-entrance :is(a, button, summary):focus-visible {
+  outline: 3px solid var(--ui-focus-color);
+  outline-offset: 4px;
+}
+.home-experience .site-header :is(a, button):focus-visible {
+  outline-offset: 1px;
+}
+
+/* 保留完整栏目，空间不足时交由抽屉呈现，避免 Logo 与菜单互相挤压。 */
+@media (max-width: 1320px) {
+  .home-experience .site-header .nav { display: none; }
+  .home-experience .site-header .header-actions { display: flex; margin-left: auto; }
+  .home-experience .site-header .menu-toggle { display: inline-flex; }
+}
+@media (max-width: 600px) {
+  :root { --ui-header-height: 68px; }
+  .home-experience .site-header { gap: 12px; }
+  .home-experience .site-header > .header-logo { flex-basis: min(248px, calc(100vw - 110px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-experience .site-header { animation: none; }
+}

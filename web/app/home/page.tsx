@@ -68,6 +68,8 @@ export default async function HomePage() {
       <link rel="stylesheet" href="/legacy-static/pages/assets/global-ui.css" />
       <link rel="stylesheet" href="/legacy-static/homepage-experience.css" />
       <link rel="stylesheet" href="/legacy-static/pages/assets/mobile.css" />
+      <link rel="stylesheet" href="/legacy-static/ui-foundation.css" />
+      <link rel="stylesheet" href="/legacy-static/home-ui.css" />
       <MobileNavToggle />
       <HomepageExperience
         articles={homeArticles}
