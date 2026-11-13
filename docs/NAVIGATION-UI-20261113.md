@@ -21,6 +21,8 @@
 
 2026-11-14 独立复核结果：原 Worker C 在 `a71aeee` 对上述两项使用 Orca 原生 hover，均得到 `:hover=true`、`opacity=1`、`visibility=visible`，移动进入二级面板后仍保持展开，关闭此前的悬停不确定项。证据为 `outputs/site-ui-optimization-20261113/worker-c/hover-anchor-probes.json`，原失败观测保留。该验收另发现 aria-expanded 与可见状态不一致、Escape 不关闭的问题，后续修复见 [全站验收修复记录](UI-OPTIMIZATION-20261114-REPAIRS.md)。
 
+`408bb7c` 最终协调者回归再次覆盖 4 页面 × 11 宽度共 44 组，溢出与重叠均为 0；原生悬停、Tab 进入子项和 Escape 关闭均通过，Escape 后 aria-expanded=false、面板隐藏、焦点回到“集团概况”。手机/横屏抽屉的焦点循环和关闭返回也通过。证据：`outputs/site-ui-optimization-20261114/final-coordinator/navigation-recheck.json`；独立 Worker 启动限制见最终交付记录。
+
 `git diff --check` 通过，`/home`、`/about` 均返回 200。此轮没有重试此前已记录为阻塞的完整类型检查/生产构建，也不将其报告为通过。
 
 本地证据（Git 忽略的输出目录）：
