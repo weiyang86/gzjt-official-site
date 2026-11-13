@@ -1,0 +1,100 @@
+/* 全站一级导航：菜单留白、角标和下拉位置使用同一规则。 */
+:root {
+  --ui-nav-gap: clamp(10px, .7vw, 18px);
+  --ui-nav-padding: 8px;
+  --ui-nav-arrow-gap: 10px;
+}
+
+html body .site-header[aria-label] .nav {
+  column-gap: var(--ui-nav-gap);
+}
+html body .site-header[aria-label] .nav > a,
+html body .site-header[aria-label] .nav > .nav-item > a {
+  padding: 12px var(--ui-nav-padding);
+  min-height: 44px;
+  white-space: nowrap;
+}
+html body .site-header[aria-label] .nav > .nav-item--dropdown > a {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-nav-arrow-gap);
+}
+/* 角标随文字参与布局，避免左右 padding 覆盖后压在标题上。 */
+html body .site-header[aria-label] .nav > .nav-item--dropdown > a::before {
+  position: static;
+  inset: auto;
+  order: 1;
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  margin: 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+html body .site-header[aria-label] .nav > .nav-item--dropdown:is(:hover,:focus-within,.is-open) > a::before {
+  transform: translateY(1px) rotate(225deg);
+}
+html body .site-header[aria-label] .nav > a::after,
+html body .site-header[aria-label] .nav > .nav-item > a::after {
+  left: var(--ui-nav-padding);
+  right: var(--ui-nav-padding);
+}
+
+html body .site-header[aria-label] .nav .nav-dropdown {
+  top: calc(100% + 10px);
+  left: 0;
+  right: auto;
+  transform: translateY(8px);
+}
+html body .site-header[aria-label] .nav .nav-item--dropdown:is(:hover,:focus-within,.is-open) .nav-dropdown {
+  transform: translateY(0);
+}
+/* 键盘进入一级菜单时立即展开，连续按 Tab 也能进入二级链接。 */
+html body .site-header[aria-label] .nav .nav-item--dropdown:focus-within .nav-dropdown {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: none;
+}
+html body .site-header[aria-label] .nav .nav-dropdown::before {
+  left: 26px;
+}
+html body .site-header[aria-label] .nav > .nav-item:nth-last-child(-n+3) .nav-dropdown {
+  left: auto;
+  right: 0;
+}
+html body .site-header[aria-label] .nav > .nav-item:nth-last-child(-n+3) .nav-dropdown::before {
+  left: auto;
+  right: 20px;
+}
+
+/* 中等桌面宽度完整保留菜单，独立一行，给 Logo 和右侧操作留下空间。 */
+@media (min-width: 1321px) and (max-width: 1679px) {
+  html:root { --ui-header-height: 116px; }
+  :is(body:has(main.page), .home-experience) .site-header {
+    display: grid;
+    grid-template-columns: auto minmax(0,1fr);
+    grid-template-rows: 64px 52px;
+    gap: 0;
+  }
+  :is(body:has(main.page), .home-experience) .site-header > .container,
+  :is(body:has(main.page), .home-experience) .site-header .header-inner {
+    display: contents;
+  }
+  :is(body:has(main.page), .home-experience) .site-header > .header-logo,
+  :is(body:has(main.page), .home-experience) .site-header .brand {
+    grid-column: 1;
+    grid-row: 1;
+    width: clamp(220px,18vw,280px);
+  }
+  :is(body:has(main.page), .home-experience) .site-header .header-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+  :is(body:has(main.page), .home-experience) .site-header .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-content: center;
+  }
+}
