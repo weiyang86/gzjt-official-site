@@ -61,17 +61,28 @@
   const drawer = document.querySelector('[data-drawer]')
   const toggleBtn = document.querySelector('[data-menu-toggle]')
   const closeEls = Array.from(document.querySelectorAll('[data-drawer-close]'))
+  const drawerFocusable = () => drawer ? Array.from(drawer.querySelectorAll('a[href], button:not([disabled]), [tabindex="0"]')).filter(el => el.getClientRects().length > 0) : []
+  if (drawer && toggleBtn) {
+    drawer.id ||= 'site-navigation-drawer'
+    drawer.inert = true
+    toggleBtn.setAttribute('aria-controls', drawer.id)
+    drawer.querySelector('.drawer-panel')?.setAttribute('aria-modal', 'true')
+  }
   const openDrawer = () => {
     if (!drawer || !toggleBtn) return
+    drawer.inert = false
     drawer.classList.add('is-open')
     drawer.setAttribute('aria-hidden', 'false')
     toggleBtn.setAttribute('aria-expanded', 'true')
+    drawerFocusable()[0]?.focus()
   }
   const closeDrawer = () => {
     if (!drawer || !toggleBtn) return
+    if (drawer.classList.contains('is-open')) toggleBtn.focus()
     drawer.classList.remove('is-open')
     drawer.setAttribute('aria-hidden', 'true')
     toggleBtn.setAttribute('aria-expanded', 'false')
+    drawer.inert = true
   }
   if (toggleBtn) toggleBtn.addEventListener('click', () => (drawer && drawer.classList.contains('is-open')) ? closeDrawer() : openDrawer())
   closeEls.forEach(el => el.addEventListener('click', closeDrawer))
@@ -83,9 +94,30 @@
     })
   }
   window.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return
-    if (drawer && drawer.classList.contains('is-open')) closeDrawer()
+    if (!drawer?.classList.contains('is-open')) return
+    if (e.key === 'Escape') closeDrawer()
+    if (e.key === 'Tab') {
+      const elements = drawerFocusable()
+      const first = elements[0], last = elements[elements.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last?.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first?.focus()
+      }
+    }
   })
+
+  // 装饰性封面加载失败时复用本站既有工程图；不改变正文图片、二维码或 CMS 配置。
+  const coverSelector = 'main.page .hero-bg img, main.page .thumb img, main.page .grid > a.card > div:first-child:not(.card-pad) > img'
+  const recoverCover = (image) => {
+    if (!(image instanceof HTMLImageElement) || !image.matches(coverSelector) || image.dataset.uiFallback === 'true') return
+    image.dataset.uiFallback = 'true'
+    image.src = '/img/雅砻江大桥.jpg'
+  }
+  document.querySelectorAll(coverSelector).forEach(image => {
+    if (image.complete && !image.naturalWidth) recoverCover(image)
+  })
+  document.addEventListener('error', event => recoverCover(event.target), true)
 
   const enhanceTopNavDropdown = ({ matcher, items, hrefBuilder }) => {
     if (document.querySelector('.nav')?.dataset.navTreeSource === 'api') return
