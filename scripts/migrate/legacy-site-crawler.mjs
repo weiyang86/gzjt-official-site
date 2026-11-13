@@ -45,6 +45,10 @@ export const parseLegacyDate = (text) => {
 const isMain = () => process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 const absoluteUrl = (url, baseUrl) => new URL(url, baseUrl).toString();
 const legacyIdFromUrl = (url) => (String(url).match(VIEW_RE) || [])[1] || '';
+const filenameFromUrl = (url) => {
+  try { return path.basename(new URL(url).pathname) || 'legacy-image.jpg'; }
+  catch { return 'legacy-image.jpg'; }
+};
 
 const makeRange = (dateFrom, dateTo) => ({
   from: parseLegacyDate(`${dateFrom} 00:00:00`),
@@ -146,6 +150,20 @@ const extractDetailDate = (html) => {
   return null;
 };
 
+const extractImageInfos = (html, baseUrl) => Array.from(html.matchAll(/<img\b([^>]*)>/gi)).map((match) => {
+  const attrs = match[1] || '';
+  const src = (attrs.match(/\bsrc=["']([^"']+)["']/i) || [])[1] || '';
+  if (!src) return null;
+  const url = absoluteUrl(src, baseUrl);
+  const alt = decodeHtml((attrs.match(/\balt=["']([^"']*)["']/i) || [])[1] || '');
+  return { url, alt, filename: filenameFromUrl(url) };
+}).filter(Boolean);
+
+const absolutizeContentImages = (html, baseUrl) => html.replace(/<img\b([^>]*?)\bsrc=["']([^"']+)["']([^>]*)>/gi, (tag, before, src, after) => {
+  const absoluteSrc = absoluteUrl(src, baseUrl);
+  return `<img${before}src="${absoluteSrc}"${after}>`;
+});
+
 const extractDetailBody = (html) => {
   const candidates = [
     /<div[^>]+class=["'][^"']*(?:article-content|news-content|detail-content|content|article|detail)[^"']*["'][^>]*>([\s\S]*?)<\/div>\s*(?:<div|<\/main>|<\/body>)/i,
@@ -164,8 +182,9 @@ const extractDetail = (html, fallbackTitle) => {
   const author = decodeHtml((stripTags(html.slice(0, 3000)).match(/作者[:：\s]*([^\s来源发布时间发布日期]{1,40})/) || [])[1] || '');
   const source = decodeHtml((stripTags(html.slice(0, 3000)).match(/来源[:：\s]*([^\s发布时间发布日期]{1,80})/) || [])[1] || '旧官网');
   const body = extractDetailBody(html);
-  const contentText = stripTags(body.html);
-  const images = Array.from(body.html.matchAll(/<img\b[^>]*src=["']([^"']+)["'][^>]*>/gi)).map((m) => absoluteUrl(m[1], legacySiteConfig.baseUrl));
+  const contentHtml = absolutizeContentImages(body.html, legacySiteConfig.baseUrl);
+  const contentText = stripTags(contentHtml);
+  const images = extractImageInfos(contentHtml, legacySiteConfig.baseUrl);
   return {
     title,
     detail_date: detailDate?.dateTime || null,
@@ -174,9 +193,9 @@ const extractDetail = (html, fallbackTitle) => {
     detail_date_raw_text: detailDate?.raw_text || '',
     author: author || source,
     summary: contentText.slice(0, 160),
-    content_html: body.html,
+    content_html: contentHtml,
     content_text: contentText,
-    cover_image_url: images[0] || '',
+    cover_image_url: images[0]?.url || '',
     images,
     uncertain: body.uncertain
   };

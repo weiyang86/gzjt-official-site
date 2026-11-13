@@ -19,6 +19,7 @@ const targetStatus = String(args.status || 'draft');
 const commit = Boolean(args.commit);
 const skipImages = Boolean(args['skip-images']);
 const forceUpdate = String(args['force-update'] ?? 'false') === 'true';
+const assetsBaseUrl = String(args['assets-base-url'] || DIRECTUS_URL).replace(/\/$/, '');
 
 const request = async (apiPath, { method = 'GET', token, body, headers = {}, expected = [200, 201, 204] } = {}) => {
   const res = await fetch(`${DIRECTUS_URL}${apiPath}`, {
@@ -64,36 +65,81 @@ const findExistingArticle = async (token, item) => {
   return Array.isArray(data) && data[0] ? data[0] : null;
 };
 
-const uploadImage = async (token, imageUrl, warnings) => {
+const normalizeImageList = (item) => {
+  const fromImages = Array.isArray(item.images) ? item.images : [];
+  const normalized = fromImages.map((image) => {
+    if (typeof image === 'string') return { url: image, alt: '', filename: path.basename(new URL(image).pathname) || 'legacy-image.jpg' };
+    return { url: image.url, alt: image.alt || '', filename: image.filename || (image.url ? path.basename(new URL(image.url).pathname) : 'legacy-image.jpg') };
+  }).filter((image) => image.url);
+  if (item.cover_image_url && !normalized.some((image) => image.url === item.cover_image_url)) {
+    normalized.unshift({ url: item.cover_image_url, alt: '', filename: path.basename(new URL(item.cover_image_url).pathname) || 'legacy-cover.jpg' });
+  }
+  return Array.from(new Map(normalized.map((image) => [image.url, image])).values());
+};
+
+const uploadImage = async (token, image, warnings, imageCache, imageReport) => {
+  const imageUrl = typeof image === 'string' ? image : image?.url;
   if (!imageUrl || skipImages) return null;
+  if (imageCache.has(imageUrl)) {
+    const cached = imageCache.get(imageUrl);
+    imageReport.reused.push({ url: imageUrl, file_id: cached.id, asset_url: cached.assetUrl });
+    return cached;
+  }
   try {
-    const imageRes = await fetch(imageUrl);
+    const imageRes = await fetch(imageUrl, { headers: { 'User-Agent': 'Mozilla/5.0 gzjt-legacy-image-import/1.0' } });
     if (!imageRes.ok) throw new Error(`download failed ${imageRes.status}`);
     const blob = await imageRes.blob();
     const form = new FormData();
-    const filename = path.basename(new URL(imageUrl).pathname) || 'legacy-image.jpg';
+    const filename = image?.filename || path.basename(new URL(imageUrl).pathname) || 'legacy-image.jpg';
     form.append('file', blob, filename);
     const file = await request('/files', { method: 'POST', token, body: form, expected: [200, 201] });
-    return file?.id || null;
+    const uploaded = { id: file?.id || null, assetUrl: file?.id ? `${assetsBaseUrl}/assets/${file.id}` : null, filename };
+    imageCache.set(imageUrl, uploaded);
+    imageReport.uploaded.push({ url: imageUrl, file_id: uploaded.id, asset_url: uploaded.assetUrl, filename });
+    return uploaded;
   } catch (error) {
-    warnings.push(`Image skipped: ${imageUrl} (${error.message})`);
+    const message = `Image skipped: ${imageUrl} (${error.message})`;
+    warnings.push(message);
+    imageReport.failed.push({ url: imageUrl, message: error.message });
     return null;
   }
 };
 
-const toArticlePayload = async (token, item, channelId, warnings) => {
-  const cover = await uploadImage(token, item.cover_image_url, warnings);
+const replaceContentImageUrls = (contentHtml, replacements) => {
+  let html = contentHtml || '';
+  for (const [oldUrl, uploaded] of replacements.entries()) {
+    if (!uploaded?.assetUrl) continue;
+    html = html.split(oldUrl).join(uploaded.assetUrl);
+  }
+  return html;
+};
+
+const prepareImages = async (token, item, warnings, imageCache, imageReport) => {
+  const images = normalizeImageList(item);
+  const replacements = new Map();
+  if (skipImages || !images.length) return { cover: null, content: item.content_html || item.content_text || '', replacements };
+  for (const image of images) {
+    const uploaded = await uploadImage(token, image, warnings, imageCache, imageReport);
+    if (uploaded?.assetUrl) replacements.set(image.url, uploaded);
+  }
+  const coverSource = item.cover_image_url || images[0]?.url;
+  const cover = coverSource && replacements.has(coverSource) ? replacements.get(coverSource).id : (replacements.values().next().value?.id || null);
+  return { cover, content: replaceContentImageUrls(item.content_html || item.content_text || '', replacements), replacements };
+};
+
+const toArticlePayload = async (token, item, channelId, warnings, imageCache, imageReport) => {
+  const imageResult = await prepareImages(token, item, warnings, imageCache, imageReport);
   return {
     title: item.title,
     subtitle: '',
     summary: item.summary || item.content_text?.slice(0, 160) || '',
-    content: item.content_html || item.content_text || '',
+    content: imageResult.content,
     source: '旧官网迁移',
     author: item.author || '旧官网',
     publish_at: item.publish_at,
     status: targetStatus,
     main_channel: channelId,
-    cover,
+    cover: imageResult.cover,
     cover_url: item.cover_image_url || '',
     source_file: item.external_source_url || item.legacy_id || ''
   };
@@ -109,15 +155,18 @@ const main = async () => {
     status: targetStatus,
     skip_images: skipImages,
     force_update: forceUpdate,
+    assets_base_url: assetsBaseUrl,
     created: [],
     updated: [],
     skipped: [],
     warnings: [],
-    errors: []
+    errors: [],
+    images: { uploaded: [], reused: [], failed: [] }
   };
 
   let token = null;
   const channelCache = new Map();
+  const imageCache = new Map();
   if (commit) token = await login();
 
   for (const item of items) {
@@ -142,7 +191,7 @@ const main = async () => {
         continue;
       }
       const warnings = [];
-      const articlePayload = await toArticlePayload(token, item, channelId, warnings);
+      const articlePayload = await toArticlePayload(token, item, channelId, warnings, imageCache, report.images);
       report.warnings.push(...warnings.map((message) => ({ legacy_id: item.legacy_id, title: item.title, message })));
       if (existing && forceUpdate) {
         const updated = await request(`/items/articles/${encodeURIComponent(existing.id)}`, { method: 'PATCH', token, body: articlePayload });
