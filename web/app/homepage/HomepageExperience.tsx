@@ -3,6 +3,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Article, BusinessSector, PageModuleItem, Topic } from '@/types/cms';
 import type { ContactInfoConfig, HomepageLayoutConfig, HomepageSectionId } from '@/lib/cms/homepage-layout';
+import HomepageRail from './HomepageRail';
+import HomepageScenery from './HomepageScenery';
 
 type Props = {
   children: ReactNode;
@@ -105,10 +107,8 @@ export default function HomepageExperience({ children, articles, cultureArticles
   const heroVideo = activeManualSlide?.video || '';
   const previousHeroBackgroundRef = useRef(heroBackground);
 
-  const backgroundStyle = (screen: HomepageSectionId) => layout.backgrounds[screen]
-    ? { backgroundImage: `linear-gradient(rgba(7,24,43,.28),rgba(7,24,43,.32)),url("${layout.backgrounds[screen]}")` }
-    : undefined;
   const sectionContent = layout.sectionContent;
+  const qrContent = layout.showQrs ? <div className="home-qr-list">{qrs.length ? qrs.map((qr) => <figure key={qr.id}><QrImage key={qr.image} src={qr.image} title={qr.title || '集团公众平台二维码'} /><figcaption>{qr.title || '公众平台'}</figcaption></figure>) : <p>暂无已发布的公众平台二维码</p>}</div> : null;
 
   const goTo = useCallback((index: number) => {
     const bounded = Math.min(Math.max(index, 0), screenIds.length - 1);
@@ -143,6 +143,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
     const onWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) < 18) return;
       const target = event.target as HTMLElement | null;
+      if (target?.closest?.('.home-side-rail, .home-screen-index')) return;
       // 抽屉打开时，滚轮交给抽屉自己滚动
       if (target?.closest?.('[data-drawer]') || document.querySelector('.drawer.is-open')) return;
       // 分屏或横向列表还有可滚空间时，先滚动内容，滚到边界再切分屏
@@ -203,7 +204,8 @@ export default function HomepageExperience({ children, articles, cultureArticles
   }, [heroBackground]);
   const sectionNodes: Record<HomepageSectionId, ReactNode> = {
     news: (
-      <section key="news" {...screenState('news')} id="news" style={backgroundStyle('news')}>
+      <section key="news" {...screenState('news')} id="news">
+        <HomepageScenery section="news" background={layout.backgrounds.news} />
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.news.eyebrow}</span><h2>{sectionContent.news.title}</h2><p>{sectionContent.news.subtitle}</p></header>
           <div className="home-news-grid">
@@ -220,7 +222,8 @@ export default function HomepageExperience({ children, articles, cultureArticles
       </section>
     ),
     culture: (
-      <section key="culture" {...screenState('culture')} id="culture-topics" style={backgroundStyle('culture')}>
+      <section key="culture" {...screenState('culture')} id="culture-topics">
+        <HomepageScenery section="culture" background={layout.backgrounds.culture} />
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.culture.eyebrow}</span><h2>{sectionContent.culture.title}</h2><p>{sectionContent.culture.subtitle}</p></header>
           {cultureItems.length ? (
@@ -247,7 +250,8 @@ export default function HomepageExperience({ children, articles, cultureArticles
       </section>
     ),
     business: (
-      <section key="business" {...screenState('business')} id="business" style={backgroundStyle('business')}>
+      <section key="business" {...screenState('business')} id="business">
+        <HomepageScenery section="business" background={layout.backgrounds.business} />
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.business.eyebrow}</span><h2>{sectionContent.business.title}</h2><p>{sectionContent.business.subtitle}</p></header>
           {homeStats.length ? <section className="home-business-stats" aria-label="集团经营指标"><div className="home-business-stats-heading"><span>经营数据</span><small>首页动态指标</small></div><div className="home-business-stats-grid">{homeStats.slice(0, 4).map((item, index) => <article key={item.id}><span>{item.label}</span><strong><AnimatedStatValue value={item.value} delay={index * 100} active={screenIds[activeIndex] === 'business'} /><small>{item.unit}</small></strong></article>)}</div>{homeStats.length > 4 ? <details className="home-business-stats-more"><summary>查看全部经营指标（还有 {homeStats.length - 4} 项）</summary><div className="home-business-stats-grid">{homeStats.slice(4).map((item, index) => <article key={item.id}><span>{item.label}</span><strong><AnimatedStatValue value={item.value} delay={index * 100} active={screenIds[activeIndex] === 'business'} /><small>{item.unit}</small></strong></article>)}</div></details> : null}</section> : null}
@@ -256,11 +260,12 @@ export default function HomepageExperience({ children, articles, cultureArticles
       </section>
     ),
     contact: (
-      <section key="contact" {...screenState('contact')} id="contact" style={backgroundStyle('contact')}>
+      <section key="contact" {...screenState('contact')} id="contact">
+        <HomepageScenery section="contact" background={layout.backgrounds.contact} />
         <div className="home-screen-inner home-contact-inner">
           <header className="home-section-heading"><span>{sectionContent.contact.eyebrow}</span><h2>{sectionContent.contact.title}</h2><p>{sectionContent.contact.subtitle}</p></header>
           <div className="home-contact-content"><div className="home-contact-card"><h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3>{contactInfo.address ? <p>地址：{contactInfo.address}</p> : null}{contactInfo.phone ? <p>电话：{contactInfo.phone}</p> : null}{contactInfo.email ? <p>邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></p> : null}{layout.showQuickLinks ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}</div>
-            {layout.showQrs ? <div className="home-qr-list">{qrs.map((qr) => <figure key={qr.id}><QrImage key={qr.image} src={qr.image} title={qr.title || '集团公众平台二维码'} /><figcaption>{qr.title || '公众平台'}</figcaption></figure>)}</div> : null}
+            {qrContent}
             {friendLinks.length ? <div className="home-friend-links"><strong>友情链接</strong>{friendLinks.map((link) => <a href={link.url} target="_blank" rel="noreferrer" key={link.id}>{link.title}</a>)}</div> : null}
           </div>
           <footer className="home-legal"><span>{siteSettings.copyright || siteSettings.footerText || siteSettings.siteName || '网站'}</span>{(siteSettings.icp || layout.icpRecordNumber) ? <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{siteSettings.icp || layout.icpRecordNumber}</a> : null}</footer>
@@ -273,7 +278,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
     <div className="home-experience" ref={scrollerRef} onTouchStart={(event) => {
       const target = event.target as HTMLElement | null;
       // 抽屉、页头内的手势交给它们自己处理，避免拖动菜单时误触发分屏切换
-      if (target?.closest?.('[data-drawer], .site-header')) {
+      if (target?.closest?.('[data-drawer], .site-header, .home-side-rail, .home-screen-index')) {
         touchStartRef.current = null;
         touchStartXRef.current = null;
         touchScrollRef.current = null;
@@ -327,7 +332,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
         <a className="home-hero-down" href="#news" onClick={(event) => { event.preventDefault(); goTo(1); }}>向下浏览　↓</a>
       </section>
       {orderedSections.map((section) => <Fragment key={section}>{sectionNodes[section]}</Fragment>)}
-      <nav className="home-screen-index" aria-label="首页分屏导航">{screenIds.map((id, index) => <button type="button" key={id} aria-label={`前往${id === 'hero' ? '首页' : sectionContent[id as HomepageSectionId].title}`} aria-current={activeIndex === index} onClick={() => goTo(index)} />)}</nav>
+      <HomepageRail screens={screenIds.map((id) => ({ id, title: id === 'hero' ? '首页' : sectionContent[id as HomepageSectionId].title }))} activeIndex={activeIndex} onNavigate={goTo} contactInfo={contactInfo} qrContent={qrContent} friendLinks={friendLinks} />
     </div>
   );
 }
