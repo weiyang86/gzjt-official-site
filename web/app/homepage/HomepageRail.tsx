@@ -66,6 +66,7 @@ export default function HomepageRail({ screens, activeIndex, onNavigate, contact
 
   return <>
     <aside className="home-side-rail" aria-label="首页快捷工具" ref={railRef}>
+      <div className="home-rail-surface" aria-hidden="true" />
       <a className="home-rail-brand" href="/home" aria-label="甘孜建投首页"><span>GZJT</span><span>甘孜建投</span></a>
       <div className="home-rail-tools">
         {tool('phone', '联系信息')}

@@ -286,27 +286,7 @@
   enhanceNewsNav()
 
   const revealEls = Array.from(document.querySelectorAll('.reveal'))
-  if (revealEls.length && !prefersReduced && 'IntersectionObserver' in window) {
-    const revealObs = new IntersectionObserver((entries) => {
-      entries.forEach(ent => {
-        if (!ent.isIntersecting) return
-        ent.target.classList.add('is-visible')
-        if (ent.target instanceof Element) revealObs.unobserve(ent.target)
-      })
-    }, { threshold: 0.18 })
-    revealEls.forEach(el => revealObs.observe(el))
-  } else {
-    revealEls.forEach(el => el.classList.add('is-visible'))
-  }
-
-  document.querySelectorAll('[data-stagger]').forEach(parent => {
-    const step = Number(parent.getAttribute('data-stagger') || '0')
-    if (!Number.isFinite(step) || step <= 0) return
-    const items = Array.from(parent.querySelectorAll('.reveal'))
-    items.forEach((el, i) => {
-      el.style.transitionDelay = `${i * step}ms`
-    })
-  })
+  revealEls.forEach(el => el.classList.add('is-visible'))
 
   const aboutTiltEls = Array.from(document.querySelectorAll('[data-about-tilt]'))
   if (aboutTiltEls.length && !prefersReduced) {

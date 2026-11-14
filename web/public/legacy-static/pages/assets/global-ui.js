@@ -1,4 +1,11 @@
 (() => {
+  // 旧 HTML 兼容入口；Next 页面由 NewsAssets / 首页统一加载，脚本本身防止重复初始化。
+  if (!document.querySelector('script[src="/legacy-static/site-motion.js"]')) {
+    const motionScript = document.createElement('script')
+    motionScript.src = '/legacy-static/site-motion.js'
+    motionScript.defer = true
+    document.head.appendChild(motionScript)
+  }
   const pathname = location.pathname.replace(/\\/g, '/')
   let decodedPathname = pathname
   try { decodedPathname = decodeURIComponent(pathname) } catch (e) {}

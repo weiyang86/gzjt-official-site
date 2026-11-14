@@ -1,0 +1,16 @@
+/* 统一动效参数；基础状态可读，JS 或动画不可用时不隐藏内容。 */
+:root { --motion-ease: cubic-bezier(.22,1,.36,1); --motion-hover-duration: 180ms; }
+/* 集团概况/荣誉原有的 view() 时间线由统一观察器接管，避免两套透明度叠加。 */
+main.page :is(.reveal,.honor-card) { animation: none !important; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :is(main.page,.home-experience) :is(.btn,.page-btn,.home-news-card,.home-topic-grid > a,.home-sector-grid > a,.home-culture-values > a) {
+    transition-property: transform, box-shadow, border-color, background-color, color, translate, scale;
+    transition-duration: var(--motion-hover-duration);
+  }
+  .home-experience :is(.home-news-card,.home-topic-grid > a,.home-sector-grid > a,.home-culture-values > a):hover { translate: 0 -3px; }
+  :is(main.page,.home-experience) :is(.btn,.page-btn,.home-rail-tools > button):active { scale: .98; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(main.page,.home-experience,.ui-entrance) [data-motion] { animation: none !important; transition: none !important; }
+  .home-experience :is(.home-news-card,.home-topic-grid > a,.home-sector-grid > a,.home-culture-values > a):hover { translate: none; }
+}
