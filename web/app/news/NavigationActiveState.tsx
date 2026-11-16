@@ -56,7 +56,19 @@ export default function NavigationActiveState({ active }: { active?: NavKey }) {
       activeParents.forEach((parent) => parent.classList.add('is-active'));
 
       if (active) {
-        document.querySelectorAll<HTMLAnchorElement>(`[data-nav-key="${active}"]`).forEach((link) => {
+        const explicitLinks = document.querySelectorAll<HTMLAnchorElement>(`[data-nav-key="${active}"]`);
+        // Article URLs also live under /news for notices. The supplied content
+        // context takes precedence over that generic URL ancestor.
+        if (explicitLinks.length) links.forEach((link) => {
+          const parent = link.closest<HTMLElement>('.nav-item');
+          const root = parent?.querySelector<HTMLAnchorElement>(':scope > a[data-nav-key]') || link;
+          if (root.dataset.navKey && root.dataset.navKey !== active) {
+            link.classList.remove('is-active');
+            link.removeAttribute('aria-current');
+            parent?.classList.remove('is-active');
+          }
+        });
+        explicitLinks.forEach((link) => {
           link.classList.add('is-active');
           link.closest<HTMLElement>('.nav-item')?.classList.add('is-active');
         });

@@ -2,6 +2,16 @@
 :root {
   --ui-page-gutter: clamp(18px, 3vw, 48px);
   --ui-content-width: 1320px;
+  --ui-font: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --ui-ink: #222222;
+  --ui-text: #555555;
+  --ui-muted: #767676;
+  --ui-accent: #b11f24;
+  --ui-blue: #0d2f5a;
+  --ui-line: #e5e7e9;
+  --ui-paper: #ffffff;
+  --ui-soft: #f6f7f8;
+  --ui-radius: 3px;
   --ui-header-height: 80px;
   --ui-focus-color: #235d8c;
   --ui-touch-target: 44px;
@@ -89,3 +99,37 @@
 @media (prefers-reduced-motion: reduce) {
   .home-experience .site-header { animation: none; }
 }
+
+/* Shared public UI. Rich-text inline formatting is intentionally untouched. */
+:is(.home-experience,main.page,.ui-entrance) { font-family: var(--ui-font); }
+:is(.home-experience,main.page,.ui-entrance) :is(.btn,.page-btn,.tab,.input,.select,.textarea) {
+  font-family: var(--ui-font); border-radius: var(--ui-radius); box-shadow: none;
+  backdrop-filter: none; font-weight: 500; letter-spacing: 0;
+}
+:is(.home-experience,main.page) .btn { background: #fff; color: var(--ui-text); border: 1px solid var(--ui-line); }
+:is(.home-experience,main.page) .btn--primary { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+:is(.home-experience,main.page) .btn:hover { transform: none; box-shadow: none; border-color: var(--ui-accent); }
+:is(.home-experience,main.page) :is(.hero-title,.h2,.home-section-heading h2) {
+  font-family: var(--ui-font); font-weight: 500; letter-spacing: 0; text-shadow: none;
+}
+html body .site-header[aria-label] { font-family: var(--ui-font); box-shadow: 0 1px 8px #00000009; background: #fff; }
+html body .site-header[aria-label] .nav :is(a,.nav-item > a) { border-radius: 0; font-size: 15px; font-weight: 500; color: var(--ui-ink); }
+html body .site-header[aria-label] .nav :is(a[aria-current="page"],a.is-active,.nav-item.is-active > a,a:hover) { background: transparent; color: var(--ui-accent); }
+html body .site-header[aria-label] .header-actions > .btn { border-radius: var(--ui-radius); background: #fff; box-shadow: none; border: 1px solid var(--ui-line); }
+html body .site-header[aria-label] .header-actions > .btn--primary { background: var(--ui-accent); color: #fff; }
+html body .site-header[aria-label] .nav-dropdown { border-radius: var(--ui-radius); box-shadow: 0 8px 24px #00000012; }
+.home-experience .home-section-heading { display: flex; flex-direction: column; gap: 8px; margin-bottom: 30px; }
+.home-experience .home-section-heading h2 { order: -1; font-size: clamp(28px,2.5vw,36px); line-height: 1.3; margin: 0; }
+.home-experience .home-section-heading > span { font-size: 14px; font-weight: 400; color: var(--ui-muted); letter-spacing: .04em; }
+.home-experience .home-section-heading > span::before { display: none; }
+.home-experience .home-section-heading p { margin: 0; font-size: 15px; line-height: 1.7; }
+@media(max-width:760px) {
+  .home-experience .home-section-heading { gap: 6px; margin-bottom: 22px; }
+  .home-experience .home-section-heading h2 { font-size: 26px; }
+  .home-experience .home-section-heading > span { font-size: 13px; }
+}
+/* The original logo includes wide blank margins. Crop only its canvas in CSS. */
+html:root body .site-header[aria-label] > .header-logo:has(> img[src$="/img/logo.png"]) { position: relative; overflow: hidden; height: 56px; }
+html:root body .site-header[aria-label] > .header-logo > img[src$="/img/logo.png"] { position: absolute; width: 154.6%; max-width: none; height: auto; left: -29.7%; top: 50%; transform: translateY(-50%); }
+:is(body:has(main.page),.home-experience) .drawer-panel { border-radius: var(--ui-radius); font-family: var(--ui-font); }
+:is(body:has(main.page),.home-experience) .drawer-panel :is(a,summary,button) { border-radius: var(--ui-radius); font-family: var(--ui-font); }

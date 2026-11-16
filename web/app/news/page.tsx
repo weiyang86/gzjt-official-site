@@ -329,7 +329,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
                     if (index === 0) {
                       return (
                         <a className="news-item news-item--featured reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
-                          <span className="thumb thumb--featured"><img src={item.cover || '/img/雅砻江大桥.jpg'} alt="" /></span>
+                          {item.cover ? <span className="thumb thumb--featured"><img src={item.cover} alt="" /></span> : null}
                           <span className="news-content">
                             <span className="news-featured-top">
                               <span className="news-cat-tag">{getChannelLabel(item)}</span>
@@ -350,7 +350,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
                           <span className="nd-day">{dayText(publishValue)}</span>
                           <span className="nd-month">{monthText(publishValue)}</span>
                         </span>
-                        <span className="thumb"><img src={item.cover || '/img/雅砻江大桥.jpg'} alt="" /></span>
+                        {item.cover ? <span className="thumb"><img src={item.cover} alt="" /></span> : null}
                         <span className="news-content">
                           <b className="news-title">{item.title}</b>
                           <span className="news-desc">{item.summary || '查看该资讯详情。'}</span>

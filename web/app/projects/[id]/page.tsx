@@ -47,13 +47,10 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
         <section className="section" aria-label="正文">
           <div className="content">
             <div className="detail reveal is-visible">
-              <div style={{ borderRadius: 24, overflow: 'hidden', height: 260, position: 'relative' }}>
-                <img alt="" src={project.image || fallbackProjectImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.62))' }} />
-              </div>
               <h1 style={{ marginTop: 18 }}>{project.name}</h1>
               {meta ? <div className="meta">{meta}</div> : null}
               {project.summary ? <p className="lead" style={{ marginTop: 12 }}>{project.summary}</p> : null}
+              <figure className="detail-cover"><img alt="" src={project.image || fallbackProjectImage} /></figure>
               {project.detail ? (
                 <div className="body" dangerouslySetInnerHTML={{ __html: project.detail }} />
               ) : (

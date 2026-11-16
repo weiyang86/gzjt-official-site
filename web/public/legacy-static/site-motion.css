@@ -7,7 +7,7 @@ main.page :is(.reveal,.honor-card) { animation: none !important; }
     transition-property: transform, box-shadow, border-color, background-color, color, translate, scale;
     transition-duration: var(--motion-hover-duration);
   }
-  .home-experience :is(.home-news-card,.home-topic-grid > a,.home-sector-grid > a,.home-culture-values > a):hover { translate: 0 -3px; }
+  .home-experience :is(.home-news-card,.home-topic-grid > a,.home-sector-grid > a,.home-culture-values > a):hover { translate: none; }
   :is(main.page,.home-experience) :is(.btn,.page-btn,.home-rail-tools > button):active { scale: .98; }
 }
 @media (prefers-reduced-motion: reduce) {
