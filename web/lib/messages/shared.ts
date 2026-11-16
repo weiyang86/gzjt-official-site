@@ -60,21 +60,26 @@ export const normalizeMessageText = (value: unknown) => (
   typeof value === 'string' ? value.replace(/\r\n/g, '\n').trim() : ''
 );
 
-export const validateMessageForm = (input: MessageFormInput): string => {
+export type MessageFormField = 'name' | 'phone' | 'email' | 'category' | 'content';
+
+export const getMessageFormError = (input: MessageFormInput): { field: MessageFormField; message: string } | null => {
   const name = normalizeMessageText(input.name);
   const phone = normalizeMessageText(input.phone);
   const email = normalizeMessageText(input.email);
   const content = normalizeMessageText(input.content);
 
-  if (name.length < 2 || name.length > messageLimits.name) return `姓名需填写 2-${messageLimits.name} 个字符。`;
-  if (!phonePattern.test(phone)) return '请填写正确的 11 位手机号码。';
-  if (email && (email.length > messageLimits.email || !emailPattern.test(email))) return '请填写正确的电子邮箱。';
-  if (!isMessageCategory(input.category)) return '请选择留言类型。';
+  if (name.length < 2 || name.length > messageLimits.name) return { field: 'name', message: `姓名需填写 2-${messageLimits.name} 个字符。` };
+  if (!phonePattern.test(phone)) return { field: 'phone', message: '请填写正确的 11 位手机号码。' };
+  if (email && (email.length > messageLimits.email || !emailPattern.test(email))) return { field: 'email', message: '请填写正确的电子邮箱。' };
+  if (!isMessageCategory(input.category)) return { field: 'category', message: '请选择留言类型。' };
   if (content.length < messageLimits.minContent || content.length > messageLimits.content) {
-    return `留言内容需填写 ${messageLimits.minContent}-${messageLimits.content} 个字符。`;
+    return { field: 'content', message: `留言内容需填写 ${messageLimits.minContent}-${messageLimits.content} 个字符。` };
   }
-  return '';
+  return null;
 };
+
+// 保留后台与 API 已使用的字符串校验接口及全部校验规则。
+export const validateMessageForm = (input: MessageFormInput): string => getMessageFormError(input)?.message || '';
 
 export const validateMessageReply = (status: MessageStatus, reply: string, note: string): string => {
   if (status === 'replied' && !normalizeMessageText(reply)) return '状态改为已回复时必须填写公开回复。';

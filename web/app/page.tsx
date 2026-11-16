@@ -82,7 +82,11 @@ export default async function HomePage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: body }} />
+      <link rel="stylesheet" href="/legacy-static/ui-foundation.css" />
+      <link rel="stylesheet" href="/legacy-static/entrance-ui.css" />
+      <link rel="stylesheet" href="/legacy-static/site-motion.css" />
+      <div className="ui-entrance" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: body }} />
+      <Script src="/legacy-static/site-motion.js" strategy="afterInteractive" />
       {scripts.map((script) => (
         script.src ? (
           <Script

@@ -36,7 +36,7 @@ export default async function TrainingArticlePage({ params }: TrainingArticlePag
               <div className="pill">培训文章</div>
               <h1>{resource.title}</h1>
               {resource.dateLabel ? <div className="meta">{resource.dateLabel}</div> : null}
-              {resource.image ? <img src={resource.image} alt={resource.title} style={{ width: '100%', maxHeight: 420, objectFit: 'cover', borderRadius: 12, marginBottom: 20 }} /> : null}
+              {resource.image ? <img data-ui-cover src={resource.image} alt={resource.title} style={{ width: '100%', maxHeight: 420, objectFit: 'cover', borderRadius: 12, marginBottom: 20 }} /> : null}
               <div className="body" style={{ whiteSpace: 'pre-wrap' }}>
                 {resource.content.trim() || '培训文章正文暂未发布，敬请关注。'}
               </div>

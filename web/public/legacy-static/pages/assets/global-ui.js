@@ -1,4 +1,11 @@
 (() => {
+  // 旧 HTML 兼容入口；Next 页面由 NewsAssets / 首页统一加载，脚本本身防止重复初始化。
+  if (!document.querySelector('script[src="/legacy-static/site-motion.js"]')) {
+    const motionScript = document.createElement('script')
+    motionScript.src = '/legacy-static/site-motion.js'
+    motionScript.defer = true
+    document.head.appendChild(motionScript)
+  }
   const pathname = location.pathname.replace(/\\/g, '/')
   let decodedPathname = pathname
   try { decodedPathname = decodeURIComponent(pathname) } catch (e) {}
@@ -126,16 +133,16 @@
     // 后台未配置或接口不可用时，继续使用原静态二维码，便于随时回退。
     const fallbackQrItems = [{ title: '公众平台二维码', image: '/img/public-platform-qr.png' }]
     wrap.innerHTML = `
-      <div class="gfloat-item" data-action="top" aria-label="返回顶部">
-        <div class="gfloat-ico">↑</div>
+      <button class="gfloat-item" type="button" data-action="top" aria-label="返回顶部">
+        <span class="gfloat-ico" aria-hidden="true">↑</span>
+      </button>
+      <div class="gfloat-item" data-float-popover>
+        <button class="gfloat-trigger" type="button" aria-label="联系电话" aria-expanded="false" aria-controls="site-float-phone" aria-describedby="site-float-phone"><span class="gfloat-ico" aria-hidden="true">☎</span></button>
+        <div class="gfloat-pop" id="site-float-phone"><b>联系电话</b><span>${phone}</span></div>
       </div>
-      <div class="gfloat-item" aria-label="联系电话">
-        <div class="gfloat-ico">☎</div>
-        <div class="gfloat-pop"><b>联系电话</b><span>${phone}</span></div>
-      </div>
-      <div class="gfloat-item" aria-label="微信二维码">
-        <div class="gfloat-ico">⌁</div>
-        <div class="gfloat-pop gfloat-qr-pop">
+      <div class="gfloat-item" data-float-popover>
+        <button class="gfloat-trigger" type="button" aria-label="微信二维码" aria-expanded="false" aria-controls="site-float-qr"><span class="gfloat-ico" aria-hidden="true">⌁</span></button>
+        <div class="gfloat-pop gfloat-qr-pop" id="site-float-qr">
           <b class="gfloat-pop-title">公众平台二维码</b>
           <span>扫码关注公众平台</span>
           <div class="gfloat-qr-list" aria-label="公众平台二维码列表"></div>
@@ -147,6 +154,36 @@
       </a>
     `
     document.body.appendChild(wrap)
+    wrap.querySelectorAll('[data-float-popover]').forEach(item => {
+      const trigger = item.querySelector('button')
+      const setOpen = (open) => {
+        item.classList.toggle('is-open', open)
+        trigger.setAttribute('aria-expanded', String(open))
+      }
+      const open = () => {
+        item.classList.remove('is-dismissed')
+        setOpen(true)
+      }
+      item.addEventListener('mouseenter', open)
+      item.addEventListener('mouseleave', () => {
+        if (!item.contains(document.activeElement)) setOpen(false)
+      })
+      item.addEventListener('focusin', () => {
+        if (!item.classList.contains('is-dismissed')) open()
+      })
+      item.addEventListener('focusout', event => {
+        if (event.relatedTarget instanceof Node && item.contains(event.relatedTarget)) return
+        item.classList.remove('is-dismissed')
+        setOpen(item.matches(':hover'))
+      })
+      trigger.addEventListener('click', open)
+      trigger.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return
+        event.preventDefault()
+        item.classList.add('is-dismissed')
+        setOpen(false)
+      })
+    })
     const renderQrItems = (items) => {
       const list = wrap.querySelector('.gfloat-qr-list')
       if (!list) return
@@ -179,7 +216,7 @@
       })
       .catch(() => {})
     wrap.querySelector('[data-action="top"]')?.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
     })
   }
 
@@ -219,6 +256,9 @@
     const apply = () => {
       const h = Math.max(0, Math.round(header.getBoundingClientRect().height))
       document.documentElement.style.setProperty('--site-header-offset', `${h}px`)
+      const breadcrumb = document.querySelector('.breadcrumb')
+      const crumbHeight = breadcrumb ? Math.ceil(breadcrumb.getBoundingClientRect().height) : 0
+      document.documentElement.style.setProperty('--ui-breadcrumb-height', `${crumbHeight}px`)
     }
     document.body.classList.add('has-site-header')
     apply()
@@ -235,6 +275,10 @@
     }
     window.addEventListener('resize', schedule, { passive: true })
     window.addEventListener('scroll', schedule, { passive: true })
+    const observer = new ResizeObserver(schedule)
+    observer.observe(header)
+    const breadcrumb = document.querySelector('.breadcrumb')
+    if (breadcrumb) observer.observe(breadcrumb)
   }
 
   ensureTransition()

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Drawer, Header } from '../news/components';
 import MobileNavToggle from '../components/MobileNavToggle';
 import HomepageExperience from '../homepage/HomepageExperience';
@@ -68,6 +69,8 @@ export default async function HomePage() {
       <link rel="stylesheet" href="/legacy-static/pages/assets/global-ui.css" />
       <link rel="stylesheet" href="/legacy-static/homepage-experience.css" />
       <link rel="stylesheet" href="/legacy-static/pages/assets/mobile.css" />
+      <link rel="stylesheet" href="/legacy-static/ui-foundation.css" />
+      <link rel="stylesheet" href="/legacy-static/home-ui.css" />
       <MobileNavToggle />
       <HomepageExperience
         articles={homeArticles}
@@ -85,6 +88,7 @@ export default async function HomePage() {
         <Header key="home-header" active="home" homeHref="/home" />
         <Drawer key="home-drawer" active="home" homeHref="/home" />
       </HomepageExperience>
+      <Script src="/legacy-static/site-motion.js" strategy="afterInteractive" />
     </>
   );
 }

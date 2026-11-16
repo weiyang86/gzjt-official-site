@@ -31,7 +31,8 @@ async function loadDetail(id: string) {
     const query = new URLSearchParams({ scope, page: '1', pageSize: '100' });
     const channelSlug = article.mainChannel?.slug || article.main_channel?.slug || '';
     if (channelSlug) query.set('channelSlug', channelSlug);
-    const context = await getPublicArticles(query);
+    // 相关推荐不可用时仍展示已读取到的已发布文章，避免附加请求失败导致正文变成 404。
+    const context = await getPublicArticles(query).catch(() => ({ items: [] as Article[] }));
     return { article, related: context.items.filter((item) => item.id !== id).slice(0, 3), isFallback: false, scope };
   } catch {
     const article = fallbackNewsArticles.find((item) => item.id === id) || null;
@@ -110,7 +111,7 @@ export default async function NewsDetailPage({ params }: DetailPageProps) {
           <div className="content">
             <div className="detail reveal is-visible">
               <div style={{ borderRadius: 24, overflow: 'hidden', height: 260, position: 'relative' }}>
-                <img alt="" src={article.cover || '/img/雅砻江大桥.jpg'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img data-ui-cover alt="" src={article.cover || '/img/雅砻江大桥.jpg'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.62))' }} />
               </div>
               <h1 style={{ marginTop: 18 }}>{article.title}</h1>

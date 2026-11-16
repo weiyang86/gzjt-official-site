@@ -1,3 +1,8 @@
+@import url('/legacy-static/ui-foundation.css');
+@import url('/legacy-static/site-ui.css');
+@import url('/legacy-static/navigation-ui.css');
+@import url('/legacy-static/site-motion.css');
+
 :root{}
 .global-brand-float{
   position: fixed;
@@ -498,29 +503,12 @@
   .news-date-tag { border-right: none; border-bottom: 1px solid rgba(0,0,0,0.06); padding-right: 0; padding-bottom: 12px; width: 100%; flex-direction: row; gap: 12px; justify-content: flex-start; }
 }
 
-/* 7. ANIMATION OVERRIDES */
-.reveal {
-  opacity: 0;
-  transition: opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-}
-.reveal[data-anim="fadeUp"],
-.reveal:not([data-anim]) {
-  transform: translateY(40px) !important;
-}
-.reveal[data-anim="fadeLeft"] {
-  transform: translateX(40px) !important;
-}
-.reveal[data-anim="fadeRight"] {
-  transform: translateX(-40px) !important;
-}
-.reveal[data-anim="blurReveal"] {
-  transform: translateY(40px) !important;
-  filter: blur(10px) !important;
-}
-.reveal.is-visible {
-  opacity: 1 !important;
-  transform: translate3d(0,0,0) scale(1) !important;
-  filter: blur(0) !important;
+/* 内容默认可见；统一渐进动效由 site-motion.js 接管，不再依赖隐藏后加类。 */
+.reveal, .reveal[data-anim], .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: none;
 }
 
 .gfloat-pop{
@@ -545,6 +533,12 @@
   pointer-events:auto;
   transform:translateY(-50%) translateX(-2px);
 }
+.global-float button.gfloat-item{padding:0;font:inherit;color:inherit}
+.global-float .gfloat-trigger{display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;border-radius:inherit;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.global-float :is(button,a):focus-visible{outline:3px solid var(--ui-focus-color,#b41d2c);outline-offset:3px}
+.global-float .gfloat-pop{visibility:hidden}
+.global-float .gfloat-item:is(:hover,:focus-within,.is-open) .gfloat-pop{visibility:visible;opacity:1;pointer-events:auto}
+.global-float .gfloat-item.is-dismissed .gfloat-pop{visibility:hidden;opacity:0;pointer-events:none}
 .gfloat-pop b{display:block;font-size:13px;letter-spacing:.4px;color:#243449}
 .gfloat-pop span{display:block;margin-top:8px;color:rgba(61,72,86,.86);font-size:13px}
 .gfloat-qr-pop{max-width:min(80vw,760px)}

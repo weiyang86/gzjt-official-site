@@ -68,5 +68,67 @@ export default function NavigationActiveState({ active }: { active?: NavKey }) {
     return () => window.removeEventListener('popstate', update);
   }, [active]);
 
+  useEffect(() => {
+    const items = Array.from(document.querySelectorAll<HTMLElement>('.site-header .nav[data-nav-tree-source="api"] > .nav-item--dropdown'));
+    const cleanups = items.map((item, index) => {
+      const trigger = item.querySelector<HTMLAnchorElement>(':scope > a');
+      const panel = item.querySelector<HTMLElement>(':scope > .nav-dropdown');
+      if (!trigger || !panel) return () => {};
+      panel.id ||= `site-nav-submenu-${index}`;
+      trigger.setAttribute('aria-controls', panel.id);
+      let hovered = item.matches(':hover');
+      const apply = (open: boolean) => {
+        item.classList.toggle('is-open', open);
+        trigger.setAttribute('aria-expanded', String(open));
+        panel.inert = !open;
+      };
+      const open = () => {
+        item.classList.remove('is-dismissed');
+        apply(true);
+      };
+      const onEnter = () => { hovered = true; open(); };
+      const onLeave = () => {
+        hovered = false;
+        if (!item.classList.contains('is-dismissed')) apply(item.contains(document.activeElement));
+      };
+      const onFocusIn = () => {
+        if (!item.classList.contains('is-dismissed')) open();
+      };
+      const onFocusOut = (event: FocusEvent) => {
+        if (event.relatedTarget instanceof Node && item.contains(event.relatedTarget)) return;
+        item.classList.remove('is-dismissed');
+        apply(hovered);
+      };
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          item.classList.add('is-dismissed');
+          apply(false);
+          trigger.focus();
+        } else if (event.key === 'ArrowDown' && event.target === trigger) {
+          event.preventDefault();
+          open();
+          panel.querySelector<HTMLAnchorElement>('a[href]')?.focus();
+        }
+      };
+      apply(hovered || item.contains(document.activeElement));
+      item.addEventListener('mouseenter', onEnter);
+      item.addEventListener('mouseleave', onLeave);
+      item.addEventListener('focusin', onFocusIn);
+      item.addEventListener('focusout', onFocusOut);
+      item.addEventListener('keydown', onKeyDown);
+      return () => {
+        item.removeEventListener('mouseenter', onEnter);
+        item.removeEventListener('mouseleave', onLeave);
+        item.removeEventListener('focusin', onFocusIn);
+        item.removeEventListener('focusout', onFocusOut);
+        item.removeEventListener('keydown', onKeyDown);
+        item.classList.remove('is-open', 'is-dismissed');
+        panel.inert = false;
+      };
+    });
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, []);
+
   return null;
 }

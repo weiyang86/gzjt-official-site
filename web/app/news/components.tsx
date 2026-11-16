@@ -252,6 +252,7 @@ export async function Footer() {
 }
 
 export function NewsAssets() {
+  // 全站优化层由 global-ui.css 统一引入，同时覆盖 Next 页面与兼容的旧静态 URL。
   return (
     <>
       <link rel="stylesheet" href="/legacy-static/pages/assets/theme.css" />
@@ -260,6 +261,7 @@ export function NewsAssets() {
       <link rel="stylesheet" href="/legacy-static/pages/assets/mobile.css" />
       <Script src="/legacy-static/pages/assets/app.js" strategy="afterInteractive" />
       <Script src="/legacy-static/pages/assets/global-ui.js" strategy="afterInteractive" />
+      <Script src="/legacy-static/site-motion.js" strategy="afterInteractive" />
     </>
   );
 }
