@@ -110,13 +110,10 @@ export default async function NewsDetailPage({ params }: DetailPageProps) {
         <section className="section" aria-label="正文">
           <div className="content">
             <div className="detail reveal is-visible">
-              <div style={{ borderRadius: 24, overflow: 'hidden', height: 260, position: 'relative' }}>
-                <img data-ui-cover alt="" src={article.cover || '/img/雅砻江大桥.jpg'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.62))' }} />
-              </div>
               <h1 style={{ marginTop: 18 }}>{article.title}</h1>
               {article.subtitle ? <p className="subtitle">{article.subtitle}</p> : null}
               <div className="meta">发布时间：{formatDate(publishValue)} · {labelFor(article)}{article.source ? ` · ${article.source}` : ''}</div>
+              {article.cover && !article.content?.includes(article.cover) ? <figure className="detail-cover"><img data-ui-cover alt="" src={article.cover} /></figure> : null}
               <div className="body" dangerouslySetInnerHTML={{ __html: article.content || `<p>${article.summary || '暂无正文内容。'}</p>` }} />
               {article.attachments?.length ? (
                 <div className="attachments">

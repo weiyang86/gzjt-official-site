@@ -5,7 +5,7 @@
   width: clamp(260px, 26vw, 380px);
   max-width: calc(100vw - 2 * var(--ui-page-gutter));
   padding: 16px 20px;
-  border-radius: 12px;
+  border-radius: var(--ui-radius);
   background: rgba(255, 255, 255, .94);
   gap: 0;
 }
@@ -47,3 +47,6 @@
 @media (prefers-reduced-motion: reduce) {
   .ui-entrance .particle, .ui-entrance .hero-badge-dot { animation: none; }
 }
+
+.ui-entrance .hero-actions .btn-primary { background: var(--ui-accent); border: 1px solid var(--ui-accent); border-radius: var(--ui-radius); box-shadow: none; font-family: var(--ui-font); }
+.ui-entrance .hero-badge { border-radius: var(--ui-radius); }

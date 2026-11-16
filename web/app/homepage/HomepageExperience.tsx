@@ -5,6 +5,7 @@ import type { Article, BusinessSector, PageModuleItem, Topic } from '@/types/cms
 import type { ContactInfoConfig, HomepageLayoutConfig, HomepageSectionId } from '@/lib/cms/homepage-layout';
 import HomepageRail from './HomepageRail';
 import HomepageScenery from './HomepageScenery';
+import HomepageNews from './HomepageNews';
 
 type Props = {
   children: ReactNode;
@@ -21,7 +22,6 @@ type Props = {
   contactInfo: ContactInfoConfig;
 };
 
-const articleHref = (article: Article) => `/news/${encodeURIComponent(article.id)}`;
 const safeHomepageLink = (value: string) => /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value.trim()) ? value.trim() : '#';
 const isExternalHomepageLink = (value: string) => /^https?:\/\//i.test(value.trim());
 
@@ -208,16 +208,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
         <HomepageScenery section="news" background={layout.backgrounds.news} />
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.news.eyebrow}</span><h2>{sectionContent.news.title}</h2><p>{sectionContent.news.subtitle}</p></header>
-          <div className="home-news-grid">
-            {articles.slice(0, layout.newsItemCount).map((article, index) => (
-              <a className={`home-news-card${index === 0 ? ' home-news-card--featured' : ''}`} href={articleHref(article)} key={article.id}>
-                {index === 0 && article.cover ? <div className="home-news-cover" style={{ backgroundImage: `url("${article.cover}")` }} aria-hidden="true" /> : null}
-                <span>{article.mainChannel?.name || '集团新闻'}</span><h3>{article.title}</h3><p>{article.subtitle || article.summary || article.publishDate}</p>
-              </a>
-            ))}
-            {!articles.length ? <p className="home-empty">暂无已发布新闻</p> : null}
-          </div>
-          <a className="home-more-link" href="/news">进入新闻中心　→</a>
+          <HomepageNews articles={articles} limit={layout.newsItemCount} interval={layout.carouselInterval} active={screenIds[activeIndex] === 'news'} title={sectionContent.news.title} />
         </div>
       </section>
     ),
@@ -242,7 +233,10 @@ export default function HomepageExperience({ children, articles, cultureArticles
           {cultureArticles.length ? (
             <div className="home-culture-block">
               <p className="home-culture-block-title">专题专栏</p>
-              <div className="home-topic-grid">{cultureArticles.slice(0, layout.cultureItemCount).map((topic) => <a href={`/topics/${encodeURIComponent(topic.slug)}`} key={topic.id}><span>专题专栏</span><h3>{topic.title}</h3><p>{topic.subtitle || topic.summary || ''}</p><b>查看内容　→</b></a>)}</div>
+              <div className="home-topic-grid">{cultureArticles.slice(0, layout.cultureItemCount).map((topic) => <a href={`/topics/${encodeURIComponent(topic.slug)}`} key={topic.id}>
+                {topic.cover ? <img className="home-topic-cover" src={topic.cover} alt="" loading="lazy" /> : null}
+                <span>专题专栏</span><h3>{topic.title}</h3><p>{topic.subtitle || topic.summary || ''}</p><b>查看内容　→</b>
+              </a>)}</div>
             </div>
           ) : null}
           {!cultureItems.length && !cultureArticles.length ? <p className="home-empty">暂无已发布的企业文化与专题内容</p> : null}
@@ -255,7 +249,10 @@ export default function HomepageExperience({ children, articles, cultureArticles
         <div className="home-screen-inner">
           <header className="home-section-heading"><span>{sectionContent.business.eyebrow}</span><h2>{sectionContent.business.title}</h2><p>{sectionContent.business.subtitle}</p></header>
           {homeStats.length ? <section className="home-business-stats" aria-label="集团经营指标"><div className="home-business-stats-heading"><span>经营数据</span><small>首页动态指标</small></div><div className="home-business-stats-grid">{homeStats.slice(0, 4).map((item, index) => <article key={item.id}><span>{item.label}</span><strong><AnimatedStatValue value={item.value} delay={index * 100} active={screenIds[activeIndex] === 'business'} /><small>{item.unit}</small></strong></article>)}</div>{homeStats.length > 4 ? <details className="home-business-stats-more"><summary>查看全部经营指标（还有 {homeStats.length - 4} 项）</summary><div className="home-business-stats-grid">{homeStats.slice(4).map((item, index) => <article key={item.id}><span>{item.label}</span><strong><AnimatedStatValue value={item.value} delay={index * 100} active={screenIds[activeIndex] === 'business'} /><small>{item.unit}</small></strong></article>)}</div></details> : null}</section> : null}
-          <div className="home-sector-grid">{sectors.slice(0, layout.businessItemCount).map((sector) => <a href={`/business?sector=${encodeURIComponent(sector.slug)}`} key={sector.id} style={sector.cover ? { backgroundImage: `linear-gradient(0deg,rgba(8,25,44,.8),rgba(8,25,44,.12)),url("${sector.cover}")` } : undefined}><h3>{sector.name || sector.title}</h3><p>{sector.intro || sector.description}</p></a>)}{!sectors.length ? <p className="home-empty">暂无已启用业务板块</p> : null}</div>
+          <div className="home-sector-grid">{sectors.slice(0, layout.businessItemCount).map((sector) => <a href={`/business?sector=${encodeURIComponent(sector.slug)}`} key={sector.id}>
+            {sector.cover ? <img className="home-sector-cover" src={sector.cover} alt="" loading="lazy" /> : null}
+            <div className="home-sector-copy"><h3>{sector.name || sector.title}</h3><p>{sector.intro || sector.description}</p><span aria-hidden="true">↗</span></div>
+          </a>)}{!sectors.length ? <p className="home-empty">暂无已启用业务板块</p> : null}</div>
         </div>
       </section>
     ),

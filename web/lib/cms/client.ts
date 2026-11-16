@@ -51,8 +51,8 @@ const legacyDirectusAssetId = (assetUrl: string) => {
       || url.hostname === 'localhost'
       || url.hostname === 'gzjtjt.cn'
       || url.hostname.endsWith('.gzjtjt.cn');
-    if (!isLegacyHost || !url.pathname.startsWith('/assets/')) return '';
-    return url.pathname.replace(/^\/assets\//, '').split('/')[0] || '';
+    if (!isLegacyHost || !/^\/(?:admin-api\/)?assets\//.test(url.pathname)) return '';
+    return url.pathname.replace(/^\/(?:admin-api\/)?assets\//, '').split('/')[0] || '';
   } catch {
     return '';
   }

@@ -16,7 +16,7 @@
     'main.page .reveal', 'main.page .hero .kicker', 'main.page .hero-title',
     'main.page .hero-sub', 'main.page .hero-cta', 'main.page .section-head',
     'main.page .grid > .card', 'main.page .filters', 'main.page .news-item',
-    'main.page .news-row', 'main.page .detail', 'main.page .pagination',
+    'main.page .news-row', 'main.page .detail', 'main.page .pagination', '[data-news-enter]',
     '.ui-entrance .hero-badge', '.ui-entrance .hero-title',
     '.ui-entrance .hero-subtitle', '.ui-entrance .hero-actions',
     '.home-screen .home-hero-copy > *', '.home-screen .home-hero-dots--banner',

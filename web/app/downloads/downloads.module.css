@@ -10,26 +10,26 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
   background: #fff;
-  color: var(--navy);
+  color: var(--ui-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: none;
   transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
 }
 
 .categoryLink:hover {
   border-color: rgba(198, 40, 40, .35);
-  color: var(--brand);
-  transform: translateY(-1px);
+  color: var(--ui-accent);
+  transform: none;
 }
 
 .categoryLink span {
   min-width: 22px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: var(--ui-radius);
   background: rgba(13, 47, 90, .08);
   color: var(--muted);
   font-size: 12px;
@@ -37,8 +37,8 @@
 }
 
 .categoryLinkActive {
-  border-color: var(--brand);
-  background: var(--brand);
+  border-color: var(--ui-accent);
+  background: var(--ui-accent);
   color: #fff;
 }
 
@@ -68,10 +68,10 @@
   gap: 20px;
   align-items: center;
   padding: 22px 24px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 249, 251, .9));
-  box-shadow: 0 12px 30px rgba(13, 47, 90, .07);
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: #fff;
+  box-shadow: none;
 }
 
 .downloadTop {
@@ -93,6 +93,7 @@
   color: var(--ink);
   font-size: 19px;
   line-height: 1.5;
+  font-weight: 500;
 }
 
 .downloadDescription {
@@ -125,13 +126,13 @@
 .unavailable {
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .emptyState {
   padding: 34px 24px;
   border: 1px dashed rgba(13, 47, 90, .22);
-  border-radius: 18px;
+  border-radius: var(--ui-radius);
   background: rgba(255, 255, 255, .65);
   color: var(--muted);
   line-height: 1.8;
@@ -157,4 +158,9 @@
     padding: 9px 13px;
     font-size: 13px;
   }
+}
+
+@media(max-width:720px) {
+ .categoryBar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; }
+ .categoryLink { flex: 0 0 auto; min-height: 44px; }
 }

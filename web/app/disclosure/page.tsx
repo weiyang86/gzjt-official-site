@@ -210,39 +210,15 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
             <div className="news-grid news-grid--list-only" style={{ marginTop: 30 }}>
               <aside className="news-side reveal is-visible" aria-label={`${activeCategoryName}列表`}>
                 <div className="news-list">
-                  {payload.items.length ? payload.items.map((item, index) => {
+                  {payload.items.length ? payload.items.map((item) => {
                     const publishValue = item.publishAt || item.publishDate;
                     const channel = item.mainChannel || item.main_channel;
-                    const isFeatured = index === 0;
-                    if (isFeatured) {
-                      return (
-                        <a className="news-item reveal is-visible news-item--featured" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
-                          <span className="thumb thumb--featured"><img src={item.cover || '/img/雅砻江大桥.jpg'} alt="" /></span>
-                          <span className="news-content">
-                            <span className="news-featured-top">
-                              <span className="news-cat-tag">{channel?.name || '公示公告'}</span>
-                              <span className="news-featured-date">{formatDate(publishValue)}</span>
-                            </span>
-                            <b className="news-title">{item.title}</b>
-                            <span className="news-desc">{item.summary || '查看公告详情。'}</span>
-                            <span className="news-meta-row">
-                              <span className="news-date-tag news-date-tag--featured">
-                                <span className="nd-day">{dayText(publishValue)}</span>
-                                <span className="nd-month">{monthText(publishValue)}</span>
-                              </span>
-                              <span className="news-featured-hint">点击查看公告详情</span>
-                            </span>
-                          </span>
-                        </a>
-                      );
-                    }
                     return (
-                      <a className="news-item reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
+                      <a className="news-item news-item--notice reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
                         <span className="news-date-tag">
                           <span className="nd-day">{dayText(publishValue)}</span>
                           <span className="nd-month">{monthText(publishValue)}</span>
                         </span>
-                        <span className="thumb"><img src={item.cover || '/img/雅砻江大桥.jpg'} alt="" /></span>
                         <span className="news-content">
                           <b className="news-title">{item.title}</b>
                           <span className="news-desc">{item.summary || '查看公告详情。'}</span>
