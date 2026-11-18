@@ -142,6 +142,7 @@ export interface BusinessSector {
   cover?: string;
   intro?: string;
   description?: string;
+  undertaker?: string;
   status?: ArticleStatus;
 }
 

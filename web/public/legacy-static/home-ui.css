@@ -291,3 +291,157 @@ html[data-viewport="mobile"] .home-experience .home-screen-index button { width:
 .home-experience .home-legal a { color: var(--ui-text); }
 .home-experience .home-qr-list figure { background: #fff; border-radius: var(--ui-radius); border: 1px solid var(--ui-line); }
 .home-experience .home-qr-list figcaption { color: var(--ui-text); }
+
+/* ===== 2026-11 首页修改意见：企业文化屏合并联系关注（浅色版式） ===== */
+.home-experience .home-contact-merge { border-top-color: var(--ui-line); }
+.home-experience .home-contact-merge-heading > span { color: var(--ui-muted); }
+.home-experience .home-contact-merge-heading h3 { color: var(--ui-ink); font-family: "Noto Serif SC", serif; }
+.home-experience .home-mailbox { border: 1px solid var(--ui-line); background: linear-gradient(135deg, #fff5f5, #fff); color: var(--ui-ink); }
+.home-experience .home-mailbox span { color: var(--ui-accent); }
+.home-experience .home-mailbox:hover { background: var(--ui-soft); }
+.home-experience .home-contact-merge .home-contact-card { background: #fff; }
+.home-experience .home-topic-cover { height: auto; aspect-ratio: 16 / 10; object-fit: cover; margin-bottom: 0; }
+.home-experience .home-topic-grid > a { padding: 0; overflow: hidden; }
+
+/* ===== 2026-11 二次修改：业务板块一强多干 + 标题上移 ===== */
+.home-experience .home-screen--business { padding-top: 76px; align-items: flex-start; }
+.home-experience .home-screen--business .home-screen-inner { margin-block: 0; }
+.home-experience .home-screen--business .home-section-heading { margin-bottom: 26px; }
+.home-experience .home-sector-grid--3,
+.home-experience .home-sector-grid--4 { height: clamp(300px, 46vh, 440px); grid-template-columns: minmax(0,1.7fr) minmax(0,1fr); }
+.home-experience .home-sector-grid--3 { grid-template-rows: repeat(2, minmax(0,1fr)); }
+.home-experience .home-sector-grid--4 { grid-template-rows: repeat(3, minmax(0,1fr)); }
+.home-experience .home-sector-grid--3 > a,
+.home-experience .home-sector-grid--4 > a { height: 100%; min-height: 0; }
+.home-experience .home-sector-grid--3 > a:first-child,
+.home-experience .home-sector-grid--4 > a:first-child { grid-row: 1 / -1; }
+.home-experience .home-sector-grid--3 > a:first-child h3 { font-size: clamp(24px, 2.6vw, 32px); }
+
+/* 二维码：微信公众号 + 视频号 两个固定位置 */
+.home-experience .home-qr-list figure { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
+.home-experience .home-qr-list img { width: 116px; height: 116px; object-fit: cover; border-radius: 8px; display: block; }
+.home-experience .home-qr-unavailable { display: grid; place-items: center; width: 116px; height: 116px; border-radius: 8px; background: var(--ui-soft); color: var(--ui-muted); font-size: 12px; line-height: 1.5; text-align: center; }
+
+@media(max-width:900px) {
+  .home-experience .home-sector-grid--3,
+  .home-experience .home-sector-grid--4 { height: auto; grid-template-columns: minmax(0,1fr); grid-template-rows: none; }
+  .home-experience .home-sector-grid--3 > a:first-child,
+  .home-experience .home-sector-grid--4 > a:first-child { grid-row: auto; }
+  .home-experience .home-screen--business { padding-top: 84px; }
+}
+
+/* 新闻/业务/企业文化分屏改为顶部对齐，避免内容高度变化时整块下移 */
+.home-experience .home-screen--news .home-screen-inner,
+.home-experience .home-screen--business .home-screen-inner,
+.home-experience .home-screen--culture .home-screen-inner { margin-block: 0; }
+
+/* ===== 2026-11 三次修改：业务板块宽度对齐新闻中心 + 追加业务动态卡片 ===== */
+.home-experience .home-screen--business { padding-inline: 5vw; overflow-y: auto; }
+.home-experience .home-screen--business .home-screen-inner,
+.home-experience .home-screen--culture .home-screen-inner { width: min(var(--ui-content-width), 100%); max-width: var(--ui-content-width); }
+.home-experience .home-sector-grid--3,
+.home-experience .home-sector-grid--4 { height: clamp(252px, 33vh, 330px); }
+.home-experience .home-business-news { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-top: 16px; }
+.home-experience .home-business-news > a { display: flex; flex-direction: column; gap: 6px; min-height: 132px; padding: 16px 18px; border: 1px solid var(--ui-line); border-radius: var(--ui-radius); background: #fff; text-decoration: none; color: var(--ui-ink); transition: border-color .2s ease; }
+.home-experience .home-business-news span { color: var(--ui-accent); font-size: 12px; }
+.home-experience .home-business-news h3 { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.home-experience .home-business-news p { margin: 0; color: var(--ui-text); font-size: 13px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.home-experience .home-business-news time { margin-top: auto; color: var(--ui-muted); font-size: 12px; }
+.home-experience .home-business-news > a:hover { border-color: var(--ui-accent); }
+@media(max-width:900px) {
+  html[data-viewport="mobile"] .home-experience .home-screen--business { padding-inline: 20px; }
+  .home-experience .home-business-news { grid-template-columns: minmax(0,1fr); }
+}
+
+@media(max-width:900px) {
+  .home-experience .home-sector-grid--3,
+  .home-experience .home-sector-grid--4 { height: auto; grid-template-rows: none; }
+  .home-experience .home-sector-grid--3 > a,
+  .home-experience .home-sector-grid--4 > a { height: auto; }
+}
+
+/* 业务板块：文字在上、照片贴板块底部 */
+.home-experience .home-sector-grid--3,
+.home-experience .home-sector-grid--4 { height: clamp(380px, 58vh, 500px); }
+.home-experience .home-sector-copy { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+.home-experience .home-sector-cover { margin-top: auto; height: 64px; flex: 0 0 64px; object-fit: cover; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-cover,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-cover { height: clamp(170px, 24vh, 220px); flex: 0 0 auto; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy p,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media(max-width:900px) {
+  .home-experience .home-sector-cover { height: 160px; flex: 0 0 auto; }
+}
+
+/* 右侧三个小板块：压缩文字区，照片贴底 */
+.home-experience .home-sector-grid--3,
+.home-experience .home-sector-grid--4 { height: clamp(440px, 66vh, 560px); }
+.home-experience .home-sector-cover { height: 56px; flex: 0 0 56px; }
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-cover,
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-cover { height: clamp(180px, 24vh, 220px); flex: 0 0 auto; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy { padding: 10px 14px; justify-content: center; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy h3,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy h3 { font-size: 18px; line-height: 1.2; margin: 0 18px 4px 0; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy p,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy p { font-size: 12.5px; line-height: 1.5; }
+
+/* 业务板块：照片置于文字块(div)底部，加白色渐变蒙版保证文字清晰 */
+.home-experience .home-sector-copy { position: relative; overflow: hidden; padding-bottom: 78px; }
+.home-experience .home-sector-cover { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 78px; margin: 0; object-fit: cover; z-index: 0; }
+.home-experience .home-sector-copy::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 78px; background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,.55) 42%, rgba(255,255,255,0) 100%); z-index: 1; pointer-events: none; }
+.home-experience .home-sector-copy > h3,
+.home-experience .home-sector-copy > p { position: relative; z-index: 2; }
+.home-experience .home-sector-copy > span { z-index: 2; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-copy,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-copy { padding-bottom: 210px; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-cover,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-cover { height: 210px; flex: none; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-copy::after,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-copy::after { height: 210px; }
+@media(max-width:900px) {
+  .home-experience .home-sector-copy,
+  .home-experience .home-sector-grid--3 > a:first-child .home-sector-copy,
+  .home-experience .home-sector-grid--4 > a:first-child .home-sector-copy { padding-bottom: 160px; }
+  .home-experience .home-sector-cover,
+  .home-experience .home-sector-grid--3 > a:first-child .home-sector-cover,
+  .home-experience .home-sector-grid--4 > a:first-child .home-sector-cover { height: 160px; }
+  .home-experience .home-sector-copy::after,
+  .home-experience .home-sector-grid--3 > a:first-child .home-sector-copy::after,
+  .home-experience .home-sector-grid--4 > a:first-child .home-sector-copy::after { height: 160px; }
+}
+
+/* 业务板块：照片与文字块的留白/蒙版微调 */
+.home-experience .home-sector-grid--3,
+.home-experience .home-sector-grid--4 { height: clamp(460px, 70vh, 580px); }
+.home-experience .home-sector-copy { padding-bottom: 72px; }
+.home-experience .home-sector-cover { height: 72px; }
+.home-experience .home-sector-copy::after { height: 72px; background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,.92) 38%, rgba(255,255,255,0) 100%); }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy { padding: 8px 12px 72px; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy h3,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy h3 { font-size: 17px; line-height: 1.2; margin: 0 16px 3px 0; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy p,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy p { font-size: 12px; line-height: 1.42; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-copy,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-copy { padding-bottom: 210px; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-cover,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-cover { height: 210px; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-copy::after,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-copy::after { height: 210px; }
+
+/* 业务板块标题与新闻中心对齐（顶部内边距一致），并压缩网格避免溢出 */
+.home-experience .home-screen--business { padding-top: 116px; }
+.home-experience .home-sector-grid--3,
+.home-experience .home-sector-grid--4 { height: clamp(420px, 66vh, 540px); }
+.home-experience .home-sector-copy { padding-bottom: 64px; }
+.home-experience .home-sector-cover { height: 64px; }
+.home-experience .home-sector-copy::after { height: 64px; }
+.home-experience .home-sector-grid--3 > a:not(:first-child) .home-sector-copy,
+.home-experience .home-sector-grid--4 > a:not(:first-child) .home-sector-copy { padding: 8px 12px 64px; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-copy,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-copy { padding-bottom: 200px; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-cover,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-cover { height: 200px; }
+.home-experience .home-sector-grid--3 > a:first-child .home-sector-copy::after,
+.home-experience .home-sector-grid--4 > a:first-child .home-sector-copy::after { height: 200px; }

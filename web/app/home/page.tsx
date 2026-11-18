@@ -3,7 +3,8 @@ import Script from 'next/script';
 import { Drawer, Header } from '../news/components';
 import MobileNavToggle from '../components/MobileNavToggle';
 import HomepageExperience from '../homepage/HomepageExperience';
-import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicHomeStats, getPublicPageModuleItems, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings, getPublicTopics } from '@/lib/cms';
+import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicPageModuleItems, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings, getPublicTopics } from '@/lib/cms';
+import { withCanonicalBusinessSectors } from '@/lib/cms/fallback-site';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [articlePayload, pinnedPayload, topics, cultureItems, sectors, qrs, quickLinks, homeStats, friendLinks, siteSettings, layout, contactInfo] = await Promise.all([
+  const [articlePayload, pinnedPayload, topics, cultureItems, sectors, qrs, quickLinks, friendLinks, siteSettings, layout, contactInfo] = await Promise.all([
     getPublicArticles(new URLSearchParams({ page: '1', pageSize: '24' })).catch(() => ({ page: 1, pageSize: 24, total: 0, items: [] })),
     getPublicArticles(new URLSearchParams({ page: '1', pageSize: '12', isTop: 'true' })).catch(() => ({ page: 1, pageSize: 12, total: 0, items: [] })),
     getPublicTopics().catch(() => []),
@@ -43,7 +44,6 @@ export default async function HomePage() {
     getPublicBusinessSectors().catch(() => []),
     getPublicPlatformQrs().catch(() => []),
     getPublicQuickLinks().catch(() => []),
-    getPublicHomeStats().catch(() => []),
     getPublicFriendLinks('footer').catch(() => []),
     getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicHomepageLayout(),
@@ -76,10 +76,9 @@ export default async function HomePage() {
         articles={homeArticles}
         cultureArticles={topics}
         cultureItems={cultureItems}
-        sectors={sectors}
+        sectors={withCanonicalBusinessSectors(sectors)}
         qrs={qrs}
         quickLinks={quickLinks}
-        homeStats={homeStats}
         friendLinks={friendLinks}
         siteSettings={cleanedSiteSettings}
         layout={layout}

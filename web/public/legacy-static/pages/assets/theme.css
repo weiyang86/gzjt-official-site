@@ -262,8 +262,12 @@ body.has-site-header{
   position:absolute;
   top:calc(100% + 18px);
   left:50%;
-  min-width:220px;
-  padding:12px;
+  min-width:240px;
+  max-width:min(660px,calc(100vw - 48px));
+  padding:12px 10px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+  align-content:start;
   border-radius:22px;
   border:1px solid rgba(13,47,90,.10);
   background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,253,.94));
@@ -300,10 +304,10 @@ body.has-site-header{
   position:relative;
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
   gap:12px;
-  padding:12px 14px;
-  border-radius:14px;
+  padding:11px 12px;
+  border-radius:12px;
   color:rgba(11,18,32,.84);
   font-size:14px;
   font-weight:650;
@@ -312,13 +316,7 @@ body.has-site-header{
   transition:background .22s ease, color .22s ease, transform .22s ease;
 }
 .nav-dropdown a::after{
-  content:"";
-  width:7px;
-  height:7px;
-  border-top:1.5px solid rgba(13,47,90,.34);
-  border-right:1.5px solid rgba(13,47,90,.34);
-  transform:rotate(45deg);
-  flex:0 0 auto;
+  display:none;
 }
 .nav-dropdown a:hover,
 .nav-dropdown a.is-active,
@@ -888,3 +886,12 @@ body.is-leaving .page-transition{
 .toast.is-visible{opacity:1;transform:translate3d(-50%,0,0)}
 
 .footer-friend-links,.home-friend-links{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 1em;line-height:1.8}.footer-friend-links a,.home-friend-links a{display:inline-flex;white-space:nowrap;padding:0;color:rgba(11,18,32,.62);text-decoration:none;transition:color .2s ease,transform .2s ease}.footer-friend-links a::after,.home-friend-links a::after{content:"↗";margin-left:.35em;font-size:.8em;opacity:.55}.footer-friend-links a:hover,.home-friend-links a:hover{color:#b42318;transform:translateY(-1px)}.home-friend-links{margin-top:1em;align-items:baseline}.home-friend-links strong{flex:0 0 100%;margin-bottom:.25em}
+
+/* 宽下拉面板：靠右的栏目改为右对齐，避免超出视口 */
+@media(max-width:1500px){
+  .nav-dropdown{max-width:min(460px,calc(100vw - 32px));grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+}
+.nav > .nav-item--dropdown:nth-last-of-type(-n+4) .nav-dropdown{left:auto;right:-8px;transform:translate(0,8px)}
+.nav > .nav-item--dropdown:nth-last-of-type(-n+4):hover .nav-dropdown,
+.nav > .nav-item--dropdown:nth-last-of-type(-n+4):focus-within .nav-dropdown,
+.nav > .nav-item--dropdown:nth-last-of-type(-n+4).is-open .nav-dropdown{transform:translate(0,0)}

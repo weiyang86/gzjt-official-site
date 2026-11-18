@@ -79,3 +79,102 @@ html:has(.home-experience), html:has(.home-experience) body{height:100%;overflow
 /* 分屏叠放，通过透明度切换；隐藏屏不接收点击或键盘焦点。 */
 .home-screen.is-active{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 @media(prefers-reduced-motion:reduce){.home-screen{transition:none}}
+
+/* ===== 2026-11 首页修改意见：版式与动效调整 ===== */
+
+/* 首屏：标题垂直+水平居中，可换行两排；底部预留新闻字幕条空间 */
+.home-screen--hero{justify-content:center;padding:96px 5vw 210px;text-align:center}
+.home-hero-copy{width:min(1100px,92%);margin:0 auto;transform:none;text-align:center}
+.home-hero-copy h1{margin:0 0 20px;line-height:1.24}
+.home-hero-copy .home-hero-title{max-height:2.48em}
+.home-hero-copy .home-hero-subtitle{margin:0 0 8px}
+.home-hero-copy>span{justify-content:center}
+
+/* 标题横向滑入/滑出：离屏时停在右侧，进入时从右向左归位 */
+.home-hero-copy .home-hero-title,
+.home-hero-copy .home-hero-subtitle{transition:transform .9s cubic-bezier(.2,.72,.25,1),opacity .9s ease}
+.home-screen--hero:not(.is-active) .home-hero-title{transform:translateX(76px);opacity:0}
+.home-screen--hero:not(.is-active) .home-hero-subtitle{transform:translateX(48px);opacity:0}
+
+/* 背景图左右滑动切换（替代原来的淡入淡出） */
+.home-hero-backdrop{transition:transform .95s cubic-bezier(.4,.05,.2,1),opacity .95s ease;will-change:transform}
+.home-hero-backdrop.is-fade-pending{transform:translateX(8%) scale(1.012);opacity:1}
+.home-hero-backdrop.is-fading-in{transform:translateX(0) scale(1.012);opacity:1}
+.home-hero-backdrop.is-fading-out{transform:translateX(-100%) scale(1.012);opacity:1}
+
+/* Banner 海报完整展示，不裁切主体 */
+.home-hero-poster{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center;pointer-events:none}
+
+/* 首屏底部新闻字幕条 */
+.home-hero-ticker{position:absolute;left:max(6vw,28px);right:max(6vw,28px);bottom:clamp(88px,12vh,124px);z-index:3;display:flex;align-items:center;gap:16px;padding:11px 20px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:linear-gradient(90deg,rgba(5,20,39,.86),rgba(5,20,39,.52));backdrop-filter:blur(10px)}
+.home-hero-ticker-label{flex:0 0 auto;padding-right:16px;border-right:1px solid rgba(255,255,255,.22);color:#f2cc70;font-size:13px;letter-spacing:.14em}
+.home-hero-ticker-window{flex:1;min-width:0;overflow:hidden}
+.home-hero-ticker-track{display:flex;gap:52px;width:max-content;animation:home-ticker 42s linear infinite}
+.home-hero-ticker:hover .home-hero-ticker-track{animation-play-state:paused}
+.home-hero-ticker-track a{color:rgba(255,255,255,.9);font-size:14px;line-height:1.6;white-space:nowrap;text-decoration:none}
+.home-hero-ticker-track a:hover{color:#f2cc70}
+@keyframes home-ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.home-hero-dots--banner{bottom:clamp(150px,20vh,190px)}
+.home-hero-down{bottom:44px}
+
+/* 新闻分屏：顶部对齐，切换分类时标题位置不漂移 */
+.home-screen--news{align-items:flex-start}
+.home-screen--news .home-screen-inner{margin-block:0}
+
+/* 业务板块：一主多强（1 个主卡 + 3 个副卡），去掉经营数据 */
+.home-screen--business .home-sector-grid{height:clamp(300px,46vh,440px);grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.home-screen--business .home-sector-grid--3{grid-template-rows:repeat(2,minmax(0,1fr))}
+.home-screen--business .home-sector-grid--4{grid-template-rows:repeat(3,minmax(0,1fr))}
+.home-sector-grid>a:first-child{grid-row:1 / -1}
+.home-sector-grid>a:first-child h3{font-size:clamp(22px,2.4vw,30px)}
+.home-sector-grid>a:hover{transform:translateY(-2px);transition:transform .25s ease}
+
+/* 企业文化分屏：内容较多，允许纵向滚动 */
+.home-screen--culture{align-items:flex-start;overflow-y:auto}
+.home-screen--culture .home-screen-inner{margin-block:0}
+
+/* 企业文化卡片：文字不再被裁切 */
+.home-culture-values strong{-webkit-line-clamp:3}
+
+/* 专题专栏卡片：统一图片比例 */
+.home-topic-grid>a{display:flex;flex-direction:column;padding:0;overflow:hidden}
+.home-topic-cover{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.home-topic-grid>a>span{margin:16px 22px 0}
+.home-topic-grid h3{margin:8px 22px 0}
+.home-topic-grid p{margin:6px 22px 0}
+.home-topic-grid b{margin:auto 22px 18px}
+
+/* 企业文化 + 联系关注合并屏 */
+.home-contact-merge{margin-top:30px;padding-top:24px;border-top:1px solid rgba(255,255,255,.16)}
+.home-contact-merge-heading{display:flex;align-items:baseline;gap:14px;margin-bottom:16px}
+.home-contact-merge-heading>span{color:#ebc871;font-size:12px;letter-spacing:.16em}
+.home-contact-merge-heading h3{margin:0;font-family:"Noto Serif SC",serif;font-size:clamp(22px,2.4vw,30px);color:#fff}
+.home-contact-merge .home-contact-content{grid-template-columns:1.05fr .95fr;align-items:start}
+.home-mailbox{display:flex;flex-direction:column;gap:5px;margin:2px 0 16px;padding:15px 18px;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:linear-gradient(135deg,rgba(198,0,24,.34),rgba(198,0,24,.16));color:#fff;text-decoration:none;transition:background .2s ease}
+.home-mailbox span{color:#f0cf7a;font-size:12px;letter-spacing:.14em}
+.home-mailbox strong{font-size:17px;font-weight:600}
+.home-mailbox:hover{background:linear-gradient(135deg,rgba(198,0,24,.5),rgba(198,0,24,.26))}
+
+/* 页脚版权条：三行居中 */
+.home-legal{display:block;text-align:center;margin-top:26px;padding-top:14px}
+.home-legal-lines{display:flex;flex-direction:column;gap:5px;margin:0;line-height:1.8}
+.home-legal-lines span{display:block}
+
+@media(max-width:900px){
+  .home-screen--hero{padding:78px 20px 196px}
+  .home-hero-copy{width:100%}
+  .home-hero-copy .home-hero-title{font-size:clamp(32px,9vw,52px)}
+  .home-hero-ticker{left:16px;right:16px;bottom:92px;gap:12px;padding:9px 14px}
+  .home-hero-ticker-label{font-size:12px;padding-right:12px}
+  .home-hero-ticker-track a{font-size:13px}
+  .home-hero-ticker-track{gap:36px;animation-duration:34s}
+  .home-hero-down{bottom:52px}
+  .home-screen--business .home-sector-grid{grid-template-columns:1fr;grid-template-rows:none;height:auto}
+  .home-sector-grid>a:first-child{grid-row:auto}
+  .home-contact-merge .home-contact-content{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  .home-hero-copy .home-hero-title,.home-hero-copy .home-hero-subtitle,.home-hero-backdrop{transition:none}
+  .home-hero-ticker-track{animation:none}
+}
+

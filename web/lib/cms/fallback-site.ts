@@ -90,14 +90,24 @@ export const fallbackSinglePages: PageContent[] = [
   },
 ];
 
+// 官网业务板块按《宣传手册》"1344"四大产业布局统一为 4 个。
+export const canonicalBusinessSectorSlugs = ['construction', 'construction-service', 'franchise-operation', 'emerging-industry'] as const;
+
 export const fallbackBusinessSectors: BusinessSector[] = [
-  { id: 'traffic', name: '交通建设', title: '交通建设', slug: 'traffic', cover: '/img/雅砻江大桥.jpg', intro: '承建国省干线、农村公路、桥梁隧道等重大交通基础设施项目。', status: 'published' },
-  { id: 'urban', name: '城乡建设', title: '城乡建设', slug: 'urban', cover: '/img/318康定市过境段公路工程项目434互通工程.jpg', intro: '服务城市更新、市政基础设施、公共服务建筑与城乡融合发展。', status: 'published' },
-  { id: 'investment', name: '产业投资', title: '产业投资', slug: 'investment', cover: '/img/海螺沟路基建成后2.jpg', intro: '围绕清洁能源、生态农业、数字经济等方向培育新增长点。', status: 'published' },
-  { id: 'operation', name: '运营服务', title: '运营服务', slug: 'operation', cover: '/img/青冈坪隧道建成后.jpg', intro: '推动项目投融建运一体化落地，提升公共服务和资产运营效率。', status: 'published' },
-  { id: 'consulting', name: '工程服务', title: '工程服务', slug: 'consulting', cover: '/img/雀儿山隧道建成后.jpeg', intro: '提供工程全过程管理、技术支持与综合保障服务。', status: 'published' },
-  { id: 'tourism', name: '文旅开发', title: '文旅开发', slug: 'tourism', cover: '/img/海螺沟路基建成前1.JPG', intro: '依托区域文旅资源，推动交旅融合和特色项目开发。', status: 'published' },
+  { id: 'construction', name: '建设施工', title: '建设施工', slug: 'construction', cover: '/img/国道317线（川藏公路北线）雀儿山隧道工程.jpg', intro: '巩固公路、房建、市政工程施工传统优势，向城市更新、乡村振兴、铁路、养护、大中修等多领域业务拓展。', undertaker: '建设公司及其他合资施工企业', status: 'published' },
+  { id: 'construction-service', name: '建设服务', title: '建设服务', slug: 'construction-service', cover: '/img/雅砻江大桥.jpg', intro: '以代建管理为核心，带动工程检测、咨询、监理、勘察设计、招标代理、数智管理、建材生产与供应等业务发展，打造覆盖工程策划、建设、运维全周期的综合建设服务体系。', undertaker: '项管公司、咨询公司、勘察设计公司、供应链公司', status: 'published' },
+  { id: 'franchise-operation', name: '特许经营', title: '特许经营', slug: 'franchise-operation', cover: '/img/318康定市过境段公路工程项目434互通工程.jpg', intro: '以砂石资源、路衍经济、物流园区、城镇公共基础设施等特许经营为重点，构建具有集团特色的投建运一体化模式。', undertaker: '企管公司、供应链公司、建设公司和各项目公司', status: 'published' },
+  { id: 'emerging-industry', name: '新兴产业', title: '新兴产业', slug: 'emerging-industry', cover: '/img/index_bg.png', intro: '紧跟国家发展新质生产力导向，立足甘孜高原特色场景，布局低空经济、循环经济、新能源等新兴赛道。', undertaker: '集团总部、低飞公司、供应链公司、企管公司等相关新兴产业专业公司', status: 'published' },
 ];
+
+/** 始终按“建设施工 / 建设服务 / 特许经营 / 新兴产业”的顺序返回 4 个板块，后台有同 slug 数据时覆盖文案与配图。 */
+export function withCanonicalBusinessSectors(sectors: BusinessSector[]) {
+  const bySlug = new Map(sectors.map((sector) => [sector.slug, sector]));
+  return fallbackBusinessSectors.map((base) => {
+    const remote = bySlug.get(base.slug);
+    return remote ? { ...base, ...remote, undertaker: remote.undertaker || base.undertaker } : base;
+  });
+}
 
 export const fallbackCompanies: Company[] = [
   { id: 'traffic', name: '交通建设公司', shortName: '交通建设', slug: 'traffic', cover: '/img/雅砻江大桥.jpg', intro: '承担交通基础设施项目建设、管理与实施保障。', address: '四川省康定市', mainBusiness: '交通工程建设、项目管理', registeredCapital: '以工商登记为准', status: 'enabled' },

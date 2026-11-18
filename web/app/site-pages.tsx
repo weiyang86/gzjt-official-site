@@ -28,10 +28,10 @@ import {
   fallbackCompanyBySlug,
   fallbackHistoryTimeline,
   fallbackPageBySlug,
+  withCanonicalBusinessSectors,
 } from '@/lib/cms/fallback-site';
 import type { Article, BusinessInnovation, BusinessInnovationCategory, BusinessSector, Company, HistoryTimelineItem, HonorItem, PageContent, PageModuleContent, PageModuleItem } from '@/types/cms';
 import type { ReportConfig } from '@/lib/report/config';
-import { LeadershipPortrait } from '@/app/group/leadership/LeadershipPortrait';
 
 type ActiveKey = NavKey;
 type HeroStat = { value: string; label: string };
@@ -153,7 +153,7 @@ async function loadCompanies() {
 
 async function loadBusinessSectors() {
   try {
-    return await getPublicBusinessSectors();
+    return withCanonicalBusinessSectors(await getPublicBusinessSectors());
   } catch {
     return fallbackBusinessSectors;
   }
@@ -414,7 +414,7 @@ const paragraphHtml = (value: string | undefined, fallback: string) => {
 };
 const sectorHref = (slug: string, basePath: string) => `${basePath}?sector=${encodeURIComponent(slug)}#sector-detail`;
 
-function SectorDetail({ sector }: { sector: BusinessSector }) {
+function SectorDetail({ sector, basePath }: { sector: BusinessSector; basePath: string }) {
   return (
     <section className="section" id="sector-detail" aria-label={`${sector.name || sector.title || '产业布局'}详情`}>
       <div className="content">
@@ -423,7 +423,8 @@ function SectorDetail({ sector }: { sector: BusinessSector }) {
           <h1 style={{ marginTop: 14 }}>{sector.name || sector.title || '产业布局'}</h1>
           {sector.cover ? <img src={sector.cover} alt={sector.name || sector.title || ''} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 16, marginTop: 20 }} /> : null}
           <div className="body" dangerouslySetInnerHTML={{ __html: paragraphHtml(sector.intro || sector.description, '产业介绍待完善。') }} />
-          <a className="pill" href="#sectors" style={{ display: 'inline-block', marginTop: 8 }}>返回产业布局</a>
+          {sector.undertaker ? <div className="body" style={{ marginTop: 8 }}><p><strong>承接主体：</strong>{sector.undertaker}</p></div> : null}
+          <a className="pill" href={basePath} data-no-transition style={{ display: 'inline-block', marginTop: 8 }}>返回产业布局</a>
         </div>
       </div>
     </section>
@@ -438,17 +439,17 @@ function SectorCards({ sectors, activeSlug, basePath }: { sectors: BusinessSecto
           <div>
             <div className="kicker"><i aria-hidden="true" /><span>BUSINESS PORTFOLIO</span></div>
             <div className="h2">产业体系</div>
-            <p className="lead">展示集团产业体系宏观介绍，围绕交通建设、城乡建设、产业投资、运营服务等方向，构建投融建运协同发展格局。</p>
+            <p className="lead">围绕建设施工、建设服务、特许经营、新兴产业四大板块，构建“一主多强”、投建运协同的产业格局。</p>
           </div>
         </div>
         {sectors.length ? <div className="grid">
           {sectors.map((sector, index) => (
-            <a className="card reveal is-visible" href={sectorHref(sector.slug, basePath)} key={sector.slug || index} style={{ gridColumn: 'span 4', display: 'block', outline: sector.slug === activeSlug ? '2px solid rgba(24, 92, 175, .45)' : undefined }}>
+            <a className="card sector-card reveal is-visible" href={sectorHref(sector.slug, basePath)} key={sector.slug || index} style={{ display: 'block', outline: sector.slug === activeSlug ? '2px solid rgba(24, 92, 175, .45)' : undefined }}>
               <div style={{ height: 180, overflow: 'hidden' }}><img src={sector.cover || fallbackCover} alt={sector.name || sector.title || ''} /></div>
               <div className="card-pad">
                 <div className="pill">产业板块 {String(index + 1).padStart(2, '0')}</div>
                 <div style={{ marginTop: 12, fontWeight: 950, letterSpacing: '.3px', fontSize: 18 }}>{sector.name || sector.title}</div>
-                <div className="rich" style={{ marginTop: 8 }}>{plainText(sector.intro || sector.description) || '产业介绍待完善。'}</div>
+                <div className="rich sector-intro" style={{ marginTop: 8 }}>{plainText(sector.intro || sector.description) || '产业介绍待完善。'}</div>
                 <div style={{ marginTop: 12, color: 'var(--blue)', fontWeight: 800, fontSize: 13 }}>查看详情 →</div>
               </div>
             </a>
@@ -710,6 +711,15 @@ export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta 
   );
 }
 
+const fallbackLeaders = [
+  { id: 'leader-yigang', name: '易刚', position: '党委书记、董事长' },
+  { id: 'leader-zhanghong', name: '张洪', position: '党委副书记、副董事长、总经理' },
+  { id: 'leader-wanghua', name: '王华', position: '党委委员、纪委书记' },
+  { id: 'leader-tangxiaoping', name: '唐小平', position: '党委委员、副总经理' },
+  { id: 'leader-yangjianglin', name: '杨江琳', position: '党委委员、财务总监' },
+  { id: 'leader-zhouhui', name: '周辉', position: '党委委员、总工程师' },
+];
+
 export async function LeadershipPage() {
   let leaders: Awaited<ReturnType<typeof getPublicLeaders>> = [];
   let hasLoadError = false;
@@ -718,42 +728,29 @@ export async function LeadershipPage() {
   } catch {
     hasLoadError = true;
   }
+  // 后台尚未维护领导信息时，按宣传手册口径展示集团领导班子名单。
+  const roster = leaders.length ? leaders.map((leader) => ({ id: leader.id, name: leader.name, position: leader.position })) : fallbackLeaders;
 
   return (
     <Shell active="about">
-      <Breadcrumb title="领导致辞" />
-      <main className="page" aria-label="领导致辞" data-leadership-page>
-        <Hero
-          title="领导致辞"
-          kicker="LEADERSHIP MESSAGE"
-          subtitle="凝聚发展共识，携手谱写甘孜州建设投资集团高质量发展新篇章。"
-          cover="/img/雅砻江大桥.jpg"
-          ctaHref="#leadership-content"
-          ctaLabel="查看致辞"
-          stats={[]}
-        />
-        <section className="section leadership-message-section" id="leadership-content" aria-label="集团领导致辞">
-          <div className="content">
-            <div className="section-head">
-              <div><div className="kicker"><i aria-hidden="true" /><span>LEADERSHIP MESSAGE</span></div><h2 className="h2">集团领导致辞</h2></div>
-            </div>
-            {hasLoadError ? <div className="leadership-empty" role="status">领导致辞暂时无法加载，请稍后再试。</div> : leaders.length ? (
-              <div className="leadership-message-list">
-                {leaders.map((leader) => (
-                  <article className="leader-message-card" key={leader.id}>
-                    <div className="leader-message-photo-wrap">
-                      <LeadershipPortrait className="leader-message-photo" src={leader.photo} name={leader.name} />
-                    </div>
-                    <div className="leader-message-copy">
-                      <p className="leader-message-kicker">集团领导 · 领导致辞</p>
-                      <h3>{leader.name}</h3>
-                      {leader.position ? <p className="leader-message-position">{leader.position}</p> : null}
-                      {leader.speech.trim() ? <div className="leader-message-body">{leader.speech}</div> : <p className="leader-message-unavailable">致辞内容暂未发布，敬请关注。</p>}
-                    </div>
-                  </article>
+      <Breadcrumb title="集团领导" />
+      <main className="page" aria-label="集团领导" data-leadership-page>
+        <section className="leadership-roster-section" id="leadership-content">
+          <div className="content leadership-roster">
+            <header className="leadership-roster-head">
+              <strong>集团领导</strong>
+              <small>GROUP LEADERSHIP</small>
+            </header>
+            {hasLoadError ? <p className="leadership-roster-empty" role="status">领导信息暂时无法加载，请稍后再试。</p> : (
+              <ol className="leadership-roster-list">
+                {roster.map((leader) => (
+                  <li key={leader.id}>
+                    <span className="leadership-roster-name">{leader.name}</span>
+                    <span className="leadership-roster-position">{leader.position}</span>
+                  </li>
                 ))}
-              </div>
-            ) : <div className="leadership-empty">领导致辞内容暂未发布，敬请关注。</div>}
+              </ol>
+            )}
           </div>
         </section>
       </main>
@@ -1048,9 +1045,8 @@ export async function BusinessPage({ selectedSlug, basePath = '/business' }: { s
     <Shell active="businessDev" actionHref="/projects" actionLabel="查看重点项目">
       <Breadcrumb title="产业布局" />
       <main className="page" aria-label="主要内容">
-        <Hero title="产业布局" kicker="BUSINESS PORTFOLIO" subtitle="展示集团产业体系宏观介绍，围绕基础设施建设与区域发展，形成投融建运协同的产业布局。" cover="/img/318康定市过境段公路工程项目434互通工程.jpg" ctaHref="#sectors" ctaLabel="查看产业布局" />
-        {selectedSector ? <SectorDetail sector={selectedSector} /> : null}
-        <SectorCards sectors={sectors} activeSlug={selectedSector?.slug} basePath={basePath} />
+        <Hero title="产业布局" kicker="BUSINESS PORTFOLIO" subtitle="以“建设+”牵引为主干，做强做优建设施工、重点培育建设服务、积极获取特许经营、伺机发展战略新兴产业。" cover="/img/318康定市过境段公路工程项目434互通工程.jpg" ctaHref="#sectors" ctaLabel="查看产业布局" />
+        {selectedSector ? <SectorDetail sector={selectedSector} basePath={basePath} /> : <SectorCards sectors={sectors} basePath={basePath} />}
       </main>
     </Shell>
   );

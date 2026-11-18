@@ -80,9 +80,24 @@ const mergeSupplementalNav = (channels: Channel[]) => {
   return channels;
 };
 
+/**
+ * 按首页修改意见，把一级栏目「业务领域」合并到「业务动态」：
+ * 业务领域下的栏目转为业务动态的子项，业务领域本身不再出现在一级导航。
+ */
+const mergeBusinessDomainNav = (channels: Channel[]) => {
+  const domain = channels.find((channel) => channel.slug === 'business-domain');
+  const dynamics = channels.find((channel) => channel.slug === 'business-news');
+  if (!domain || !dynamics) return channels;
+  return channels
+    .filter((channel) => channel.id !== domain.id)
+    .map((channel) => channel.parent === domain.id
+      ? { ...channel, parent: dynamics.id, sort: (Number(channel.sort) || 0) + 100 }
+      : channel);
+};
+
 const getDynamicNavigation = async () => {
   try {
-    const channels = mergeSupplementalNav((await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false));
+    const channels = mergeBusinessDomainNav(mergeSupplementalNav((await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false)));
     const ids = new Set(channels.map((channel) => channel.id));
     const roots = channels.filter((channel) => !channel.parent || !ids.has(channel.parent));
     const children = (parentId: string) => channels.filter((channel) => channel.parent === parentId);

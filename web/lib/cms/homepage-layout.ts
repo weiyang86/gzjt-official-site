@@ -82,13 +82,13 @@ export const defaultHomepageLayout: HomepageLayoutConfig = {
   heroTitle: '铺筑人民幸福之路',
   heroSubtitle: '建设甘孜发展之基',
   carouselInterval: 6000,
-  sectionOrder: ['news', 'culture', 'business', 'contact'],
+  sectionOrder: ['news', 'business', 'culture', 'contact'],
   hiddenSections: [],
   backgrounds: { hero: '', news: '', culture: '', business: '', contact: '' },
   bannerSlides: [],
   sectionContent: {
     news: { eyebrow: 'NEWS CENTER', title: '新闻中心', subtitle: '关注集团动态，了解最新资讯与发展成果' },
-    culture: { eyebrow: 'CULTURE & TOPICS', title: '企业文化、专题专栏', subtitle: '企业文化与专题内容' },
+    culture: { eyebrow: 'CULTURE & TOPICS', title: '企业文化、专题专栏', subtitle: '铺筑人民幸福之路，建造甘孜发展之基' },
     business: { eyebrow: 'BUSINESS SECTORS', title: '业务板块', subtitle: '立足甘孜、服务全州，构建多元化产业格局' },
     contact: { eyebrow: 'CONTACT & FOLLOW', title: '联系与关注', subtitle: '欢迎关注甘孜州建设投资集团' },
   },
@@ -102,14 +102,12 @@ export const defaultHomepageLayout: HomepageLayoutConfig = {
   showQrs: true,
 };
 
-const sectionIds: HomepageSectionId[] = ['news', 'culture', 'business', 'contact'];
+const sectionIds: HomepageSectionId[] = ['news', 'business', 'culture', 'contact'];
 
 export const normalizeHomepageLayout = (value: unknown): HomepageLayoutConfig => {
   const config = value && typeof value === 'object' ? value as Partial<HomepageLayoutConfig> : {};
-  const providedOrder = Array.isArray(config.sectionOrder)
-    ? config.sectionOrder.filter((section): section is HomepageSectionId => sectionIds.includes(section as HomepageSectionId))
-    : [];
-  const sectionOrder = [...providedOrder, ...sectionIds.filter((section) => !providedOrder.includes(section))];
+  // 首页分屏顺序按修改意见固定为：新闻中心 → 业务板块 → 企业文化（联系关注合并其中）。
+  const sectionOrder: HomepageSectionId[] = [...sectionIds];
   const hiddenSections = Array.isArray(config.hiddenSections)
     ? config.hiddenSections.filter((section): section is HomepageSectionId => sectionIds.includes(section as HomepageSectionId))
     : [];
@@ -143,6 +141,10 @@ export const normalizeHomepageLayout = (value: unknown): HomepageLayoutConfig =>
       subtitle: typeof raw.subtitle === 'string' ? raw.subtitle : defaults.subtitle,
     }];
   })) as Record<HomepageSectionId, HomepageSectionContent>;
+  // 旧版后台文案迁移：企业文化副标题改为企业使命标语。
+  if (sectionContent.culture.subtitle === '企业文化与专题内容') {
+    sectionContent.culture.subtitle = '铺筑人民幸福之路，建造甘孜发展之基';
+  }
   return {
     heroEyebrow: typeof config.heroEyebrow === 'string' ? config.heroEyebrow : defaultHomepageLayout.heroEyebrow,
     heroTitle: typeof config.heroTitle === 'string' ? config.heroTitle : defaultHomepageLayout.heroTitle,
