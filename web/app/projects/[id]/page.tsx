@@ -8,8 +8,6 @@ type ProjectDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
-const fallbackProjectImage = '/img/雅砻江大桥.jpg';
-
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { id } = await params;
   const project = await getPublicProjectById(id).catch(() => null);
@@ -50,7 +48,11 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
               <h1 style={{ marginTop: 18 }}>{project.name}</h1>
               {meta ? <div className="meta">{meta}</div> : null}
               {project.summary ? <p className="lead" style={{ marginTop: 12 }}>{project.summary}</p> : null}
-              <figure className="detail-cover"><img alt="" src={project.image || fallbackProjectImage} /></figure>
+              {project.image ? (
+                <figure className="detail-cover"><img alt="" src={project.image} /></figure>
+              ) : (
+                <div className="detail-cover project-image-placeholder" style={{ minHeight: 320 }}><span>配图待补充</span></div>
+              )}
               {project.detail ? (
                 <div className="body" dangerouslySetInnerHTML={{ __html: project.detail }} />
               ) : (
@@ -80,7 +82,9 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                       style={{ gridColumn: 'span 4', display: 'block' }}
                     >
                       <div style={{ height: 160, overflow: 'hidden' }}>
-                        <img src={item.image || fallbackProjectImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {item.image
+                          ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <div className="project-image-placeholder"><span>配图待补充</span></div>}
                       </div>
                       <div className="card-pad">
                         {item.type ? <div className="pill">{item.type}</div> : null}

@@ -27,11 +27,11 @@ export type GroupIntroConfig = {
 export const defaultGroupIntroConfig: GroupIntroConfig = {
   profileMarker: '州属一级国有企业',
   profileBadges: ['投融资', '建设开发', '资产经营', '工程服务'],
+  // 人员、子公司数量按宣传口径不对外公开，首页速览只保留可公开的经营口径。
   heroStats: [
     { value: '10亿元', label: '注册资本' },
-    { value: '85.56亿元', label: '总资产' },
-    { value: '9家', label: '二级子公司' },
-    { value: '17个', label: '专业资质' },
+    { value: '93亿元', label: '总资产' },
+    { value: 'AA+', label: '主体信用等级' },
   ],
   principleLabel: '企业宗旨',
   principleTitle: '匠心筑路 畅通甘孜\n建者无疆 善作善成',

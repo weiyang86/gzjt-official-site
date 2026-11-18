@@ -6,8 +6,6 @@ import { projectTypeOptions } from '@/lib/cms/project-types';
 
 type TipState = { text: string; left: number; top: number } | null;
 
-const fallbackProjectImage = '/img/雅砻江大桥.jpg';
-
 const hasCoordinate = (project: Project): project is Project & { mapX: number; mapY: number } => (
   typeof project.mapX === 'number'
   && Number.isFinite(project.mapX)
@@ -156,8 +154,12 @@ export function ProjectExplorer({ projects }: { projects: Project[] }) {
                   style={{ gridColumn: 'span 4', display: 'block' }}
                 >
                   <div style={{ height: 180, position: 'relative', overflow: 'hidden' }}>
-                    <img src={project.image || fallbackProjectImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.56))' }} />
+                    {project.image ? (
+                      <>
+                        <img src={project.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(11,18,32,.06),rgba(11,18,32,.56))' }} />
+                      </>
+                    ) : <div className="project-image-placeholder"><span>配图待补充</span></div>}
                   </div>
                   <div className="card-pad">
                     {project.type ? <div className="pill">{project.type}</div> : null}
