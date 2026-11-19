@@ -123,27 +123,6 @@ type FilterRow = {
   allActive: boolean;
 };
 
-function Tabs({ rows, keyword }: { rows: FilterRow[]; keyword: string }) {
-  return (
-    <div className="news-hierarchical-filters">
-      {rows.map((row, index) => (
-        <div className="tabs" role="tablist" aria-label={row.label} key={`${row.label}-${index}`}>
-          <a className={`tab${row.allActive ? ' is-active' : ''}`} href={row.allHref}>全部</a>
-          {row.channels.map(({ item: channel, hasChildren }) => (
-            <a
-              className={`tab${row.activeSlug === channel.slug ? ' is-active' : ''}`}
-              href={buildHref({ channel: channel.slug, channelRoot: row.channelRoot, keyword, includeChildren: hasChildren })}
-              key={channel.slug}
-            >
-              {channel.name}
-            </a>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Pager({ payload, channel, channelRoot, keyword, includeChildren }: { payload: PublicArticleListPayload; channel: string; channelRoot: string; keyword: string; includeChildren: boolean }) {
   const pages = Math.max(1, Math.ceil(payload.total / payload.pageSize));
   if (pages <= 1) return null;
@@ -202,7 +181,9 @@ function buildNewsFilterRows(channels: Channel[], rootSlug: string, activeChanne
   const newsChannels = channels.filter((channel) => isNewsChannel(channel, channels));
   const newsChannelIds = new Set(newsChannels.map((channel) => channel.id));
   const newsRoot = channels.find((channel) => channel.slug === rootSlug) || channels.find(isNewsCenter);
-  const childrenOf = (parentId: string) => newsChannels.filter((channel) => channel.parent === parentId);
+  const childrenOf = (parentId: string) => channels.filter((channel) =>
+    channel.parent === parentId
+    && (isNewsChannel(channel, channels) || channel.type === 'page' || channel.type === 'module' || channel.type === 'link'));
   const topChannels = newsRoot
     ? childrenOf(newsRoot.id)
     : newsChannels.filter((channel) => !channel.parent || !newsChannelIds.has(channel.parent));
@@ -262,6 +243,9 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
     'social-responsibility': 'responsibility',
   };
   const activeNav = sectionRoot ? activeNavByRootSlug[sectionRoot.slug] : undefined;
+  const activeChannelName = filterRows
+    .flatMap((row) => row.channels)
+    .find(({ item }) => item.slug === activeChannel)?.item.name || sectionRoot?.name || '新闻中心';
 
   return (
     <>
@@ -275,6 +259,10 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
             <a href="/home" data-no-transition>首页</a>
             <span className="crumb-sep">›</span>
             <span>{sectionRoot?.name || '新闻中心'}</span>
+            {activeChannel !== 'all' ? <>
+              <span className="crumb-sep">›</span>
+              <span>{activeChannelName}</span>
+            </> : null}
           </div>
         </div>
       </div>
@@ -289,8 +277,8 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
           <div className="content hero-inner">
             <div>
               <div className="kicker reveal is-visible"><i aria-hidden="true" /><span>NEWS CENTER</span></div>
-              <h1 className="hero-title reveal is-visible">{sectionRoot?.name || '新闻中心'}</h1>
-              <p className="hero-sub reveal is-visible">浏览{sectionRoot?.name || '新闻中心'}相关资讯，支持按栏目筛选、搜索与分页。</p>
+              <h1 className="hero-title reveal is-visible">{activeChannelName}</h1>
+              <p className="hero-sub reveal is-visible">浏览{sectionRoot?.name || '新闻中心'}·{activeChannelName}的相关资讯，支持搜索与分页。</p>
               <div className="hero-cta reveal is-visible">
                 <a className="btn btn--primary" href="#content" data-no-transition>浏览资讯</a>
                 <a className="btn" href="/contact-us">订阅与服务</a>
@@ -315,10 +303,6 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
                 <div className="h2">资讯聚合</div>
                 <p className="lead">按分类浏览或输入关键词搜索，列表支持分页展示。</p>
               </div>
-            </div>
-
-            <div className="filters news-filter-tabs reveal is-visible">
-              <Tabs rows={filterRows} keyword={keyword} />
             </div>
 
             <div className="news-grid news-grid--list-only" style={{ marginTop: 26 }}>

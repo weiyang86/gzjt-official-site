@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getPublicArticles, getPublicChannels } from '@/lib/cms';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 import { Drawer, Footer, Header, NewsAssets } from '../news/components';
-import type { Channel, PublicArticleListPayload } from '@/types/cms';
+import type { PublicArticleListPayload } from '@/types/cms';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,19 +85,6 @@ export async function generateMetadata({ searchParams }: DisclosurePageProps): P
   const rawSearchParams = await searchParams;
   const keyword = getFirst(rawSearchParams.keyword) || '';
   return buildSeoMetadata({ path: '/disclosure', noIndex: Boolean(keyword) });
-}
-
-function Tabs({ channels, active, keyword }: { channels: Channel[]; active: string; keyword: string }) {
-  return (
-    <div className="tabs" role="tablist" aria-label="公告分类">
-      <a className={`tab${active === 'all' ? ' is-active' : ''}`} href={buildHref({ keyword })}>全部</a>
-      {channels.map((channel) => (
-        <a className={`tab${active === channel.slug ? ' is-active' : ''}`} href={buildHref({ channel: channel.slug, keyword })} key={channel.slug}>
-          {channel.name}
-        </a>
-      ))}
-    </div>
-  );
 }
 
 function Pager({ payload, channel, keyword }: { payload: PublicArticleListPayload; channel: string; keyword: string }) {
@@ -199,7 +186,6 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
             </div>
 
             <div className="filters reveal is-visible">
-              <Tabs channels={channels} active={activeChannel} keyword={keyword} />
               <form className="search" aria-label="搜索" action="/disclosure">
                 {activeChannel !== 'all' ? <input type="hidden" name="channel" value={activeChannel} /> : null}
                 <input className="input" name="keyword" defaultValue={keyword} placeholder="搜索公告标题 / 摘要" />

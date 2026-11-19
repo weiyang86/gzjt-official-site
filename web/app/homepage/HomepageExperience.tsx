@@ -47,6 +47,8 @@ export default function HomepageExperience({ children, articles, cultureArticles
   const [activeIndex, setActiveIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [bannerFade, setBannerFade] = useState<{ from: string; to: string; started: boolean } | null>(null);
+  // 进入首页时背景图以叠化方式淡入，避免直接硬切出现。
+  const [heroIntro, setHeroIntro] = useState(true);
 
   const visibleSections = useMemo(
     () => layout.sectionOrder.filter((section) => !layout.hiddenSections.includes(section)),
@@ -60,6 +62,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
   const mergeContact = visibleSections.includes('culture') && visibleSections.includes('contact');
   const screenIds = useMemo(() => ['hero', ...orderedSections], [orderedSections]);
   const manualSlides = useMemo(() => layout.bannerSlides.filter((slide) => slide.image || slide.video), [layout.bannerSlides]);
+  const manualSlideImages = useMemo(() => new Set(manualSlides.map((slide) => slide.image).filter(Boolean)), [manualSlides]);
   const activeManualSlide = manualSlides.length ? manualSlides[bannerIndex % manualSlides.length] : null;
   const heroBackground = activeManualSlide?.image || layout.backgrounds.hero || '/img/index_bg.png';
   const heroVideo = activeManualSlide?.video || '';
@@ -186,20 +189,26 @@ export default function HomepageExperience({ children, articles, cultureArticles
   }, [layout.carouselInterval, manualSlides.length]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setHeroIntro(false), 80);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const from = previousHeroBackgroundRef.current;
     previousHeroBackgroundRef.current = heroBackground;
     if (from === heroBackground) return;
 
     setBannerFade({ from, to: heroBackground, started: false });
-    const frame = window.requestAnimationFrame(() => {
+    // 先让新图层以透明状态完成一次样式计算，再开始叠化，避免两帧合并导致看不到过渡。
+    const startTimer = window.setTimeout(() => {
       setBannerFade((current) => current?.to === heroBackground ? { ...current, started: true } : current);
-    });
-    const timeout = window.setTimeout(() => {
+    }, 50);
+    const resetTimer = window.setTimeout(() => {
       setBannerFade((current) => current?.to === heroBackground ? null : current);
-    }, 800);
+    }, 1150);
     return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timeout);
+      window.clearTimeout(startTimer);
+      window.clearTimeout(resetTimer);
     };
   }, [heroBackground]);
   const sectionNodes: Record<HomepageSectionId, ReactNode> = {
@@ -327,10 +336,13 @@ export default function HomepageExperience({ children, articles, cultureArticles
         {heroVideo
           ? <video key={heroVideo} className="home-hero-video" src={heroVideo} poster={heroBackground} autoPlay muted loop playsInline aria-hidden="true" />
           : bannerFade ? <>
-            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-out' : ''}`} style={{ backgroundImage: `url("${bannerFade.from}")` }} aria-hidden="true" />
-            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}`} style={{ backgroundImage: `url("${bannerFade.to}")` }} aria-hidden="true" />
-          </> : heroBackground ? <div className="home-hero-backdrop" style={{ backgroundImage: `url("${heroBackground}")` }} aria-hidden="true" /> : null}
-        {activeManualSlide?.image && !heroVideo ? <img className="home-hero-poster" src={activeManualSlide.image} alt="" aria-hidden="true" /> : null}
+            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-out' : ''}${heroIntro ? ' is-intro' : ''}`} style={{ backgroundImage: `url("${bannerFade.from}")` }} aria-hidden="true" />
+            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}${heroIntro ? ' is-intro' : ''}`} style={{ backgroundImage: `url("${bannerFade.to}")` }} aria-hidden="true" />
+          </> : heroBackground ? <div className={`home-hero-backdrop${heroIntro ? ' is-intro' : ''}`} style={{ backgroundImage: `url("${heroBackground}")` }} aria-hidden="true" /> : null}
+        {bannerFade ? <>
+          {manualSlideImages.has(bannerFade.from) ? <img className={`home-hero-poster${bannerFade.started ? ' is-fading-out' : ''}${heroIntro ? ' is-intro' : ''}`} src={bannerFade.from} alt="" aria-hidden="true" /> : null}
+          {manualSlideImages.has(bannerFade.to) ? <img className={`home-hero-poster${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}${heroIntro ? ' is-intro' : ''}`} src={bannerFade.to} alt="" aria-hidden="true" /> : null}
+        </> : activeManualSlide?.image && !heroVideo ? <img className={`home-hero-poster${heroIntro ? ' is-intro' : ''}`} src={activeManualSlide.image} alt="" aria-hidden="true" /> : null}
         {activeManualSlide?.linkUrl ? <a className="home-hero-banner-hit-area" href={safeHomepageLink(activeManualSlide.linkUrl)} target={isExternalHomepageLink(activeManualSlide.linkUrl) ? '_blank' : undefined} rel={isExternalHomepageLink(activeManualSlide.linkUrl) ? 'noopener noreferrer' : undefined} aria-label={`打开 Banner：${activeManualSlide.title || '首页推荐'}`} /> : null}
         {(layout.heroTitle || layout.heroSubtitle) ? <div className="home-hero-copy">
           {layout.heroTitle ? <h1 className="home-hero-title">{layout.heroTitle}</h1> : null}

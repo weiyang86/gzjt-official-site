@@ -1,13 +1,8 @@
-import type { Metadata } from 'next';
-import { GenericSinglePage } from '../site-pages';
-import { buildSeoMetadata } from '@/lib/cms/seo';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
-  return buildSeoMetadata({ path: '/about' });
-}
-
-export default function AboutPage() {
-  return <GenericSinglePage slug="about" />;
+/** 一级栏目「集团概况」点击后直达首个子栏目「企业简介」，不再展示栏目聚合页。 */
+export default function Page() {
+  redirect('/about/profile');
 }
