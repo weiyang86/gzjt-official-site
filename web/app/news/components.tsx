@@ -14,8 +14,12 @@ const recruitmentChannelHref: Record<string, string> = {
 };
 
 const groupProfileChannelHref: Record<string, string> = {
-  'group-history': '/about#history',
-  'group-leadership': '/group/leadership',
+  'group-intro': '/about/profile',
+  'group-history': '/about/history',
+  'group-leadership': '/about/leadership',
+  'group-organization': '/about/organization',
+  'group-honors': '/about/honors',
+  'corporate-culture': '/about/culture',
 };
 
 const channelHref = (channel: Channel, includeChildren = false) => {
@@ -51,7 +55,7 @@ const navKeyByChannelName: Record<string, NavKey> = {
  */
 const supplementalNavItems = [
   { parentSlug: 'group-profile', name: '企业荣誉', slug: 'group-honors', path: '/about/honors' },
-  { parentSlug: 'group-profile', name: '企业文化', slug: 'corporate-culture', path: '/about#culture' },
+  { parentSlug: 'group-profile', name: '企业文化', slug: 'corporate-culture', path: '/about/culture' },
   { parentSlug: 'party-mass', name: '培训资源', slug: 'party-training', path: '/party/training' },
   { parentSlug: 'business-domain', name: '科技创新', slug: 'business-innovation', path: '/business/innovation' },
 ];
@@ -84,6 +88,16 @@ const mergeSupplementalNav = (channels: Channel[]) => {
  * 按首页修改意见，把一级栏目「业务领域」合并到「业务动态」：
  * 业务领域下的栏目转为业务动态的子项，业务领域本身不再出现在一级导航。
  */
+/**
+ * 一级栏目点击后直接进入第一个可见子栏目页面（参照蜀道官网的一级导航行为），
+ * 不再落在栏目聚合页；没有子栏目时仍指向栏目自身。
+ */
+const firstChildHref = (item: Channel, children: Channel[]) => {
+  if (!children.length) return channelHref(item);
+  const first = [...children].sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0))[0];
+  return channelHref(first, false);
+};
+
 const mergeBusinessDomainNav = (channels: Channel[]) => {
   const domain = channels.find((channel) => channel.slug === 'business-domain');
   const dynamics = channels.find((channel) => channel.slug === 'business-news');
@@ -91,7 +105,7 @@ const mergeBusinessDomainNav = (channels: Channel[]) => {
   return channels
     .filter((channel) => channel.id !== domain.id)
     .map((channel) => channel.parent === domain.id
-      ? { ...channel, parent: dynamics.id, sort: (Number(channel.sort) || 0) + 100 }
+      ? { ...channel, parent: dynamics.id, sort: channel.slug === 'business-layout' ? 0 : (Number(channel.sort) || 0) + 100 }
       : channel);
 };
 
@@ -148,11 +162,10 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
                 if (dropdownItems.length || hasNewsTopic) {
                   return (
                     <div className="nav-item nav-item--dropdown" data-cms-dropdown="server" key={item.id}>
-                      <a href={channelHref(item, dropdownItems.length > 0)} className={active === itemNavKey ? 'is-active' : undefined} data-nav-key={itemNavKey} data-channel-slug={item.slug} data-descendant-slugs={descendantSlugs} aria-haspopup="true" aria-expanded="false">
+                      <a href={firstChildHref(item, dropdownItems)} className={active === itemNavKey ? 'is-active' : undefined} data-nav-key={itemNavKey} data-channel-slug={item.slug} data-descendant-slugs={descendantSlugs} aria-haspopup="true" aria-expanded="false">
                         {item.name}
                       </a>
                       <div className="nav-dropdown" role="menu" data-source="server">
-                        {hasNewsTopic ? <a href="/topics" className={active === 'topics' ? 'is-active' : undefined} aria-current={active === 'topics' ? 'page' : undefined} role="menuitem" style={{ paddingLeft: 14 }}>专题专栏</a> : null}
                         {dropdownItems.map((channel) => {
                           const href = channelHref(channel, navigation.children(channel.id).length > 0);
                           return (
@@ -161,6 +174,7 @@ export async function Header({ actionHref = 'https://gjy.gzjtjt.cn/', actionLabe
                             </a>
                           );
                         })}
+                        {hasNewsTopic ? <a href="/topics" className={active === 'topics' ? 'is-active' : undefined} aria-current={active === 'topics' ? 'page' : undefined} role="menuitem" style={{ paddingLeft: 14 }}>专题专栏</a> : null}
                         {itemNavKey === 'cleanGov' ? (
                           <a href="/clean-gov#report-entry" role="menuitem" key="report-entry">举报入口</a>
                         ) : null}
@@ -214,16 +228,16 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
             const hasNewsTopic = item.slug === 'news-center';
             return (
               <Fragment key={item.id}>
-                <a href={channelHref(item, dropdownItems.length > 0)} className={_props.active === navKeyByChannelName[item.name] ? 'is-active' : undefined} data-nav-key={navKeyByChannelName[item.name]} data-channel-slug={item.slug} data-descendant-slugs={navigation.descendantSlugs(item.id).join(',')}>
+                <a href={firstChildHref(item, dropdownItems)} className={_props.active === navKeyByChannelName[item.name] ? 'is-active' : undefined} data-nav-key={navKeyByChannelName[item.name]} data-channel-slug={item.slug} data-descendant-slugs={navigation.descendantSlugs(item.id).join(',')}>
                   {item.name}
                 </a>
                 {dropdownItems.length || hasNewsTopic ? (
                   <div className="drawer-submenu" data-source="server">
-                    {hasNewsTopic ? <a href="/topics" className={_props.active === 'topics' ? 'is-active' : undefined} aria-current={_props.active === 'topics' ? 'page' : undefined} style={{ paddingLeft: 16 }}>专题专栏</a> : null}
                     {dropdownItems.map((channel) => {
                       const href = channelHref(channel, navigation.children(channel.id).length > 0);
                       return <a href={href} data-no-transition={href.includes('#') ? true : undefined} data-channel-slug={channel.slug} data-descendant-slugs={navigation.descendantSlugs(channel.id).join(',')} key={channel.id}>{channel.name}</a>;
                     })}
+                    {hasNewsTopic ? <a href="/topics" className={_props.active === 'topics' ? 'is-active' : undefined} aria-current={_props.active === 'topics' ? 'page' : undefined} style={{ paddingLeft: 16 }}>专题专栏</a> : null}
                     {navKeyByChannelName[item.name] === 'cleanGov' ? <a href="/clean-gov#report-entry" key="report-entry">举报入口</a> : null}
                   </div>
                 ) : null}

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties, ReactNode } from 'react';
 import { Drawer, Footer, Header, NewsAssets, type NavKey } from './news/components';
 import { OrgChartFigure } from './organization/org-chart-figure';
+import { CultureSection } from './about/culture-section';
 import { MessageSection } from './contact/message-section';
 import {
   getPublicArticles,
@@ -733,7 +734,7 @@ export async function LeadershipPage() {
 
   return (
     <Shell active="about">
-      <Breadcrumb title="集团领导" />
+      <Breadcrumb title="集团领导" parents={[{ title: '集团概况', href: '/about/profile' }]} />
       <main className="page" aria-label="集团领导" data-leadership-page>
         <section className="leadership-roster-section" id="leadership-content">
           <div className="content leadership-roster">
@@ -769,7 +770,7 @@ export async function HonorsPage() {
 
   return (
     <Shell active="about">
-      <Breadcrumb title="企业荣誉" />
+      <Breadcrumb title="企业荣誉" parents={[{ title: '集团概况', href: '/about/profile' }]} />
       <main className="page" aria-label="企业荣誉" data-honors-page>
         <Hero
           title="企业荣誉"
@@ -823,100 +824,31 @@ export async function HonorsPage() {
 
 const corporateCultureStyles = `
 #culture{scroll-margin-top:calc(var(--site-header-offset,88px) + 18px)}
-.about-culture-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
-.about-culture-card{height:100%}
-.about-culture-card .card-pad{height:100%}
-.about-culture-card.is-accent .card-pad{background:linear-gradient(135deg,#0d2f5a,#1d4e89);color:#fff}
-.about-culture-card.is-accent .pill{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.18)}
-.about-culture-card .culture-title{margin:14px 0 10px;font-size:24px;font-weight:900;color:#0f172a}
-.about-culture-card.is-accent .culture-title{color:#fff}
-.about-culture-card .culture-copy{margin:0;color:rgba(11,18,32,.76);line-height:1.9}
-.about-culture-card .culture-copy p{margin:0 0 12px}
-.about-culture-card .culture-copy p:last-child{margin-bottom:0}
-.about-culture-card.is-accent .culture-copy{color:rgba(255,255,255,.84)}
 .about-culture-overview{max-width:980px;margin:0 0 22px;color:rgba(11,18,32,.72);line-height:2}
 .about-culture-overview p{margin:0 0 12px}
 .about-culture-overview p:last-child{margin-bottom:0}
-.about-culture-media{height:180px;overflow:hidden;background:rgba(13,47,90,.06)}
-.about-culture-media img{width:100%;height:100%;object-fit:cover;display:block}
 .about-mission-panel .culture-copy{max-width:980px;margin:20px 0 0;color:rgba(255,255,255,.78);line-height:2;font-size:16px;text-align:justify}
 .about-mission-panel .culture-copy p{margin:0 0 12px}
 .about-mission-panel .culture-copy p:last-child{margin-bottom:0}
-@media (max-width: 1024px){.about-culture-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
-@media (max-width: 768px){.about-culture-grid{grid-template-columns:1fr}.about-culture-card{grid-column:span 1 !important}}
 `;
 
-const cultureCardSpan = (total: number) => (total <= 1 ? 12 : total === 2 ? 6 : 4);
+type AboutSection = 'profile' | 'history' | 'culture';
 
-function CultureSection({ culture, items }: { culture: PageModuleContent | null; items: PageModuleItem[] }) {
-  const title = culture?.title || '企业文化';
-  const lead = culture?.subtitle || culture?.summary || '';
-  if (items.length) {
-    return (
-      <section id="culture" className="section about-culture" aria-label="企业文化">
-        <div className="content">
-          <div className="section-head reveal is-visible">
-            <div>
-              <div className="kicker"><i aria-hidden="true" /><span>CULTURE</span></div>
-              <div className="h2">{title}</div>
-              {lead ? <p className="lead">{lead}</p> : null}
-            </div>
-          </div>
-          {culture?.content ? (
-            /<[a-z][\s\S]*>/i.test(culture.content)
-              ? <div className="about-culture-overview" dangerouslySetInnerHTML={{ __html: culture.content }} />
-              : <p className="about-culture-overview">{culture.content}</p>
-          ) : null}
-          <div className="about-culture-grid">
-            {items.map((item, index) => (
-              <article className={`card about-culture-card reveal is-visible${index === 0 ? ' is-accent' : ''}`} key={item.id} style={{ gridColumn: `span ${cultureCardSpan(items.length)}` }}>
-                {item.image ? <div className="about-culture-media"><img src={item.image} alt={item.title || title} /></div> : null}
-                <div className="card-pad">
-                  <div className="pill">{item.title || '企业文化'}</div>
-                  <div className="culture-title">{item.subtitle || item.title}</div>
-                  {item.content ? (
-                    /<[a-z][\s\S]*>/i.test(item.content)
-                      ? <div className="culture-copy" dangerouslySetInnerHTML={{ __html: item.content }} />
-                      : <p className="culture-copy">{item.content}</p>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+const aboutSectionMeta: Record<AboutSection, { title: string; kicker: string; anchor: string }> = {
+  profile: { title: '企业简介', kicker: 'COMPANY PROFILE', anchor: '#content' },
+  history: { title: '发展沿革', kicker: 'DEVELOPMENT HISTORY', anchor: '#history' },
+  culture: { title: '企业文化', kicker: 'CORPORATE CULTURE', anchor: '#culture' },
+};
 
-  if (culture && (culture.content || lead)) {
-    return (
-      <section id="culture" className="section about-mission" aria-label="企业文化">
-        <div className="content">
-          <div className="about-mission-panel reveal is-visible" data-about-tilt>
-            <div>
-              <div className="kicker"><i aria-hidden="true" /><span>CULTURE</span></div>
-              <h2>{title}</h2>
-            </div>
-            {lead ? <p>{lead}</p> : null}
-            {culture.content ? (
-              /<[a-z][\s\S]*>/i.test(culture.content)
-                ? <div className="culture-copy" dangerouslySetInnerHTML={{ __html: culture.content }} />
-                : <p className="culture-copy">{culture.content}</p>
-            ) : null}
-          </div>
-        </div>
-      </section>
-    );
-  }
-  return null;
-}
-
-function AboutPage({ page, timeline, culture, cultureItems }: {
+interface AboutPageData {
   page: PageContent | null;
   timeline: HistoryTimelineItem[];
   culture: PageModuleContent | null;
   cultureItems: PageModuleItem[];
-}) {
+}
+
+function AboutPage({ page, timeline, culture, cultureItems, section = 'profile' }: AboutPageData & { section?: AboutSection }) {
+  const meta = aboutSectionMeta[section];
   const config = getGroupIntroConfig(page?.extra_json) as GroupIntroConfig;
   const heroStats = Array.isArray(config.heroStats) ? config.heroStats.filter((item): item is GroupIntroStat => Boolean(item?.value && item?.label)) : [];
   const achievements = Array.isArray(config.achievements) ? config.achievements.filter((item): item is GroupIntroAchievement => Boolean(item?.value && item?.label)) : [];
@@ -929,24 +861,24 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
   return (
     <Shell active="about">
       <style>{corporateCultureStyles}</style>
-      <Breadcrumb title="集团概况" />
-      <main className="page" aria-label="主要内容" data-about-page>
+      <Breadcrumb title={meta.title} parents={[{ title: '集团概况', href: '/about/profile' }]} />
+      <main className="page" aria-label="主要内容" data-about-page data-about-section={section}>
         <Hero
-          title={page?.title || '集团概况'}
-          kicker="ABOUT GZJT"
+          title={meta.title}
+          kicker={meta.kicker}
           subtitle={page?.subtitle || page?.summary || ''}
           cover={page?.cover || '/img/318康定市过境段公路工程项目434互通工程.jpg'}
-          ctaHref="#content"
-          ctaLabel="了解集团"
-          stats={heroStats}
+          ctaHref={meta.anchor}
+          ctaLabel={section === 'profile' ? '了解集团' : section === 'history' ? '查看沿革' : '了解文化'}
+          stats={section === 'profile' ? heroStats : undefined}
         />
 
-        <section className="section about-profile" id="content" aria-label="集团简介">
+        {section === 'profile' ? <section className="section about-profile" id="content" aria-label="企业简介">
           <div className="content">
             <div className="section-head reveal is-visible">
               <div>
                 <div className="kicker"><i aria-hidden="true" /><span>COMPANY PROFILE</span></div>
-                <div className="h2">{page?.title || '集团简介'}</div>
+                <div className="h2">{meta.title}</div>
               </div>
             </div>
 
@@ -967,9 +899,9 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
               </aside> : null}
             </div>
           </div>
-        </section>
+        </section> : null}
 
-        <section id="history" className="section about-history" aria-label="发展沿革">
+        {section === 'history' ? <section id="history" className="section about-history" aria-label="发展沿革">
           <div className="content">
             <div className="section-head reveal is-visible">
               <div>
@@ -979,17 +911,20 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
             </div>
             <div className="about-timeline">
               {timeline.length ? timeline.map((item, index) => (
-                <article className="about-timeline-item reveal is-visible" key={item.id || `${item.year}-${item.title}-${index}`} data-about-tilt style={{ '--i': index } as CSSProperties}>
-                  {item.year ? <div className="about-timeline-year">{item.year}</div> : null}
-                  <h3>{item.title}</h3>
-                  {item.description ? <p>{item.description}</p> : null}
+                <article className="about-timeline-row reveal is-visible" key={item.id || `${item.year}-${item.title}-${index}`} style={{ '--i': index } as CSSProperties}>
+                  <div className="about-timeline-year">{item.year}</div>
+                  <div className="about-timeline-axis" aria-hidden="true"><i /></div>
+                  <div className="about-timeline-card">
+                    <h3>{item.title}</h3>
+                    {item.description ? <p>{item.description}</p> : null}
+                  </div>
                 </article>
               )) : <div className="about-history-empty" role="status">发展历程内容暂未发布，敬请关注。</div>}
             </div>
           </div>
-        </section>
+        </section> : null}
 
-        {achievements.length || performanceParagraphs.length || config.performanceLead ? <section className="section about-performance" aria-label="建设成果">
+        {section === 'profile' && (achievements.length || performanceParagraphs.length || config.performanceLead) ? <section className="section about-performance" aria-label="建设成果">
           <div className="content">
             <div className="section-head reveal is-visible">
               <div>
@@ -1021,7 +956,7 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
           </div>
         </section> : null}
 
-        {hasManagedCulture ? <CultureSection culture={culture} items={cultureItems} /> : (config.missionTitle || missionParagraphs.length ? <section id="culture" className="section about-mission" aria-label="企业使命">
+        {section === 'culture' ? (hasManagedCulture ? <CultureSection culture={culture} items={cultureItems} /> : (config.missionTitle || missionParagraphs.length ? <section id="culture" className="section about-mission" aria-label="企业使命">
           <div className="content">
             <div className="about-mission-panel reveal is-visible" data-about-tilt>
               <div>
@@ -1031,11 +966,31 @@ function AboutPage({ page, timeline, culture, cultureItems }: {
               {missionParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
             </div>
           </div>
-        </section> : <span id="culture" />)}
+        </section> : <span id="culture" />)) : null}
 
       </main>
     </Shell>
   );
+}
+
+async function loadAboutPageData(): Promise<AboutPageData> {
+  const [groupIntro, historyTimeline, culture] = await Promise.all([
+    getPublicGroupIntro().catch(() => null),
+    getPublicHistoryTimeline().catch(() => null),
+    loadCorporateCulture(),
+  ]);
+  return {
+    page: groupIntro,
+    timeline: historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline),
+    culture: culture.content,
+    cultureItems: culture.items,
+  };
+}
+
+/** 集团概况按“一个栏目一个页面”拆分为企业简介、发展沿革、企业文化三个独立页面。 */
+export async function AboutSectionPage({ section }: { section: AboutSection }) {
+  const data = await loadAboutPageData();
+  return <AboutPage {...data} section={section} />;
 }
 
 export async function BusinessPage({ selectedSlug, basePath = '/business' }: { selectedSlug?: string; basePath?: string } = {}) {
@@ -1104,7 +1059,7 @@ export async function OrganizationPage() {
 
   return (
     <Shell active="about">
-      <Breadcrumb title="组织架构" />
+      <Breadcrumb title="组织架构" parents={[{ title: '集团概况', href: '/about/profile' }]} />
       <main className="page" aria-label="主要内容">
         <Hero title="组织架构" kicker="ORGANIZATION" subtitle="形成集团总部、专业子公司、项目公司的组织体系，保障战略落地与专业化运营。" cover="/img/雅砻江大桥.jpg" ctaHref="#org-chart" ctaLabel="查看架构图" />
         <section className="section" id="org-chart" aria-label="组织架构图">
