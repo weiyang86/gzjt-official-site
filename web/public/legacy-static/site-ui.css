@@ -26,18 +26,25 @@ main.page::before { display: none; }
 main.page [id] { scroll-margin-top: calc(var(--site-header-offset,var(--ui-header-height)) + var(--ui-breadcrumb-height,48px) + 20px); }
 main.page .anchor-alias { display: block; height: 0; }
 main.page .hero { min-height: 0 !important; background: var(--ui-blue); }
-main.page .hero-inner { min-height: 270px !important; grid-template-columns: minmax(0,1fr); padding: 38px var(--ui-page-gutter); gap: 20px; }
+main.page .hero-inner { min-height: 300px !important; grid-template-columns: minmax(0,1fr); padding: 44px var(--ui-page-gutter); gap: 20px; }
 main.page .hero-inner > div:first-child { max-width: 900px; }
-main.page .hero-title { font-family: var(--ui-font); font-size: clamp(28px,2.5vw,36px) !important; font-weight: 500; line-height: 1.4; letter-spacing: 0 !important; text-shadow: none; overflow-wrap: anywhere; margin: 8px 0; }
-main.page .hero-sub { max-width: 850px; color: #ffffffee; font-size: 16px; line-height: 1.8; margin: 8px 0; }
+main.page .hero-title { font-family: var(--ui-font); font-size: clamp(28px,2.5vw,36px) !important; font-weight: 500; line-height: 1.4; letter-spacing: 0 !important; text-shadow: 0 2px 18px #05142666; overflow-wrap: anywhere; margin: 8px 0; }
+main.page .hero-sub { max-width: 850px; color: #fffffff2; font-size: 16px; line-height: 1.8; margin: 8px 0; text-shadow: 0 1px 12px #05142666; }
 main.page .hero .kicker { font-size: 13px; letter-spacing: .08em; }
 main.page .hero .kicker span { color: #fff; }
 main.page .hero .kicker i { background: #ffffff99; }
-main.page .hero-bg::after { background: linear-gradient(90deg,#082541a3,#08254147 60%,#08254120); }
+main.page .hero-bg::after {
+  /* 取消旧主题的 soft-light 混合，保证亮色照片上的标题与摘要始终可读。 */
+  mix-blend-mode: normal;
+  background:
+    linear-gradient(90deg,#051426e6 0%,#051426c7 52%,#05142680 100%),
+    linear-gradient(0deg,#051426a6 0%,#05142600 58%);
+}
 main.page .hero-grid { opacity: .15; }
 main.page .hero-noise { display: none; }
 main.page .hero-cta { margin-top: 14px; gap: 18px; }
-main.page .hero-cta .btn { min-height: 34px; padding: 4px 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; color: #fff; font-size: 14px; border-bottom: 1px solid #ffffff80; }
+main.page .hero-cta .btn { min-height: 34px; padding: 4px 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; color: #fff; font-size: 14px; border-bottom: 1px solid #ffffffb3; text-shadow: 0 1px 10px #05142680; }
+main.page .hero-cta .btn:hover { color: #fff; border-bottom-color: #fff; }
 main.page .hero .glass { background: #ffffff0f; border: 1px solid #ffffff33; border-radius: var(--ui-radius); box-shadow: none; backdrop-filter: none; padding: 14px 20px; }
 main.page .hero .kpi-grid { gap: 12px; }
 main.page .hero .kpi { box-shadow: none; transform: none; border-radius: 0; padding: 8px; background: transparent; }
@@ -194,3 +201,36 @@ main.page[data-disclosure-page] .news-item--notice .news-date-tag { background: 
 
 main.page .about-principle-title { font-family: var(--ui-font); font-size: clamp(28px,2.6vw,36px); font-weight: 500; }
 main.page .about-profile-badges span { border-radius: var(--ui-radius); background: var(--ui-soft); font-weight: 400; }
+
+/* 搜索与筛选主操作统一为品牌红，避免移动端出现整块白色按钮。 */
+main.page .search > .btn[type="submit"] { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+html[data-viewport="mobile"] main.page .search > .btn[type="submit"] { width: 100%; }
+
+/* 移动端内页首屏：按内容自适应高度，保证标题、摘要与操作入口完整可读。 */
+html[data-viewport="mobile"] main.page .hero-inner {
+  min-height: 0 !important;
+  padding: 34px var(--ui-page-gutter) 30px;
+  gap: 0;
+}
+html[data-viewport="mobile"] main.page .hero-title {
+  font-size: clamp(27px,7.4vw,34px) !important;
+  line-height: 1.32;
+  margin: 8px 0 10px;
+}
+html[data-viewport="mobile"] main.page .hero-sub {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  margin: 0;
+  color: #ffffffee;
+  font-size: 14px;
+  line-height: 1.75;
+}
+html[data-viewport="mobile"] main.page .hero-cta { margin-top: 16px; gap: 14px; }
+html[data-viewport="mobile"] main.page .hero-cta .btn { min-height: 40px; padding: 6px 0; font-size: 14px; }
+html[data-viewport="mobile"] main.page .hero-bg::after {
+  background:
+    linear-gradient(180deg,#0514268c 0%,#0514269e 42%,#051426e6 100%),
+    linear-gradient(90deg,#051426bf 0%,#05142673 82%);
+}

@@ -21,8 +21,16 @@ type Props = {
   contactInfo: ContactInfoConfig;
 };
 
-const safeHomepageLink = (value: string) => /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value.trim()) ? value.trim() : '#';
-const isExternalHomepageLink = (value: string) => /^https?:\/\//i.test(value.trim());
+/** 首屏背景集中配置：第 1 张取 CMS 首屏背景，后 5 张待替换为正式照片。 */
+const HERO_PLACEHOLDER_BACKGROUNDS = [
+  '/img/雅砻江大桥.jpg',
+  '/img/国道318线康定市过境段公路工程项目434互通工程（后北门）.jpg',
+  '/img/国道317线（川藏公路北线）雀儿山隧道工程.jpg',
+  '/img/雀儿山隧道建成后.jpeg',
+  '/img/雀儿山隧道建成前1.jpeg',
+];
+const HERO_BACKGROUND_INTERVAL = 5500;
+const HERO_CROSSFADE_MS = 1200;
 
 function QrImage({ src, title }: { src: string; title: string }) {
   const imageRef = useRef<HTMLImageElement>(null);
@@ -45,10 +53,12 @@ export default function HomepageExperience({ children, articles, cultureArticles
   const touchStartXRef = useRef<number | null>(null);
   const touchScrollRef = useRef<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [bannerIndex, setBannerIndex] = useState(0);
-  const [bannerFade, setBannerFade] = useState<{ from: string; to: string; started: boolean } | null>(null);
-  // 进入首页时背景图以叠化方式淡入，避免直接硬切出现。
-  const [heroIntro, setHeroIntro] = useState(true);
+  // 首屏背景：6 张图叠化轮播
+  const [heroBackgroundIndex, setHeroBackgroundIndex] = useState(0);
+  const [heroBackgroundsReady, setHeroBackgroundsReady] = useState(false);
+  const [heroBackgroundsVisible, setHeroBackgroundsVisible] = useState(true);
+  // 点击当前圆点也要重置计时器，用这个 key 强制重排定时器
+  const [heroBackgroundTimerKey, setHeroBackgroundTimerKey] = useState(0);
 
   const visibleSections = useMemo(
     () => layout.sectionOrder.filter((section) => !layout.hiddenSections.includes(section)),
@@ -61,12 +71,10 @@ export default function HomepageExperience({ children, articles, cultureArticles
   );
   const mergeContact = visibleSections.includes('culture') && visibleSections.includes('contact');
   const screenIds = useMemo(() => ['hero', ...orderedSections], [orderedSections]);
-  const manualSlides = useMemo(() => layout.bannerSlides.filter((slide) => slide.image || slide.video), [layout.bannerSlides]);
-  const manualSlideImages = useMemo(() => new Set(manualSlides.map((slide) => slide.image).filter(Boolean)), [manualSlides]);
-  const activeManualSlide = manualSlides.length ? manualSlides[bannerIndex % manualSlides.length] : null;
-  const heroBackground = activeManualSlide?.image || layout.backgrounds.hero || '/img/index_bg.png';
-  const heroVideo = activeManualSlide?.video || '';
-  const previousHeroBackgroundRef = useRef(heroBackground);
+  const heroBackgrounds = useMemo(() => [
+    layout.backgrounds.hero || '/img/index_bg.png',
+    ...HERO_PLACEHOLDER_BACKGROUNDS,
+  ], [layout.backgrounds.hero]);
 
   const sectionContent = layout.sectionContent;
   // 业务板块按《宣传手册》四大产业布局展示，首页不展示承接主体。
@@ -181,36 +189,46 @@ export default function HomepageExperience({ children, articles, cultureArticles
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [goTo, moveOne, screenIds.length]);
 
+  /** 页面隐藏时暂停，可见时恢复 */
   useEffect(() => {
-    if (manualSlides.length < 2) return;
-    const slideCount = manualSlides.length;
-    const timer = window.setInterval(() => setBannerIndex((current) => (current + 1) % slideCount), layout.carouselInterval);
-    return () => window.clearInterval(timer);
-  }, [layout.carouselInterval, manualSlides.length]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setHeroIntro(false), 80);
-    return () => window.clearTimeout(timer);
+    const handleVisibility = () => setHeroBackgroundsVisible(document.visibilityState === 'visible');
+    handleVisibility();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
+  /** 首图立即加载，其余 5 张预加载完成后再开始轮播 */
   useEffect(() => {
-    const from = previousHeroBackgroundRef.current;
-    previousHeroBackgroundRef.current = heroBackground;
-    if (from === heroBackground) return;
+    let disposed = false;
 
-    setBannerFade({ from, to: heroBackground, started: false });
-    // 先让新图层以透明状态完成一次样式计算，再开始叠化，避免两帧合并导致看不到过渡。
-    const startTimer = window.setTimeout(() => {
-      setBannerFade((current) => current?.to === heroBackground ? { ...current, started: true } : current);
-    }, 50);
-    const resetTimer = window.setTimeout(() => {
-      setBannerFade((current) => current?.to === heroBackground ? null : current);
-    }, 1150);
+    const preload = (src: string) =>
+      new Promise<void>((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve();
+        image.onerror = () => resolve();
+        image.src = src;
+      });
+
+    Promise.all(heroBackgrounds.slice(1).map(preload)).then(() => {
+      if (!disposed) setHeroBackgroundsReady(true);
+    });
+
     return () => {
-      window.clearTimeout(startTimer);
-      window.clearTimeout(resetTimer);
+      disposed = true;
     };
-  }, [heroBackground]);
+  }, [heroBackgrounds]);
+
+  /** 自动播放：setTimeout 链，仅在首屏可见时运行 */
+  useEffect(() => {
+    if (!heroBackgroundsReady || !heroBackgroundsVisible || activeIndex !== 0) return;
+
+    const timer = window.setTimeout(() => {
+      setHeroBackgroundIndex((index) => (index + 1) % heroBackgrounds.length);
+    }, HERO_BACKGROUND_INTERVAL);
+
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, heroBackgroundIndex, heroBackgrounds.length, heroBackgroundsReady, heroBackgroundsVisible, heroBackgroundTimerKey]);
+
   const sectionNodes: Record<HomepageSectionId, ReactNode> = {
     news: (
       <section key="news" {...screenState('news')} id="news">
@@ -291,7 +309,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
   };
 
   return (
-    <div className="home-experience" ref={scrollerRef} onTouchStart={(event) => {
+    <div className={`home-experience${activeIndex === 0 ? ' is-hero-screen' : ''}`} ref={scrollerRef} onTouchStart={(event) => {
       const target = event.target as HTMLElement | null;
       // 抽屉、页头内的手势交给它们自己处理，避免拖动菜单时误触发分屏切换
       if (target?.closest?.('[data-drawer], .site-header, .home-side-rail, .home-screen-index')) {
@@ -333,22 +351,35 @@ export default function HomepageExperience({ children, articles, cultureArticles
     }}>
       {children}
       <section key="hero" {...screenState('hero')} id="hero">
-        {heroVideo
-          ? <video key={heroVideo} className="home-hero-video" src={heroVideo} poster={heroBackground} autoPlay muted loop playsInline aria-hidden="true" />
-          : bannerFade ? <>
-            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-out' : ''}${heroIntro ? ' is-intro' : ''}`} style={{ backgroundImage: `url("${bannerFade.from}")` }} aria-hidden="true" />
-            <div className={`home-hero-backdrop${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}${heroIntro ? ' is-intro' : ''}`} style={{ backgroundImage: `url("${bannerFade.to}")` }} aria-hidden="true" />
-          </> : heroBackground ? <div className={`home-hero-backdrop${heroIntro ? ' is-intro' : ''}`} style={{ backgroundImage: `url("${heroBackground}")` }} aria-hidden="true" /> : null}
-        {bannerFade ? <>
-          {manualSlideImages.has(bannerFade.from) ? <img className={`home-hero-poster${bannerFade.started ? ' is-fading-out' : ''}${heroIntro ? ' is-intro' : ''}`} src={bannerFade.from} alt="" aria-hidden="true" /> : null}
-          {manualSlideImages.has(bannerFade.to) ? <img className={`home-hero-poster${bannerFade.started ? ' is-fading-in' : ' is-fade-pending'}${heroIntro ? ' is-intro' : ''}`} src={bannerFade.to} alt="" aria-hidden="true" /> : null}
-        </> : activeManualSlide?.image && !heroVideo ? <img className={`home-hero-poster${heroIntro ? ' is-intro' : ''}`} src={activeManualSlide.image} alt="" aria-hidden="true" /> : null}
-        {activeManualSlide?.linkUrl ? <a className="home-hero-banner-hit-area" href={safeHomepageLink(activeManualSlide.linkUrl)} target={isExternalHomepageLink(activeManualSlide.linkUrl) ? '_blank' : undefined} rel={isExternalHomepageLink(activeManualSlide.linkUrl) ? 'noopener noreferrer' : undefined} aria-label={`打开 Banner：${activeManualSlide.title || '首页推荐'}`} /> : null}
+        <div className="home-hero-crossfade" aria-hidden="true">
+          {heroBackgrounds.map((src, index) => (
+            <div
+              key={index}
+              className={`home-hero-crossfade__bg${index === heroBackgroundIndex ? ' is-active' : ''}`}
+              style={{ backgroundImage: `url("${src}")`, transitionDuration: `${HERO_CROSSFADE_MS}ms` }}
+            />
+          ))}
+          <div className="home-hero-crossfade__shade" />
+        </div>
         {(layout.heroTitle || layout.heroSubtitle) ? <div className="home-hero-copy">
           {layout.heroTitle ? <h1 className="home-hero-title">{layout.heroTitle}</h1> : null}
           {layout.heroSubtitle ? <p className="home-hero-subtitle">{layout.heroSubtitle}</p> : null}
         </div> : null}
-        {manualSlides.length > 1 ? <div className="home-hero-dots home-hero-dots--banner">{manualSlides.map((slide, index) => <button type="button" aria-label={`切换到第${index + 1}张Banner`} aria-current={index === bannerIndex} onClick={() => setBannerIndex(index)} key={slide.id} />)}</div> : null}
+        <div className="home-hero-bg-dots" role="group" aria-label="首屏背景切换">
+          {heroBackgrounds.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              className={index === heroBackgroundIndex ? 'is-active' : undefined}
+              aria-label={`切换到第${index + 1}屏`}
+              aria-current={index === heroBackgroundIndex ? 'true' : undefined}
+              onClick={() => {
+                setHeroBackgroundIndex(index);
+                setHeroBackgroundTimerKey((key) => key + 1);
+              }}
+            />
+          ))}
+        </div>
         {tickerItems.length ? (
           <div className="home-hero-ticker" aria-label="最新集团动态">
             <span className="home-hero-ticker-label">集团要闻</span>
