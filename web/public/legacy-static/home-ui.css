@@ -27,6 +27,22 @@
 .home-experience .home-hero-dots button[aria-current=true]::after { width: 25px; background: #e9c46a; }
 .home-experience .home-screen-index { right: 4px; gap: 0; }
 .home-experience .home-screen-index button[aria-current=true]::after { height: 24px; background: #e9c46a; }
+
+/* 首页首屏：6 张背景图叠化轮播，仅切换 opacity，不做位移与缩放。 */
+.home-experience .home-hero-crossfade { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #041230; }
+.home-experience .home-hero-crossfade__bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease-in-out; will-change: opacity; }
+.home-experience .home-hero-crossfade__bg.is-active { opacity: 1; }
+.home-experience .home-hero-crossfade__shade { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, rgba(4,18,48,.55) 0%, rgba(4,18,48,.15) 60%, transparent 100%); }
+.home-experience .home-hero-bg-dots { position: absolute; top: 50%; right: 24px; z-index: 4; transform: translateY(-50%); display: flex; flex-direction: column; gap: 14px; }
+.home-experience .home-hero-bg-dots button { position: relative; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: #fff; opacity: .4; cursor: pointer; appearance: none; transition: opacity .3s ease; }
+.home-experience .home-hero-bg-dots button::before { content: ''; position: absolute; inset: -8px; }
+.home-experience .home-hero-bg-dots button.is-active { opacity: 1; }
+.home-experience .home-hero-bg-dots button:hover { opacity: .75; }
+.home-experience .home-hero-bg-dots button.is-active:hover { opacity: 1; }
+.home-experience .home-hero-bg-dots button:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+html[data-viewport="mobile"] .home-experience .home-hero-bg-dots { right: 24px; gap: 12px; }
+/* 移动端首屏只保留 6 个背景圆点，避免与分屏索引挤在同一侧。 */
+html[data-viewport="mobile"] .home-experience.is-hero-screen .home-screen-index { opacity: 0; pointer-events: none; }
 .home-experience .home-section-heading { margin-bottom: 26px; }
 .home-experience .home-section-heading h2 { font-size: clamp(28px, 2.5vw, 36px); line-height: 1.4; }
 .home-experience .home-screen--news .home-section-heading h2,
@@ -321,6 +337,29 @@ html[data-viewport="mobile"] .home-experience .home-screen-index button { width:
 .home-experience .home-qr-list figure { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
 .home-experience .home-qr-list img { width: 116px; height: 116px; object-fit: cover; border-radius: 8px; display: block; }
 .home-experience .home-qr-unavailable { display: grid; place-items: center; width: 116px; height: 116px; border-radius: 8px; background: var(--ui-soft); color: var(--ui-muted); font-size: 12px; line-height: 1.5; text-align: center; }
+
+/* 移动端分屏索引：收窄为浅色圆点，避免深色长条压在正文与图片上。 */
+html[data-viewport="mobile"] .home-experience .home-screen-index {
+  width: 16px;
+  right: 2px;
+  padding-block: 10px;
+  gap: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+html[data-viewport="mobile"] .home-experience .home-screen-index button { width: 16px; height: 22px; }
+html[data-viewport="mobile"] .home-experience .home-screen-index button::after {
+  width: 5px;
+  height: 5px;
+  background: #ffffffd9;
+  box-shadow: 0 0 0 1px #061a3359, 0 1px 4px #00000059;
+}
+html[data-viewport="mobile"] .home-experience .home-screen-index button[aria-current=true]::after {
+  height: 16px;
+  background: #e9c46a;
+  box-shadow: 0 0 0 1px #061a3340, 0 0 8px #e9c46ab3;
+}
 
 @media(max-width:900px) {
   .home-experience .home-sector-grid--3,
