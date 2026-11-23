@@ -291,9 +291,16 @@ main.page .news-pagination .page-btn.is-active { background: var(--ui-accent); b
 main.page .page-count { color: var(--ui-muted); font-size: 13px; }
 
 /* 页脚：对齐蜀道官网的信箱、联系方式、二维码与底部版权条 */
-body:has(main.page) .footer { position: relative; background: linear-gradient(180deg, #f7f8fa, #fff); }
-body:has(main.page) .footer::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: url('/legacy-static/illustrations/home-mountains.svg') center bottom / cover no-repeat; opacity: .1; }
-body:has(main.page) .footer .content { position: relative; z-index: 1; }
+body:has(main.page) .footer,
+body:has(.home-experience) .footer { position: relative; background: linear-gradient(180deg, #f7f8fa, #fff); }
+body:has(main.page) .footer::before,
+body:has(.home-experience) .footer::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: url('/legacy-static/illustrations/home-mountains.svg') center bottom / cover no-repeat; opacity: .1; }
+body:has(main.page) .footer .content,
+body:has(.home-experience) .footer .content { position: relative; z-index: 1; }
+/* 首页底部沿用同一页脚，放在企业文化分屏内并去除分屏底部留白 */
+.home-experience .home-shared-footer { width: 100vw; margin-left: calc(50% - 50vw); margin-top: 44px; }
+.home-experience .home-shared-footer .footer { margin-top: 0; }
+.home-experience .home-screen--culture { padding-bottom: 0; }
 .footer-main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(28px, 4vw, 64px); align-items: start; }
 .footer-info { min-width: 0; }
 .footer-mailboxes { display: flex; flex-wrap: wrap; gap: 16px; }

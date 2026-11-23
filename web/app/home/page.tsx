@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { Drawer, Header } from '../news/components';
+import { Drawer, Footer, Header } from '../news/components';
 import MobileNavToggle from '../components/MobileNavToggle';
 import HomepageExperience from '../homepage/HomepageExperience';
-import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicPageModuleItems, getPublicPlatformQrs, getPublicQuickLinks, getPublicSiteSettings, getPublicTopics } from '@/lib/cms';
+import { getPublicArticles, getPublicBusinessSectors, getPublicContactInfo, getPublicFriendLinks, getPublicHomepageLayout, getPublicPageModuleItems, getPublicPlatformQrs, getPublicTopics } from '@/lib/cms';
 import { withCanonicalBusinessSectors } from '@/lib/cms/fallback-site';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 
@@ -36,26 +36,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [articlePayload, pinnedPayload, topics, cultureItems, sectors, qrs, quickLinks, friendLinks, siteSettings, layout, contactInfo] = await Promise.all([
+  const [articlePayload, pinnedPayload, topics, cultureItems, sectors, qrs, friendLinks, layout, contactInfo] = await Promise.all([
     getPublicArticles(new URLSearchParams({ page: '1', pageSize: '24' })).catch(() => ({ page: 1, pageSize: 24, total: 0, items: [] })),
     getPublicArticles(new URLSearchParams({ page: '1', pageSize: '12', isTop: 'true' })).catch(() => ({ page: 1, pageSize: 12, total: 0, items: [] })),
     getPublicTopics().catch(() => []),
     getPublicPageModuleItems('corporate-culture', 'culture').catch(() => []),
     getPublicBusinessSectors().catch(() => []),
     getPublicPlatformQrs().catch(() => []),
-    getPublicQuickLinks().catch(() => []),
     getPublicFriendLinks('footer').catch(() => []),
-    getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicHomepageLayout(),
     getPublicContactInfo(),
   ]);
-  const cleanSiteText = (value: string) => /本地.{0,8}测试|directus|初始化测试/i.test(value) ? '' : value;
-  const cleanedSiteName = cleanSiteText(siteSettings.siteName) || '甘孜州建设投资集团有限公司';
-  const cleanedSiteSettings = {
-    ...siteSettings,
-    siteName: cleanedSiteName,
-    footerText: cleanSiteText(siteSettings.footerText) || cleanedSiteName,
-  };
   const pinnedIds = new Set(pinnedPayload.items.map((item) => item.id));
   const homeArticles = rankHomeArticles([
     ...pinnedPayload.items,
@@ -73,14 +64,13 @@ export default async function HomePage() {
       <link rel="stylesheet" href="/legacy-static/home-ui.css" />
       <MobileNavToggle />
       <HomepageExperience
+        footer={<Footer />}
         articles={homeArticles}
         cultureArticles={topics}
         cultureItems={cultureItems}
         sectors={withCanonicalBusinessSectors(sectors)}
         qrs={qrs}
-        quickLinks={quickLinks}
         friendLinks={friendLinks}
-        siteSettings={cleanedSiteSettings}
         layout={layout}
         contactInfo={contactInfo}
       >

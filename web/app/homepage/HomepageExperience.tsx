@@ -9,14 +9,13 @@ import HomepageNews from './HomepageNews';
 
 type Props = {
   children: ReactNode;
+  footer: ReactNode;
   articles: Article[];
   cultureArticles: Topic[];
   cultureItems: PageModuleItem[];
   sectors: BusinessSector[];
   qrs: Array<{ id: string; title: string; image: string; sort: number }>;
-  quickLinks: Array<{ id: string; title: string; url: string; linkUrl: string }>;
   friendLinks: Array<{ id: string; title: string; url: string; sort: number }>;
-  siteSettings: { siteName: string; footerText: string; logo: string; address: string; phone: string; email: string; icp: string; copyright: string };
   layout: HomepageLayoutConfig;
   contactInfo: ContactInfoConfig;
 };
@@ -44,7 +43,7 @@ function QrImage({ src, title }: { src: string; title: string }) {
     : <img ref={imageRef} src={src} alt={title} loading="lazy" onError={() => setFailed(true)} />;
 }
 
-export default function HomepageExperience({ children, articles, cultureArticles, cultureItems, sectors, qrs, quickLinks, friendLinks, siteSettings, layout, contactInfo }: Props) {
+export default function HomepageExperience({ children, footer, articles, cultureArticles, cultureItems, sectors, qrs, friendLinks, layout, contactInfo }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeIndexRef = useRef(0);
   const lockedRef = useRef(false);
@@ -98,29 +97,18 @@ export default function HomepageExperience({ children, articles, cultureArticles
     {slot.image ? <QrImage key={slot.image} src={slot.image} title={slot.title} /> : <div className="home-qr-unavailable" role="img" aria-label={`${slot.title}二维码待上传`}>二维码待上传</div>}
     <figcaption>{slot.title}</figcaption>
   </figure>)}</div> : null;
-  const contactBlock = <div className="home-contact-content">
-    <div className="home-contact-card">
-      <h3>{siteSettings.siteName || '甘孜州建设投资集团有限公司'}</h3>
-      <a className="home-mailbox" href={contactInfo.email ? `mailto:${contactInfo.email}` : '/contact-us'}>
-        <span>董事长信箱</span>
-        <strong>{contactInfo.email || '点击进入在线留言'}</strong>
-      </a>
-      <a className="home-message-btn" href="/contact-us#message">董事长邮箱在线留言</a>
-      {contactInfo.address ? <p>地址：{contactInfo.address}</p> : null}
-      {contactInfo.phone ? <p>电话：{contactInfo.phone}</p> : null}
-      {layout.showQuickLinks && quickLinks.length ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}
-    </div>
-    {qrContent}
-    {friendLinks.length ? <div className="home-friend-links"><strong>友情链接</strong>{friendLinks.map((link) => <a href={link.url} target="_blank" rel="noreferrer" key={link.id}>{link.title}</a>)}</div> : null}
+  // 首页底部统一使用与其他页面相同的页脚；点击 TOP 时回到首页首屏。
+  const sharedFooter = <div
+    className="home-shared-footer"
+    onClick={(event) => {
+      if ((event.target as HTMLElement).closest('.footer-top')) {
+        event.preventDefault();
+        goTo(0);
+      }
+    }}
+  >
+    {footer}
   </div>;
-  const legalFooter = <footer className="home-legal">
-    <p className="home-legal-lines">
-      <span>{siteSettings.copyright || siteSettings.footerText || siteSettings.siteName || '网站'}</span>
-      <span>{siteSettings.phone || layout.contactPhone ? `电话：${siteSettings.phone || layout.contactPhone}` : ''}{siteSettings.address ? `　地址：${siteSettings.address}` : ''}</span>
-      <span>{(siteSettings.icp || layout.icpRecordNumber) ? <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{siteSettings.icp || layout.icpRecordNumber}</a> : null}</span>
-      <span>本网站支持IPv6访问</span>
-    </p>
-  </footer>;
 
   const goTo = useCallback((index: number) => {
     const bounded = Math.min(Math.max(index, 0), screenIds.length - 1);
@@ -268,13 +256,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
             </div>
           ) : null}
           {!cultureItems.length && !cultureArticles.length ? <p className="home-empty">暂无已发布的企业文化与专题内容</p> : null}
-          {mergeContact ? (
-            <section className="home-contact-merge" aria-label="联系与关注">
-              <header className="home-contact-merge-heading"><span>{sectionContent.contact.eyebrow}</span><h3>{sectionContent.contact.title}</h3></header>
-              {contactBlock}
-            </section>
-          ) : null}
-          {legalFooter}
+          {mergeContact ? sharedFooter : null}
         </div>
       </section>
     ),
@@ -302,8 +284,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
         <HomepageScenery section="contact" background={layout.backgrounds.contact} />
         <div className="home-screen-inner home-contact-inner">
           <header className="home-section-heading"><span>{sectionContent.contact.eyebrow}</span><h2>{sectionContent.contact.title}</h2><p>{sectionContent.contact.subtitle}</p></header>
-          {contactBlock}
-          {legalFooter}
+          {sharedFooter}
         </div>
       </section>
     ),
