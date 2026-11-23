@@ -105,6 +105,7 @@ export default function HomepageExperience({ children, articles, cultureArticles
         <span>董事长信箱</span>
         <strong>{contactInfo.email || '点击进入在线留言'}</strong>
       </a>
+      <a className="home-message-btn" href="/contact-us#message">董事长邮箱在线留言</a>
       {contactInfo.address ? <p>地址：{contactInfo.address}</p> : null}
       {contactInfo.phone ? <p>电话：{contactInfo.phone}</p> : null}
       {layout.showQuickLinks && quickLinks.length ? <div className="home-quick-links">{quickLinks.map((link) => <a href={link.url || link.linkUrl} key={link.id}>{link.title}　↗</a>)}</div> : null}

@@ -3,7 +3,8 @@ import { fallbackNewsChannels, getFallbackNewsPayload } from '@/lib/cms/fallback
 import { getPublicArticles, getPublicChannels, isNewsChannel } from '@/lib/cms';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 import { Drawer, Footer, Header, NewsAssets } from './components';
-import type { Article, Channel, PublicArticleListPayload } from '@/types/cms';
+import { getAllArticleStats, withArticleStatBase } from '@/lib/article-stats/store';
+import type { Channel, PublicArticleListPayload } from '@/types/cms';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,23 +26,11 @@ const toSearchParams = (source: Record<string, string | string[] | undefined>) =
 
 const getFirst = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
-const formatDate = (value?: string) => {
+const formatDotDate = (value?: string) => {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-};
-
-const dayText = (value?: string) => {
-  const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return '--';
-  return String(date.getDate()).padStart(2, '0');
-};
-
-const monthText = (value?: string) => {
-  const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return '';
-  return `${date.getMonth() + 1}月`;
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 };
 
 const buildHref = (params: { channel?: string; channelRoot?: string; keyword?: string; page?: number; includeChildren?: boolean }) => {
@@ -60,13 +49,6 @@ export async function generateMetadata({ searchParams }: NewsPageProps): Promise
   const keyword = getFirst(rawSearchParams.keyword) || '';
   return buildSeoMetadata({ path: '/news', noIndex: Boolean(keyword) });
 }
-
-const getChannelLabel = (item: Article) => {
-  const channel = item.mainChannel || item.main_channel;
-  return item.newsSubcategory && item.newsSubcategory !== channel?.name
-    ? `${channel?.name || '新闻中心'} · ${item.newsSubcategory}`
-    : channel?.name || '新闻中心';
-};
 
 async function loadNews(searchParams: URLSearchParams) {
   const withScope = new URLSearchParams(searchParams);
@@ -139,10 +121,10 @@ function Pager({ payload, channel, channelRoot, keyword, includeChildren }: { pa
         className={`page-btn page-btn--nav${isFirst ? ' is-disabled' : ''}`}
         href={buildHref({ channel, channelRoot, keyword, page: Math.max(1, current - 1), includeChildren })}
         aria-disabled={isFirst ? 'true' : undefined}
+        aria-label="上一页"
       >
-        <span aria-hidden="true">‹</span> 上一页
+        <span aria-hidden="true">‹</span>
       </a>
-      <span className="page-count">第 {current} / {pages} 页</span>
       {visible.map((page, index) => (
         <span key={page}>
           {index > 0 && page - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>…</span> : null}
@@ -153,8 +135,9 @@ function Pager({ payload, channel, channelRoot, keyword, includeChildren }: { pa
         className={`page-btn page-btn--nav${isLast ? ' is-disabled' : ''}`}
         href={buildHref({ channel, channelRoot, keyword, page: Math.min(pages, current + 1), includeChildren })}
         aria-disabled={isLast ? 'true' : undefined}
+        aria-label="下一页"
       >
-        下一页 <span aria-hidden="true">›</span>
+        <span aria-hidden="true">›</span>
       </a>
     </nav>
   );
@@ -234,6 +217,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
   const keyword = getFirst(rawSearchParams.keyword) || '';
   const includeChildren = getFirst(rawSearchParams.includeChildren) === 'true';
   const { channels, payload, channelRoot, sectionRoot } = await loadNews(params);
+  const articleStats = await getAllArticleStats();
   const filterRows = buildNewsFilterRows(channels, channelRoot, activeChannel, includeChildren, keyword);
   const activeNavByRootSlug: Record<string, 'news' | 'businessDynamics' | 'partyMasses' | 'cleanGov' | 'responsibility'> = {
     'news-center': 'news',
@@ -297,50 +281,25 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
 
         <section className="section" id="content" aria-label="新闻内容" data-news-top>
           <div className="content">
-            <div className="section-head reveal is-visible">
-              <div>
-                <div className="kicker"><i aria-hidden="true" /><span>UPDATES</span></div>
-                <div className="h2">资讯聚合</div>
-                <p className="lead">按分类浏览或输入关键词搜索，列表支持分页展示。</p>
-              </div>
+            <div className="list-head reveal is-visible">
+              <span className="list-head-label">{activeChannelName}</span>
+              <span className="list-head-en">NEWS CENTER</span>
             </div>
 
-            <div className="news-grid news-grid--list-only" style={{ marginTop: 26 }}>
+            <div className="news-grid news-grid--list-only">
               <aside className="news-side reveal is-visible" aria-label="新闻列表">
                 <div className="news-list" id="newsList">
-                  {payload.items.length ? payload.items.map((item, index) => {
+                  {payload.items.length ? payload.items.map((item) => {
                     const publishValue = item.publishAt || item.publishDate;
-                    if (index === 0) {
-                      return (
-                        <a className="news-item news-item--featured reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
-                          {item.cover ? <span className="thumb thumb--featured"><img src={item.cover} alt="" /></span> : null}
-                          <span className="news-content">
-                            <span className="news-featured-top">
-                              <span className="news-cat-tag">{getChannelLabel(item)}</span>
-                              <span className="news-featured-date">{formatDate(publishValue)}</span>
-                            </span>
-                            <b className="news-title">{item.title}</b>
-                            <span className="news-desc">{item.summary || '查看该资讯详情。'}</span>
-                            <span className="news-meta-row">
-                              <span className="news-featured-hint">查看详情 <span aria-hidden="true">→</span></span>
-                            </span>
-                          </span>
-                        </a>
-                      );
-                    }
                     return (
                       <a className="news-item reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
-                        <span className="news-date-tag">
-                          <span className="nd-day">{dayText(publishValue)}</span>
-                          <span className="nd-month">{monthText(publishValue)}</span>
-                        </span>
-                        {item.cover ? <span className="thumb"><img src={item.cover} alt="" /></span> : null}
                         <span className="news-content">
-                          <b className="news-title">{item.title}</b>
-                          <span className="news-desc">{item.summary || '查看该资讯详情。'}</span>
+                          <span className="news-headline">
+                            <b className="news-title">{item.title}</b>
+                            <span className="news-browse">浏览：<em>{withArticleStatBase(articleStats[item.id]).views}</em>次</span>
+                          </span>
                           <span className="news-meta-row">
-                            <span className="news-cat-tag">{getChannelLabel(item)}</span>
-                            <span className="news-views">{formatDate(publishValue)}</span>
+                            <span className="news-views">{formatDotDate(publishValue)}</span>
                           </span>
                         </span>
                       </a>

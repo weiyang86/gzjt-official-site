@@ -322,16 +322,13 @@ function ReportEntrySection({ config }: { config: ReportConfig }) {
 }
 
 function DisciplineNewsSection({ articles, channelSlug }: { articles: Article[]; channelSlug: string }) {
-  const dayText = (value?: string) => {
-    const date = value ? new Date(value) : null;
-    if (!date || Number.isNaN(date.getTime())) return '--';
-    return String(date.getDate()).padStart(2, '0');
+  const formatListDate = (value?: string) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
   };
-  const monthText = (value?: string) => {
-    const date = value ? new Date(value) : null;
-    if (!date || Number.isNaN(date.getTime())) return '';
-    return `${date.getMonth() + 1}月`;
-  };
+
 
   return (
     <section className="section" id="discipline-news" aria-label="纪检监察动态">
@@ -350,15 +347,10 @@ function DisciplineNewsSection({ articles, channelSlug }: { articles: Article[];
               const publishValue = article.publishAt || article.publishDate;
               return (
                 <a className="news-item reveal is-visible" href={`/news/${encodeURIComponent(article.id)}`} key={article.id}>
-                  {publishValue ? (
-                    <span className="news-date-tag">
-                      <span className="nd-day">{dayText(publishValue)}</span>
-                      <span className="nd-month">{monthText(publishValue)}</span>
-                    </span>
-                  ) : null}
                   <span className="news-content">
                     <b className="news-title">{article.title}</b>
                     <span className="news-desc">{article.summary || '查看该资讯详情。'}</span>
+                    {publishValue ? <span className="news-meta-row"><span className="news-views">{formatListDate(publishValue)}</span></span> : null}
                   </span>
                 </a>
               );
@@ -1030,16 +1022,15 @@ function CompanyNewsPager({ slug, page, pageSize, total }: { slug: string; page:
   const href = (targetPage: number) => targetPage <= 1 ? `/org/${encodeURIComponent(slug)}` : `/org/${encodeURIComponent(slug)}?page=${targetPage}`;
 
   return (
-    <nav className="pagination company-news-pagination" style={{ marginTop: 24 }} aria-label="公司动态分页">
-      <a className={`page-btn page-btn--nav${current <= 1 ? ' is-disabled' : ''}`} href={href(Math.max(1, current - 1))} aria-disabled={current <= 1 ? 'true' : undefined}><span aria-hidden="true">‹</span> 上一页</a>
-      <span className="page-count">第 {current} / {pages} 页，共 {total} 条</span>
+    <nav className="pagination news-pagination company-news-pagination" style={{ marginTop: 24 }} aria-label={`公司动态分页，共 ${total} 条`}>
+      <a className={`page-btn page-btn--nav${current <= 1 ? ' is-disabled' : ''}`} href={href(Math.max(1, current - 1))} aria-disabled={current <= 1 ? 'true' : undefined} aria-label="上一页"><span aria-hidden="true">‹</span></a>
       {visible.map((item, index) => (
         <span key={item}>
           {index > 0 && item - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>…</span> : null}
           <a className={`page-btn${item === current ? ' is-active' : ''}`} href={href(item)} aria-current={item === current ? 'page' : undefined}>{item}</a>
         </span>
       ))}
-      <a className={`page-btn page-btn--nav${current >= pages ? ' is-disabled' : ''}`} href={href(Math.min(pages, current + 1))} aria-disabled={current >= pages ? 'true' : undefined}>下一页 <span aria-hidden="true">›</span></a>
+      <a className={`page-btn page-btn--nav${current >= pages ? ' is-disabled' : ''}`} href={href(Math.min(pages, current + 1))} aria-disabled={current >= pages ? 'true' : undefined} aria-label="下一页"><span aria-hidden="true">›</span></a>
     </nav>
   );
 }

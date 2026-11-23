@@ -7,16 +7,45 @@ import styles from './HomepageNews.module.css';
 type Props = { articles: Article[]; limit: number; interval: number; active: boolean; title: string };
 const href = (article: Article) => `/news/${encodeURIComponent(article.id)}`;
 const channel = (article: Article) => article.mainChannel || article.main_channel;
-const groupKey = (article: Article) => channel(article)?.id || channel(article)?.slug || channel(article)?.name || 'group';
 const groupName = (article: Article) => channel(article)?.name || '集团新闻';
+const categoryName = (article: Article) => groupName(article).trim();
 const dateText = (article: Article) => (article.publishAt || article.publishDate || '').slice(0, 10);
+/** 首页新闻固定展示的三个分类，不随数据分布增减。 */
+const FIXED_CATEGORIES = ['全部', '招投标公示', '集团要闻'] as const;
+const NEWS_CATEGORIES = ['招投标公示', '集团要闻'] as const;
 
 export default function HomepageNews({ articles, limit, interval, active, title }: Props) {
-  const items = useMemo(() => articles.slice(0, limit), [articles, limit]);
+  const items = articles;
+  /**
+   * “全部”按分类均衡抽取，避免招投标公告集中发布时与“招投标公示”列表完全重复。
+   * 先每类取相同数量，再按原始首页排序补齐，最后恢复排序。
+   */
+  const featuredItems = useMemo(() => {
+    const take = Math.max(1, Math.ceil(limit / NEWS_CATEGORIES.length));
+    const picked: Article[] = [];
+    const pickedIds = new Set<string>();
+    for (const name of NEWS_CATEGORIES) {
+      for (const item of items.filter((entry) => categoryName(entry) === name).slice(0, take)) {
+        if (pickedIds.has(item.id)) continue;
+        pickedIds.add(item.id);
+        picked.push(item);
+      }
+    }
+    if (picked.length < limit) {
+      for (const item of items) {
+        if (picked.length >= limit) break;
+        if (pickedIds.has(item.id)) continue;
+        pickedIds.add(item.id);
+        picked.push(item);
+      }
+    }
+    const rank = new Map(items.map((item, index) => [item.id, index]));
+    return picked.sort((left, right) => (rank.get(left.id) ?? 0) - (rank.get(right.id) ?? 0)).slice(0, limit);
+  }, [items, limit]);
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState('');
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState('全部');
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -29,9 +58,9 @@ export default function HomepageNews({ articles, limit, interval, active, title 
   const slides = useMemo(() => candidates.filter((item) => item.cover && loaded.has(item.cover) && !failed.has(item.cover)).slice(0, 3), [candidates, loaded, failed]);
   const current = slides.find((item) => item.id === selected) || slides[0];
   const index = current ? slides.findIndex((item) => item.id === current.id) : 0;
-  const groups = useMemo(() => Array.from(new Map(items.map((item) => [groupKey(item), groupName(item)])).entries()), [items]);
-  const activeCategory = groups.some(([id]) => id === category) ? category : 'all';
-  const visibleItems = activeCategory === 'all' ? items : items.filter((item) => groupKey(item) === activeCategory);
+  const visibleItems = category === '全部'
+    ? featuredItems
+    : items.filter((item) => categoryName(item) === category).slice(0, limit);
   const stopped = paused || hovered || focused || reduced || hidden || !active;
   const selectOffset = (offset: number) => {
     if (slides.length > 1) setSelected(slides[(index + offset + slides.length) % slides.length].id);
@@ -133,8 +162,9 @@ export default function HomepageNews({ articles, limit, interval, active, title 
     </div>
     <div className={styles.news}>
       <div className={styles.tabs} role="group" aria-label="首页新闻分类">
-        <button type="button" aria-pressed={activeCategory === 'all'} onClick={() => setCategory('all')}>全部</button>
-        {groups.length > 1 ? groups.map(([id, name]) => <button type="button" key={id} aria-pressed={activeCategory === id} onClick={() => setCategory(id)}>{name}</button>) : null}
+        {FIXED_CATEGORIES.map((name) => (
+          <button type="button" key={name} aria-pressed={category === name} onClick={() => setCategory(name)}>{name}</button>
+        ))}
       </div>
       <ul className={styles.list} data-home-news-list>{visibleItems.map((item, i) => <li key={item.id} data-news-enter>
         <a href={href(item)} className={`${styles.row}${i === 0 ? ` ${styles.lead}` : ''}`}>
@@ -143,7 +173,7 @@ export default function HomepageNews({ articles, limit, interval, active, title 
           </span><time>{dateText(item)}</time><span className={styles.arrow} aria-hidden="true">↗</span>
         </a>
       </li>)}</ul>
-      {!items.length ? <p className={styles.empty}>暂无已发布新闻</p> : null}
+      {!items.length ? <p className={styles.empty}>暂无已发布新闻</p> : !visibleItems.length ? <p className={styles.empty}>该分类暂无已发布新闻</p> : null}
       <a className={styles.more} href="/news">进入新闻中心 <span aria-hidden="true">→</span></a>
     </div>
   </div>;

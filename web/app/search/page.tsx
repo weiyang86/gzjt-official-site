@@ -25,7 +25,7 @@ const formatDate = (value?: string) => {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 };
 
 const buildHref = (params: { keyword: string; type: SearchTypeFilter; page?: number }) => {
@@ -70,15 +70,15 @@ function Pager({ keyword, type, page, pageSize, total }: {
     .filter((item) => pages <= 7 || item === 1 || item === pages || Math.abs(item - current) <= 1);
 
   return (
-    <nav className="pagination reveal is-visible" style={{ marginTop: 26 }} aria-label="搜索结果分页">
+    <nav className="pagination news-pagination reveal is-visible" style={{ marginTop: 26 }} aria-label={`搜索结果分页，共 ${total} 条`}>
       <a
         className={`page-btn page-btn--nav${current <= 1 ? ' is-disabled' : ''}`}
         href={buildHref({ keyword, type, page: Math.max(1, current - 1) })}
         aria-disabled={current <= 1 ? 'true' : undefined}
+        aria-label="上一页"
       >
-        <span aria-hidden="true">‹</span> 上一页
+        <span aria-hidden="true">‹</span>
       </a>
-      <span className="page-count">第 {current} / {pages} 页，共 {total} 条</span>
       {visible.map((item, index) => (
         <span key={item}>
           {index > 0 && item - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>…</span> : null}
@@ -89,8 +89,9 @@ function Pager({ keyword, type, page, pageSize, total }: {
         className={`page-btn page-btn--nav${current >= pages ? ' is-disabled' : ''}`}
         href={buildHref({ keyword, type, page: Math.min(pages, current + 1) })}
         aria-disabled={current >= pages ? 'true' : undefined}
+        aria-label="下一页"
       >
-        下一页 <span aria-hidden="true">›</span>
+        <span aria-hidden="true">›</span>
       </a>
     </nav>
   );

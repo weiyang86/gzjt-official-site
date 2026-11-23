@@ -1,8 +1,9 @@
 import Script from 'next/script';
 import { Fragment } from 'react';
-import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks, getPublicQuickLinks, getPublicContactInfo } from '@/lib/cms';
+import { getPublicChannels, getPublicSiteSettings, getPublicFriendLinks, getPublicContactInfo, getPublicPlatformQrs } from '@/lib/cms';
 import type { Channel } from '@/types/cms';
 import NavigationActiveState from './NavigationActiveState';
+import FooterQr from './FooterQr';
 
 export type NavKey = 'home' | 'about' | 'disclosure' | 'news' | 'businessDynamics' | 'businessDev' | 'partyMasses' | 'cleanGov' | 'responsibility' | 'contact' | 'downloads' | 'topics';
 
@@ -251,30 +252,86 @@ export async function Drawer(_props: { active?: NavKey; noticeChannels?: Channel
 }
 
 export async function Footer() {
-  const [siteSettings, friendLinks, quickLinks, contactInfo] = await Promise.all([
+  const [siteSettings, friendLinks, contactInfo, platformQrs] = await Promise.all([
     getPublicSiteSettings().catch(() => ({ siteName: '', footerText: '', logo: '', address: '', phone: '', email: '', icp: '', copyright: '' })),
     getPublicFriendLinks('footer').catch(() => []),
-    getPublicQuickLinks().catch(() => []),
     getPublicContactInfo().catch(() => ({ email: '', phone: '', address: '', mapEmbedUrl: '' })),
+    getPublicPlatformQrs().catch(() => []),
   ]);
   const safeName = siteSettings.siteName || '网站';
+  const wechatQr = platformQrs.find((qr) => /公众号/.test(qr.title)) || platformQrs[0];
+  const channelsQr = platformQrs.find((qr) => /视频号/.test(qr.title));
+  const douyinQr = platformQrs.find((qr) => /抖音/.test(qr.title));
+  const toutiaoQr = platformQrs.find((qr) => /头条/.test(qr.title));
+  const qrSlots = [
+    { key: 'wechat', title: '微信公众号', qr: wechatQr },
+    { key: 'channels', title: '微信视频号', qr: channelsQr },
+    { key: 'douyin', title: '抖音号', qr: douyinQr },
+    { key: 'toutiao', title: '今日头条号', qr: toutiaoQr },
+  ];
+  const mailboxHref = contactInfo.email ? `mailto:${contactInfo.email}` : '/contact-us#message';
+
   return (
     <footer className="footer" aria-label="页脚信息">
       <div className="content">
-        <div className="footer-inner">
-          <div>
-            <h3>{safeName}</h3>
-            <p>{contactInfo.address ? `地址：${contactInfo.address}` : '地址暂未配置'}<br />{contactInfo.phone ? `电话：${contactInfo.phone}` : '电话暂未配置'}{contactInfo.email ? <><br />邮箱：<a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a></> : null}</p>
+        <div className="footer-main">
+          <div className="footer-info">
+            <div className="footer-mailboxes">
+              <a className="footer-mailbox" href={mailboxHref}>
+                <span className="footer-mailbox-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="2.5" y="5" width="19" height="14" /><path d="m3 6 9 7 9-7" /></svg>
+                </span>
+                <span className="footer-mailbox-body">
+                  <span className="footer-mailbox-label">董事长信箱</span>
+                  <strong>{contactInfo.email || '点击进入在线留言'}</strong>
+                </span>
+              </a>
+              <a className="footer-mailbox" href="/contact-us#message">
+                <span className="footer-mailbox-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="2.5" y="5" width="19" height="14" /><path d="m3 6 9 7 9-7" /></svg>
+                </span>
+                <span className="footer-mailbox-body">
+                  <span className="footer-mailbox-label">总经理信箱</span>
+                  <strong>点击进入在线留言</strong>
+                </span>
+              </a>
+            </div>
+            <p className="footer-contact-line">联系地址：{contactInfo.address || '地址暂未配置'}</p>
+            <p className="footer-contact-line">联系电话：{contactInfo.phone || '电话暂未配置'}</p>
+            {friendLinks.length ? (
+              <details className="footer-friend-select">
+                <summary>友情链接</summary>
+                <div className="footer-friend-options">
+                  {friendLinks.map((link) => <a href={link.url} target="_blank" rel="noopener noreferrer" key={link.id}>{link.title}</a>)}
+                </div>
+              </details>
+            ) : null}
           </div>
-          <div>
-            {quickLinks.length ? <dl><dt>快速链接</dt><dd className="footer-friend-links">{quickLinks.map((link) => <a href={link.url} target={link.url.startsWith('http') ? '_blank' : undefined} rel={link.url.startsWith('http') ? 'noopener noreferrer' : undefined} key={link.id}>{link.title}</a>)}</dd></dl> : null}
-            <dl><dt>友情链接</dt><dd className="footer-friend-links">{friendLinks.length ? friendLinks.map((link) => <a href={link.url} target="_blank" rel="noopener noreferrer" key={link.id}>{link.title}</a>) : <span>暂无友情链接</span>}</dd></dl>
+          <div className="footer-qrs">
+            {qrSlots.map((slot) => (
+              <figure className="footer-qr-card" key={slot.key}>
+                <FooterQr
+                  src={slot.qr?.image || ''}
+                  alt={`${slot.title}二维码`}
+                  fallbackSrc={slot.key === 'wechat' ? '/img/public-platform-qr.png' : ''}
+                />
+                <figcaption>{slot.title}</figcaption>
+              </figure>
+            ))}
           </div>
         </div>
-        <div className="footbar">
-          <span>{siteSettings.copyright || siteSettings.footerText || safeName}</span>
-          {siteSettings.icp ? <span><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{siteSettings.icp}</a></span> : null}
+        <div className="footer-bottom">
+          <p>{siteSettings.copyright || siteSettings.footerText || safeName}</p>
+          <p>
+            {contactInfo.phone ? `电话：${contactInfo.phone}` : ''}
+            {siteSettings.icp ? <>{contactInfo.phone ? '　' : ''}<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{siteSettings.icp}</a></> : null}
+          </p>
+          <p>本网站支持IPv6访问　技术支持</p>
         </div>
+        <a className="footer-top" href="#" aria-label="返回顶部">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 15 7-7 7 7" /></svg>
+          <span>TOP</span>
+        </a>
       </div>
     </footer>
   );

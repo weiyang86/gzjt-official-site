@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getPublicArticles, getPublicChannels } from '@/lib/cms';
 import { buildSeoMetadata } from '@/lib/cms/seo';
 import { Drawer, Footer, Header, NewsAssets } from '../news/components';
+import { getAllArticleStats, withArticleStatBase } from '@/lib/article-stats/store';
 import type { PublicArticleListPayload } from '@/types/cms';
 
 export const dynamic = 'force-dynamic';
@@ -21,23 +22,11 @@ const toSearchParams = (source: Record<string, string | string[] | undefined>) =
   return params;
 };
 
-const formatDate = (value?: string) => {
+const formatDotDate = (value?: string) => {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-};
-
-const dayText = (value?: string) => {
-  const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return '--';
-  return String(date.getDate()).padStart(2, '0');
-};
-
-const monthText = (value?: string) => {
-  const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return '';
-  return `${date.getMonth() + 1}月`;
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 };
 
 const buildHref = (params: { channel?: string; keyword?: string; page?: number }) => {
@@ -103,10 +92,10 @@ function Pager({ payload, channel, keyword }: { payload: PublicArticleListPayloa
         className={`page-btn page-btn--nav${isFirst ? ' is-disabled' : ''}`}
         href={buildHref({ channel, keyword, page: Math.max(1, current - 1) })}
         aria-disabled={isFirst ? 'true' : undefined}
+        aria-label="上一页"
       >
-        <span aria-hidden="true">‹</span> 上一页
+        <span aria-hidden="true">‹</span>
       </a>
-      <span className="page-count">第 {current} / {pages} 页</span>
       {visible.map((page, index) => (
         <span key={page}>
           {index > 0 && page - visible[index - 1] > 1 ? <span style={{ opacity: .55, padding: '0 6px' }}>...</span> : null}
@@ -117,8 +106,9 @@ function Pager({ payload, channel, keyword }: { payload: PublicArticleListPayloa
         className={`page-btn page-btn--nav${isLast ? ' is-disabled' : ''}`}
         href={buildHref({ channel, keyword, page: Math.min(pages, current + 1) })}
         aria-disabled={isLast ? 'true' : undefined}
+        aria-label="下一页"
       >
-        下一页 <span aria-hidden="true">›</span>
+        <span aria-hidden="true">›</span>
       </a>
     </nav>
   );
@@ -130,6 +120,7 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
   const activeChannel = getFirst(rawSearchParams.channel) || 'all';
   const keyword = getFirst(rawSearchParams.keyword) || '';
   const { channels, payload, error } = await loadNotices(params);
+  const articleStats = await getAllArticleStats();
   const selectedChannel = activeChannel !== 'all' ? channels.find((channel) => channel.slug === activeChannel) : null;
   const activeCategoryName = selectedChannel?.name || '公示公告';
 
@@ -177,13 +168,11 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
 
         <section className="section" id="content" aria-label="公告内容" data-news-top>
           <div className="content">
-            <div className="section-head reveal is-visible">
-              <div>
-                <div className="kicker"><i aria-hidden="true" /><span>ANNOUNCEMENTS</span></div>
-                <div className="h2">{activeCategoryName}</div>
-                {error ? <p className="lead">公告数据暂时无法加载，请稍后重试。</p> : null}
-              </div>
+            <div className="list-head reveal is-visible">
+              <span className="list-head-label">{activeCategoryName}</span>
+              <span className="list-head-en">ANNOUNCEMENTS</span>
             </div>
+            {error ? <p className="lead">公告数据暂时无法加载，请稍后重试。</p> : null}
 
             <div className="filters reveal is-visible">
               <form className="search" aria-label="搜索" action="/disclosure">
@@ -193,24 +182,20 @@ export default async function DisclosurePage({ searchParams }: DisclosurePagePro
               </form>
             </div>
 
-            <div className="news-grid news-grid--list-only" style={{ marginTop: 30 }}>
+            <div className="news-grid news-grid--list-only" style={{ marginTop: 18 }}>
               <aside className="news-side reveal is-visible" aria-label={`${activeCategoryName}列表`}>
                 <div className="news-list">
                   {payload.items.length ? payload.items.map((item) => {
                     const publishValue = item.publishAt || item.publishDate;
-                    const channel = item.mainChannel || item.main_channel;
                     return (
-                      <a className="news-item news-item--notice reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
-                        <span className="news-date-tag">
-                          <span className="nd-day">{dayText(publishValue)}</span>
-                          <span className="nd-month">{monthText(publishValue)}</span>
-                        </span>
+                      <a className="news-item reveal is-visible" href={`/news/${encodeURIComponent(item.id)}`} key={item.id}>
                         <span className="news-content">
-                          <b className="news-title">{item.title}</b>
-                          <span className="news-desc">{item.summary || '查看公告详情。'}</span>
+                          <span className="news-headline">
+                            <b className="news-title">{item.title}</b>
+                            <span className="news-browse">浏览：<em>{withArticleStatBase(articleStats[item.id]).views}</em>次</span>
+                          </span>
                           <span className="news-meta-row">
-                            <span className="news-cat-tag">{channel?.name || '公示公告'}</span>
-                            <span className="news-views">{formatDate(publishValue)}</span>
+                            <span className="news-views">{formatDotDate(publishValue)}</span>
                           </span>
                         </span>
                       </a>

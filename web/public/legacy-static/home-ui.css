@@ -315,6 +315,8 @@ html[data-viewport="mobile"] .home-experience .home-screen-index button { width:
 .home-experience .home-mailbox { border: 1px solid var(--ui-line); background: linear-gradient(135deg, #fff5f5, #fff); color: var(--ui-ink); }
 .home-experience .home-mailbox span { color: var(--ui-accent); }
 .home-experience .home-mailbox:hover { background: var(--ui-soft); }
+.home-experience .home-message-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin: 0 0 16px; padding: 0 20px; border-radius: 2px; background: var(--ui-accent); color: #fff; font-size: 14px; text-decoration: none; }
+.home-experience .home-message-btn:hover { background: #8f1a1e; color: #fff; }
 .home-experience .home-contact-merge .home-contact-card { background: #fff; }
 .home-experience .home-topic-cover { height: auto; aspect-ratio: 16 / 10; object-fit: cover; margin-bottom: 0; }
 .home-experience .home-topic-grid > a { padding: 0; overflow: hidden; }
