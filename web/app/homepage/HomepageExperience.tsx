@@ -235,10 +235,10 @@ export default function HomepageExperience({ children, footer, articles, culture
           <header className="home-section-heading"><span>{sectionContent.culture.eyebrow}</span><h2>{sectionContent.culture.title}</h2><p>{sectionContent.culture.subtitle}</p></header>
           {cultureItems.length ? (
             <div className="home-culture-block">
-              <p className="home-culture-block-title">企业文化</p>
+              <a className="home-culture-block-title" href="/about/culture" style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>企业文化</a>
               <div className="home-culture-values">
                 {cultureItems.slice(0, layout.cultureItemCount).map((item) => (
-                  <a href="/about#culture" key={item.id}>
+                  <a href="/about/culture" key={item.id}>
                     <span>{item.title || '企业文化'}</span>
                     <strong>{item.subtitle || item.title}</strong>
                   </a>
