@@ -669,13 +669,14 @@ async function loadCorporateCulture() {
 
 export async function GenericSinglePage({ slug }: { slug: keyof typeof pageMeta }) {
   if (slug === 'about') {
-    const [groupIntro, historyTimeline, culture] = await Promise.all([
+    const [groupIntro, historyTimeline, culture, historyPage] = await Promise.all([
       getPublicGroupIntro().catch(() => null),
       getPublicHistoryTimeline().catch(() => null),
       loadCorporateCulture(),
+      getPublicPageModule('group-history').catch(() => null),
     ]);
     // 接口失败时沿用原静态时间轴；接口正常但无启用条目时展示空状态，确保后台启停生效。
-    return <AboutPage page={groupIntro} timeline={historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline)} culture={culture.content} cultureItems={culture.items} />;
+    return <AboutPage page={groupIntro} historyPage={historyPage} timeline={historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline)} culture={culture.content} cultureItems={culture.items} />;
   }
   const page = await loadPage(slug);
   const meta = pageMeta[slug];
@@ -834,12 +835,13 @@ const aboutSectionMeta: Record<AboutSection, { title: string; kicker: string; an
 
 interface AboutPageData {
   page: PageContent | null;
+  historyPage: PageModuleContent | null;
   timeline: HistoryTimelineItem[];
   culture: PageModuleContent | null;
   cultureItems: PageModuleItem[];
 }
 
-function AboutPage({ page, timeline, culture, cultureItems, section = 'profile' }: AboutPageData & { section?: AboutSection }) {
+function AboutPage({ page, historyPage, timeline, culture, cultureItems, section = 'profile' }: AboutPageData & { section?: AboutSection }) {
   const meta = aboutSectionMeta[section];
   const config = getGroupIntroConfig(page?.extra_json) as GroupIntroConfig;
   const heroStats = Array.isArray(config.heroStats) ? config.heroStats.filter((item): item is GroupIntroStat => Boolean(item?.value && item?.label)) : [];
@@ -858,7 +860,7 @@ function AboutPage({ page, timeline, culture, cultureItems, section = 'profile' 
         <Hero
           title={meta.title}
           kicker={meta.kicker}
-          subtitle={page?.subtitle || page?.summary || ''}
+          subtitle={section === 'history' ? (historyPage?.summary || '') : (page?.subtitle || page?.summary || '')}
           cover={page?.cover || '/img/318康定市过境段公路工程项目434互通工程.jpg'}
           ctaHref={meta.anchor}
           ctaLabel={section === 'profile' ? '了解集团' : section === 'history' ? '查看沿革' : '了解文化'}
@@ -966,13 +968,15 @@ function AboutPage({ page, timeline, culture, cultureItems, section = 'profile' 
 }
 
 async function loadAboutPageData(): Promise<AboutPageData> {
-  const [groupIntro, historyTimeline, culture] = await Promise.all([
+  const [groupIntro, historyTimeline, culture, historyPage] = await Promise.all([
     getPublicGroupIntro().catch(() => null),
     getPublicHistoryTimeline().catch(() => null),
     loadCorporateCulture(),
+    getPublicPageModule('group-history').catch(() => null),
   ]);
   return {
     page: groupIntro,
+    historyPage,
     timeline: historyTimeline === null ? fallbackHistoryTimeline : visibleHistoryTimeline(historyTimeline),
     culture: culture.content,
     cultureItems: culture.items,
@@ -983,6 +987,40 @@ async function loadAboutPageData(): Promise<AboutPageData> {
 export async function AboutSectionPage({ section }: { section: AboutSection }) {
   const data = await loadAboutPageData();
   return <AboutPage {...data} section={section} />;
+}
+
+/** 由 page_contents 单页模块驱动的独立内容页，例如发展战略、党建引领。 */
+export async function ModuleSinglePage({ moduleCode, fallbackTitle, kicker, active, parent }: {
+  moduleCode: string;
+  fallbackTitle: string;
+  kicker: string;
+  active: ActiveKey;
+  parent: { title: string; href: string };
+}) {
+  const content = await getPublicPageModule(moduleCode).catch(() => null);
+  const title = content?.title || fallbackTitle;
+  return (
+    <Shell active={active}>
+      <Breadcrumb title={title} parents={[parent]} />
+      <main className="page" aria-label={title}>
+        <Hero
+          title={title}
+          kicker={kicker}
+          subtitle={content?.subtitle || content?.summary || ''}
+          cover={content?.cover}
+          ctaHref="#module-content"
+          ctaLabel="查看内容"
+        />
+        <section className="section" id="module-content" aria-label={`${title}内容`}>
+          <div className="content">
+            <div className="detail reveal is-visible">
+              <div className="body" dangerouslySetInnerHTML={{ __html: content?.content || '<p>内容暂未发布，敬请关注。</p>' }} />
+            </div>
+          </div>
+        </section>
+      </main>
+    </Shell>
+  );
 }
 
 export async function BusinessPage({ selectedSlug, basePath = '/business' }: { selectedSlug?: string; basePath?: string } = {}) {

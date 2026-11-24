@@ -54,9 +54,11 @@ const navKeyByChannelName: Record<string, NavKey> = {
  * 独立功能页不属于资讯栏目，但需要在既有栏目树下提供入口；
  * CMS 已存在相同 slug 或 path 的栏目时自动跳过，避免重复菜单。
  */
-const supplementalNavItems = [
+const supplementalNavItems: Array<{ parentSlug: string; name: string; slug: string; path: string; sort?: number }> = [
   { parentSlug: 'group-profile', name: '企业荣誉', slug: 'group-honors', path: '/about/honors' },
   { parentSlug: 'group-profile', name: '企业文化', slug: 'corporate-culture', path: '/about/culture' },
+  { parentSlug: 'group-profile', name: '发展战略', slug: 'group-strategy', path: '/about/strategy', sort: 5 },
+  { parentSlug: 'party-mass', name: '党建引领', slug: 'party-building', path: '/party-masses/leadership', sort: -1 },
   { parentSlug: 'party-mass', name: '培训资源', slug: 'party-training', path: '/party/training' },
   { parentSlug: 'business-domain', name: '科技创新', slug: 'business-innovation', path: '/business/innovation' },
 ];
@@ -76,7 +78,7 @@ const mergeSupplementalNav = (channels: Channel[]) => {
       parent: parent.id,
       type: 'page',
       path: item.path,
-      sort: siblingSorts.length ? Math.max(...siblingSorts) + 1 : 1,
+      sort: item.sort ?? (siblingSorts.length ? Math.max(...siblingSorts) + 1 : 1),
       status: 'enabled',
       visible: true,
       isNewsCategory: false,
@@ -113,6 +115,7 @@ const mergeBusinessDomainNav = (channels: Channel[]) => {
 const getDynamicNavigation = async () => {
   try {
     const channels = mergeBusinessDomainNav(mergeSupplementalNav((await getPublicChannels()).filter((channel) => channel.status === 'enabled' && channel.visible !== false)));
+    channels.sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0));
     const ids = new Set(channels.map((channel) => channel.id));
     const roots = channels.filter((channel) => !channel.parent || !ids.has(channel.parent));
     const children = (parentId: string) => channels.filter((channel) => channel.parent === parentId);
